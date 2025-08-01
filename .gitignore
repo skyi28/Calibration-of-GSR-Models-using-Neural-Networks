@@ -1,0 +1,10 @@
+/.old_code_versions
+
+/data/EUR BVOL CUBE
+/data/EUR SWAP CURVE
+/data/EUR ZERO CURVE
+
+/results/traditional/predictions
+/results/neural_network/predictions
+
+NOTES.txt
