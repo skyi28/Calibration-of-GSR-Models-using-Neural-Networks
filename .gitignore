@@ -3,6 +3,7 @@
 /data/EUR BVOL CUBE
 /data/EUR SWAP CURVE
 /data/EUR ZERO CURVE
+/data/META
 
 /results/traditional/predictions
 /results/neural_network/predictions
