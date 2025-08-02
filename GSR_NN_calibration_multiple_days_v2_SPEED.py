@@ -1,3 +1,6 @@
+"""
+This script is designed to calibrate Hull-White GSR models using neural network.
+"""
 import datetime
 import os
 import sys
@@ -10,7 +13,6 @@ from sklearn.preprocessing import StandardScaler
 from numpy.typing import NDArray
 from typing import List, Tuple, Optional, Dict
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from concurrent.futures import ThreadPoolExecutor
 import bisect
@@ -60,6 +62,17 @@ if PREPROCESS_CURVES:
 
 #--------------------BOOTSTRAP ZERO CURVES--------------------
 def _interpolate(x: float, x_points: list[float] | NDArray , y_points: list[float] | NDArray) -> float:
+    """
+    Performs linear interpolation.
+    
+    Args:
+        x (float): The point to interpolate.
+        x_points (list or np.array): The x-coordinates of the known points.
+        y_points (list or np.array): The y-coordinates of the known points.
+        
+    Returns:
+        float: The interpolated y-value.
+    """
     return float(np.interp(x, x_points, y_points))
 
 def bootstrap_zero_curve(
@@ -68,6 +81,21 @@ def bootstrap_zero_curve(
     freq: int = 2,
     day_count_convention: float = 365.25
 ) -> pd.DataFrame:
+    """
+    Bootstraps a zero-coupon curve from a given par swap curve DataFrame.
+
+    Args:
+        processed_swap_curve (pd.DataFrame): DataFrame containing 'Date' and 'Rate' columns,
+            where 'Date' is the maturity date of the swap and 'Rate' is the par swap rate.
+        valuation_date (datetime.datetime): The reference date from which the tenors are calculated.
+        freq (int, optional): Number of fixed coupon payments per year. Defaults to 2.
+        day_count_convention (float, optional): Day count convention used for year fractions. Defaults to 365.25.
+
+    Returns:
+        pd.DataFrame: DataFrame with 'Date', 'Tenor', 'DiscountFactor', and 'ZeroRate' columns,
+            where 'DiscountFactor' and 'ZeroRate' are derived from the bootstrapping process.
+    """
+
     df: pd.DataFrame = processed_swap_curve.copy()
     df['Tenor'] = df['Date'].apply(lambda d: round((d - valuation_date).days / day_count_convention, 2))
     df = df.sort_values(by='Tenor').reset_index(drop=True)
@@ -112,6 +140,20 @@ def load_and_split_data_files(
     vol_cube_folder: str,
     train_split_percentage: float
 ) -> Tuple[List[Tuple[datetime.date, str, str]], List[Tuple[datetime.date, str, str]]]:
+    """
+    Discovers and loads available zero curve and volatility cube data files and splits them into
+    training and validation sets according to the given percentage.
+
+    Args:
+        zero_curve_folder (str): The folder containing the zero curve data files.
+        vol_cube_folder (str): The folder containing the volatility cube data files.
+        train_split_percentage (float): The percentage of available data to use for training.
+
+    Returns:
+        Tuple[List[Tuple[datetime.date, str, str]], List[Tuple[datetime.date, str, str]]]:
+            A tuple of two lists. The first list contains the training data, the second list contains the
+            validation data. Each list element is a tuple of (evaluation_date, zero_curve_path, vol_cube_path).
+    """
     print("\n--- Discovering and loading data files ---")
     vol_cube_xlsx_folder = os.path.join(vol_cube_folder, 'xlsx')
     if not os.path.exists(zero_curve_folder) or not os.path.exists(vol_cube_xlsx_folder):
@@ -141,7 +183,29 @@ def load_and_split_data_files(
 
 #--------------------HELPER FOR LOADING VOL CUBE--------------------
 def load_volatility_cube(file_path: str) -> pd.DataFrame:
-    """Loads and cleans the volatility cube DataFrame."""
+    """
+    Reads an Excel file containing a volatility cube from the given file path.
+
+    The Excel file is expected to have the following format:
+
+    - The first column is the Expiry column, which is expected to be contiguous.
+    - The second column is the Type column, which indicates whether the row is a Volatility or a Strike.
+    - The remaining columns are the tenors, which are used to index the Volatility and Strike values.
+
+    The function returns a Pandas DataFrame with the following columns:
+    - Expiry: The contiguous expiry dates.
+    - Type: The type of the row (Vol or Strike).
+    - Tenors: The tenors as columns, with the Volatility or Strike values as the cell values.
+
+    The function does the following:
+    - Reads the Excel file into a Pandas DataFrame.
+    - Renames the second column to 'Type'.
+    - Drops any columns with 'Unnamed' in their name.
+    - Forward-fills the Expiry column to make the expiry dates contiguous.
+
+    :param file_path: The file path of the Excel file containing the volatility cube.
+    :return: A Pandas DataFrame containing the volatility cube.
+    """
     df = pd.read_excel(file_path, engine='openpyxl')
     df.rename(columns={df.columns[1]: 'Type'}, inplace=True)
     for col in df.columns:
@@ -151,12 +215,24 @@ def load_volatility_cube(file_path: str) -> pd.DataFrame:
 
 #--------------------HELPER AND PLOTTING FUNCTIONS--------------------
 def parse_tenor(tenor_str: str) -> ql.Period:
+    """
+    Parses a tenor string (e.g., '1Yr', '6Mo') into a QuantLib Period object.
+
+    :param tenor_str: The tenor string to parse.
+    :return: A QuantLib Period object representing the tenor.
+    """
     tenor_str = tenor_str.strip().upper()
     if 'YR' in tenor_str: return ql.Period(int(tenor_str.replace('YR', '')), ql.Years)
     if 'MO' in tenor_str: return ql.Period(int(tenor_str.replace('MO', '')), ql.Months)
     raise ValueError(f"Could not parse tenor string: {tenor_str}")
 
 def parse_tenor_to_years(tenor_str: str) -> float:
+    """
+    Parses a tenor string (e.g., '1Yr', '6Mo') into a float representing years.
+
+    :param tenor_str: The tenor string to parse.
+    :return: A float representing the tenor in years.
+    """
     tenor_str = tenor_str.strip().upper()
     if 'YR' in tenor_str: return float(int(tenor_str.replace('YR', '')))
     if 'MO' in tenor_str: return int(tenor_str.replace('MO', '')) / 12.0
@@ -165,6 +241,16 @@ def parse_tenor_to_years(tenor_str: str) -> float:
 def create_ql_yield_curve(
     zero_curve_df: pd.DataFrame, eval_date: datetime.date
 ) -> ql.RelinkableYieldTermStructureHandle:
+    """
+    Creates a QuantLib YieldTermStructure from a bootstrapped zero curve DataFrame.
+    
+    Args:
+        zero_curve_df (pd.DataFrame): The DataFrame containing the zero curve data.
+        eval_date (datetime.date): The evaluation date of the yield curve.
+    
+    Returns:
+        ql.RelinkableYieldTermStructureHandle: The created yield curve.
+    """
     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     dates = [ql_eval_date] + [ql.Date(d.day, d.month, d.year) for d in pd.to_datetime(zero_curve_df['Date'])]
     rates = [zero_curve_df['ZeroRate'].iloc[0]] + zero_curve_df['ZeroRate'].tolist()
@@ -180,6 +266,20 @@ def prepare_calibration_helpers(
     min_expiry_years: float = 0.0,
     min_tenor_years: float = 0.0
 ) -> List[Tuple[ql.SwaptionHelper, str, str]]:
+    """
+    Parses the swaption volatility cube and creates a list of QuantLib SwaptionHelper objects,
+    optionally filtering by minimum expiry and tenor.
+
+    Args:
+        vol_cube_df (pd.DataFrame): The DataFrame containing the swaption volatility cube.
+        term_structure_handle (ql.RelinkableYieldTermStructureHandle): The yield curve to use for pricing.
+        min_expiry_years (float, optional): The minimum expiry time in years. Defaults to 0.0.
+        min_tenor_years (float, optional): The minimum tenor time in years. Defaults to 0.0.
+
+    Returns:
+        List[Tuple[ql.SwaptionHelper, str, str]]: A list of tuples, where each tuple contains a SwaptionHelper,
+            the expiry string and the tenor string.
+    """
     helpers_with_info = []
     vols_df = vol_cube_df[vol_cube_df['Type'] == 'Vol'].set_index('Expiry')
     strikes_df = vol_cube_df[vol_cube_df['Type'] == 'Strike'].set_index('Expiry')
@@ -200,6 +300,16 @@ def prepare_calibration_helpers(
     return helpers_with_info
 
 def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date):
+    """
+    Shows 3 diagrams as 3D plots in the same figure after the calibration.
+
+    Plots the observed market volatilities, model implied volatilities, and the difference between them.
+
+    Args:
+        results_df (pd.DataFrame): The DataFrame with the calibration results.
+        eval_date (datetime.date): The evaluation date of the yield curve.
+    """
+    
     plot_data = results_df.dropna(subset=['MarketVol', 'ModelVol', 'Difference']).copy()
     if plot_data.empty:
         print(f"\nCould not generate plots for {eval_date}: No valid data points available.")
@@ -228,10 +338,30 @@ def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date)
 
 #--------------------TENSORFLOW NEURAL NETWORK CALIBRATION HELPERS--------------------
 def _format_time(seconds: float) -> str:
+    """
+    Convert seconds to a string in the format "HH:MM:SS"
+
+    Args:
+        seconds (float): The time in seconds
+
+    Returns:
+        str: Formatted string
+    """
     s = int(round(seconds)); h, r = divmod(s, 3600); m, s = divmod(r, 60)
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 def _get_step_dates_from_expiries(ql_eval_date: ql.Date, included_expiries_yrs: List[float], num_segments: int) -> List[ql.Date]:
+    """
+    Calculates the step dates for piecewise parameters based on available expiry dates.
+    
+    Args:
+        ql_eval_date (ql.Date): The evaluation date of the yield curve.
+        included_expiries_yrs (List[float]): The sorted list of expiry years.
+        num_segments (int): The number of segments to split the expiry years into.
+    
+    Returns:
+        List[ql.Date]: The step dates of the piecewise parameters.
+    """
     if num_segments <= 1: return []
     unique_expiries = sorted(list(set(included_expiries_yrs)))
     if len(unique_expiries) < num_segments: num_segments = len(unique_expiries)
@@ -241,6 +371,18 @@ def _get_step_dates_from_expiries(ql_eval_date: ql.Date, included_expiries_yrs: 
     return [ql_eval_date + ql.Period(int(y * 365.25), ql.Days) for y in time_points_in_years]
 
 def _expand_params_to_unified_timeline(initial_params_quotes: List[ql.SimpleQuote], param_step_dates: List[ql.Date], unified_step_dates: List[ql.Date]) -> List[ql.QuoteHandle]:
+    """
+    Expands a list of initial parameter quotes to align with a unified timeline.
+
+    Args:
+        initial_params_quotes (List[ql.SimpleQuote]): The initial parameter quotes as SimpleQuote objects.
+        param_step_dates (List[ql.Date]): The original step dates associated with the initial parameters.
+        unified_step_dates (List[ql.Date]): The new, unified step dates to align the parameter quotes with.
+
+    Returns:
+        List[ql.QuoteHandle]: A list of QuoteHandles that represent the initial parameters expanded to the unified timeline.
+    """
+
     initial_params_handles = [ql.QuoteHandle(q) for q in initial_params_quotes]
     if not unified_step_dates: return initial_params_handles
     if not param_step_dates: return [initial_params_handles[0]] * (len(unified_step_dates) + 1)
@@ -259,7 +401,16 @@ def prepare_nn_features(
     feature_tenors: List[float] = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
 ) -> np.ndarray:
     """
-    Calculates zero rates for given tenors and scales them using a pre-fitted scaler.
+    Prepares a feature vector from a yield curve term structure for a neural network calibration.
+
+    Args:
+        term_structure_handle (ql.RelinkableYieldTermStructureHandle): The yield curve term structure.
+        eval_date (ql.Date): The evaluation date of the yield curve.
+        scaler (StandardScaler): A StandardScaler object from scikit-learn.
+        feature_tenors (List[float], optional): The tenors to use for the feature vector. Defaults to [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0].
+
+    Returns:
+        np.ndarray: The prepared feature vector as a numpy array.
     """
     day_counter = ql.Actual365Fixed()
     rates = [term_structure_handle.zeroRate(eval_date + ql.Period(int(ty * 365.25), ql.Days), day_counter, ql.Continuous).rate() for ty in feature_tenors]
@@ -267,6 +418,16 @@ def prepare_nn_features(
 
 class ResidualParameterModel(tf.keras.Model):
     def __init__(self, total_params_to_predict, upper_bound, hidden_layer_size=64, batch_momentum=0.99, name=None):
+        """
+        Initializes the ResidualParameterModel with specified parameters.
+
+        Args:
+            total_params_to_predict (int): The number of parameters the model is designed to predict.
+            upper_bound (float): The upper bound for the predicted values.
+            hidden_layer_size (int, optional): The size of the hidden layers. Defaults to 64.
+            batch_momentum (float, optional): The momentum for batch normalization. Defaults to 0.99.
+            name (str, optional): The name of the model. Defaults to None.
+        """
         super().__init__(name=name, dtype='float64')
         self.upper_bound = tf.constant(upper_bound, dtype=tf.float64)
         self.hidden1 = tf.keras.layers.Dense(hidden_layer_size, dtype=tf.float64)
@@ -274,6 +435,17 @@ class ResidualParameterModel(tf.keras.Model):
         self.output_layer = tf.keras.layers.Dense(total_params_to_predict, dtype=tf.float64, kernel_initializer='zeros', bias_initializer='zeros')
 
     def call(self, inputs, training=False):
+        """
+        Forward pass through the ResidualParameterModel.
+
+        Args:
+            inputs (Tuple[tf.Tensor, tf.Tensor]): A tuple of two tensors. The first tensor is the feature vector, and
+                the second tensor contains the initial logits.
+            training (bool, optional): Whether this is a training call. Defaults to False.
+
+        Returns:
+            tf.Tensor: The predicted parameters.
+        """
         feature_vector, initial_logits = inputs
         x = self.hidden1(feature_vector)
         x = tf.keras.activations.relu(x)
@@ -291,6 +463,23 @@ def evaluate_model_on_day(
     calibrated_params: List[float],
     settings: dict
 ) -> Tuple[float, pd.DataFrame]:
+    """
+    Evaluates the performance of the Hull-White model on a given day. The evaluation consists of calculating the root
+    mean squared error (RMSE) between the model's predicted swaption volatilities and the market volatilities.
+
+    Args:
+        eval_date (datetime.date): The date on which the evaluation is being performed.
+        zero_curve_df (pd.DataFrame): The bootstrapped zero curve for the evaluation date.
+        vol_cube_df (pd.DataFrame): The volatility cube for the evaluation date.
+        calibrated_params (List[float]): The calibrated parameters of the Hull-White model.
+        settings (dict): The settings for the evaluation.
+
+    Returns:
+        Tuple[float, pd.DataFrame]: A tuple containing the final RMSE in bps and a DataFrame with the results of the
+            evaluation for each swaption. The DataFrame has columns 'ExpiryStr', 'TenorStr', 'MarketVol', 'ModelVol', and
+            'Difference', where 'Difference' is the difference between the model and market volatilities. If the
+            evaluation was not successful, the returned DataFrame is empty.
+    """
     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     ql.Settings.instance().evaluationDate = ql_eval_date
     term_structure_handle = create_ql_yield_curve(zero_curve_df, eval_date)
@@ -440,6 +629,22 @@ if __name__ == '__main__':
                 feature_vector = tf.constant(feature_vector, dtype=tf.float64)
 
                 def _calculate_loss_for_day(params: np.ndarray) -> float:
+                    """
+                    Calculates the loss for a given day using swaption pricing and implied volatility.
+
+                    Args:
+                        params (np.ndarray): Array containing the model parameters to be calibrated, 
+                                            split into mean reversion ('a') and volatility ('sigma') segments.
+
+                    Returns:
+                        float: Mean squared error between model-implied volatilities and market volatilities.
+                            Returns a large constant (1e6) in case of exceptions during calculation.
+
+                    This function sets up the GSR model using the provided parameters, expands these
+                    parameters to a unified timeline, and uses a Gaussian1dSwaptionEngine to price swaptions.
+                    The loss is computed as the mean squared difference between model-implied volatilities 
+                    and observed market volatilities for a set of calibration helpers.
+                    """
                     try:
                         num_a = num_a_params_to_predict; a_params, sigma_params = params[:num_a], params[num_a:]
                         reversion_quotes = [ql.SimpleQuote(p) for p in a_params]
@@ -463,10 +668,48 @@ if __name__ == '__main__':
 
                 @tf.custom_gradient
                 def ql_loss_on_params(params_tensor):
+                    """
+                    Computes the loss for a set of model parameters given a set of GSR helpers.
+
+                    The loss is computed by pricing each of the calibration helpers using a Gaussian1dSwaptionEngine
+                    and calculating the mean squared difference between the model-implied volatilities and the
+                    observed market volatilities.
+
+                    The gradient is computed using a finite difference approach.
+
+                    Args:
+                        params_tensor (tf.Tensor): A 1D tensor containing the model parameters to be calibrated.
+
+                    Returns:
+                        A tuple containing the loss value and a gradient function.
+                    """
                     loss_val = _calculate_loss_for_day(params_tensor.numpy()[0])
                     def grad_fn(dy):
+                        """
+                        Computes the gradient of the loss function using a finite difference approach.
+
+                        Args:
+                            dy (tf.Tensor): The upstream derivative, i.e. the loss value times the gradient of the loss function with respect to the model parameters.
+
+                        Returns:
+                            A tf.Tensor containing the gradient of the loss function with respect to the model parameters.
+                        """
                         base_params = params_tensor.numpy()[0]; h = TF_NN_CALIBRATION_SETTINGS['h_relative']
                         def _calc_single_grad(i):
+                            """
+                            Computes the gradient of the loss function with respect to a single model parameter.
+
+                            Args:
+                                i (int): Index of the model parameter to compute the gradient for.
+
+                            Returns:
+                                float: The gradient of the loss function with respect to the model parameter.
+
+                            This function computes the gradient of the loss function using a finite difference approach.
+                            The `base_params` are modified by adding and subtracting a small value (`h`) to the i-th parameter.
+                            The gradient is then computed as the difference between the loss values evaluated at the modified
+                            parameters, divided by twice the step size (`h`).
+                            """
                             p_plus = base_params.copy(); p_plus[i] += h
                             p_minus = base_params.copy(); p_minus[i] -= h
                             return (_calculate_loss_for_day(p_plus) - _calculate_loss_for_day(p_minus)) / (2 * h)
@@ -551,7 +794,7 @@ if __name__ == '__main__':
                     results_df.to_csv(csv_output_path, index=False)
                     print(f"--- Predictions successfully saved to: {csv_output_path} ---")
                 else:
-                     print(f"--- Evaluation for {eval_date} did not produce results to save. ---")
+                    print(f"--- Evaluation for {eval_date} did not produce results to save. ---")
                 
                 test_results_for_plot[eval_date] = (rmse_bps, results_df)
 
