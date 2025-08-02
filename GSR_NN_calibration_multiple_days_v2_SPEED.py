@@ -1,5 +1,8 @@
 """
-This script is designed to calibrate Hull-White GSR models using neural network.
+This script is designed to calibrate Hull-White GSR models using a neural network.
+
+It now includes functionality to save the trained model and to load a pre-trained
+model to continue the training process.
 """
 import datetime
 import os
@@ -29,6 +32,7 @@ FOLDER_ZERO_CURVES: str = r'data\EUR ZERO CURVE'
 FOLDER_VOLATILITY_CUBES: str = r'data\EUR BVOL CUBE'
 FOLDER_RESULTS_NN: str = r'results\neural_network\predictions'
 FOLDER_RESULTS_PARAMS_NN: str = r'results\neural_network\parameters'
+FOLDER_MODELS: str = r'results\neural_network\models'
 
 
 #--------------------PREPROCESS CURVES--------------------
@@ -418,7 +422,7 @@ def prepare_nn_features(
     return scaler.transform(np.array(rates).reshape(1, -1))
 
 class ResidualParameterModel(tf.keras.Model):
-    def __init__(self, total_params_to_predict, upper_bound, hidden_layer_size=64, batch_momentum=0.99, name=None):
+    def __init__(self, total_params_to_predict, upper_bound, hidden_layer_size=64, batch_momentum=0.99, **kwargs):
         """
         Initializes the ResidualParameterModel with specified parameters.
 
@@ -427,35 +431,51 @@ class ResidualParameterModel(tf.keras.Model):
             upper_bound (float): The upper bound for the predicted values.
             hidden_layer_size (int, optional): The size of the hidden layers. Defaults to 64.
             batch_momentum (float, optional): The momentum for batch normalization. Defaults to 0.99.
-            name (str, optional): The name of the model. Defaults to None.
+            **kwargs: Additional keyword arguments passed to the parent tf.keras.Model constructor.
         """
-        super().__init__(name=name, dtype='float64')
-        self.upper_bound = tf.constant(upper_bound, dtype=tf.float64)
-        self.hidden1 = tf.keras.layers.Dense(hidden_layer_size, dtype=tf.float64)
-        self.hidden2 = tf.keras.layers.Dense(hidden_layer_size, dtype=tf.float64)
-        self.output_layer = tf.keras.layers.Dense(total_params_to_predict, dtype=tf.float64, kernel_initializer='zeros', bias_initializer='zeros')
+        # Pass standard Keras arguments (like name, trainable, dtype) to the parent
+        super().__init__(**kwargs)
+        
+        # Store config parameters
+        self.total_params_to_predict = total_params_to_predict
+        self.upper_bound_value = upper_bound
+        self.hidden_layer_size = hidden_layer_size
+        self.batch_momentum = batch_momentum
+        
+        # Define layers
+        self.upper_bound = tf.constant(self.upper_bound_value, dtype=tf.float64)
+        self.hidden1 = tf.keras.layers.Dense(self.hidden_layer_size, dtype=tf.float64, activation='relu')
+        self.hidden2 = tf.keras.layers.Dense(self.hidden_layer_size, dtype=tf.float64, activation='relu')
+        self.output_layer = tf.keras.layers.Dense(self.total_params_to_predict, dtype=tf.float64, kernel_initializer='zeros', bias_initializer='zeros')
 
     def call(self, inputs) -> tf.Tensor:
         """
         Forward pass through the ResidualParameterModel.
-
-        Args:
-            inputs (Tuple[tf.Tensor, tf.Tensor]): A tuple of two tensors. The first tensor is the feature vector, and
-                the second tensor contains the initial logits.
-            training (bool, optional): Whether this is a training call. Defaults to False.
-
-        Returns:
-            tf.Tensor: The predicted parameters.
         """
         feature_vector, initial_logits = inputs
         x = self.hidden1(feature_vector)
-        x = tf.keras.activations.relu(x)
         x = self.hidden2(x)
-        x = tf.keras.activations.relu(x)
         delta_logits = self.output_layer(x)
         final_logits = initial_logits + delta_logits
         return self.upper_bound * tf.keras.activations.sigmoid(final_logits)
 
+    def get_config(self):
+        """Returns the configuration of the model."""
+        # Get the config from the parent class (which includes name, dtype, etc.)
+        config = super().get_config()
+        # Update it with our custom constructor arguments
+        config.update({
+            'total_params_to_predict': self.total_params_to_predict,
+            'upper_bound': self.upper_bound_value,
+            'hidden_layer_size': self.hidden_layer_size,
+            'batch_momentum': self.batch_momentum,
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        """Creates a model from its config."""
+        return cls(**config)
 
 def evaluate_model_on_day(
     eval_date: datetime.date,
@@ -525,6 +545,7 @@ if __name__ == '__main__':
     try:
         os.makedirs(FOLDER_RESULTS_NN, exist_ok=True)
         os.makedirs(FOLDER_RESULTS_PARAMS_NN, exist_ok=True)
+        os.makedirs(FOLDER_MODELS, exist_ok=True)
 
         TRAIN_SPLIT_PERCENTAGE: float = 80.0
         
@@ -562,7 +583,11 @@ if __name__ == '__main__':
             # Minimum swaption expiry (in years) to be included in the calibration. Swaptions with shorter expiries will be filtered out.
             "min_expiry_years": 1.0,
             # Minimum swaption tenor (in years) to be included in the calibration. Swaptions with shorter tenors will be filtered out.
-            "min_tenor_years": 1.0
+            "min_tenor_years": 1.0,
+            # Set to a model name (e.g., "model_20250802_215000" - no file ending) to load a pre-trained model. If None, a new model is created.
+            "LOAD_MODEL_NAME": None,
+            # The name used to save the model after training. A timestamp is added to ensure uniqueness.
+            "SAVE_MODEL_NAME": f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
         }
         
         # 1. Load and split all available data
@@ -598,14 +623,31 @@ if __name__ == '__main__':
             loaded_train_data.append((eval_date, zero_curve_df, vol_cube_df))
         print("\nAll training data has been loaded.")
 
-        # 4. Initialize the shared model and optimizer
+        # 4. Initialize or load the shared model and optimizer
         num_a_params_to_predict: int = TF_NN_CALIBRATION_SETTINGS['num_a_segments'] if TF_NN_CALIBRATION_SETTINGS['optimize_a'] else 0
         total_params_to_predict: int = num_a_params_to_predict + TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']
         assert len(TF_NN_CALIBRATION_SETTINGS['initial_guess']) == total_params_to_predict, \
             f"Initial guess length must match total predictable parameters ({total_params_to_predict})"
 
-        nn_model: ResidualParameterModel = ResidualParameterModel(total_params_to_predict, TF_NN_CALIBRATION_SETTINGS['upper_bound'],
-                                          TF_NN_CALIBRATION_SETTINGS['hidden_layer_size'], TF_NN_CALIBRATION_SETTINGS['batch_momentum'])
+        nn_model: ResidualParameterModel
+        load_model_name: str | None = TF_NN_CALIBRATION_SETTINGS.get("LOAD_MODEL_NAME")
+
+        if load_model_name:
+            model_path: str = os.path.join(FOLDER_MODELS, load_model_name + '.keras')
+            if os.path.exists(model_path):
+                print(f"\n--- Loading existing model: {load_model_name} ---")
+                nn_model = tf.keras.models.load_model(model_path, custom_objects={'ResidualParameterModel': ResidualParameterModel})
+                print("Model loaded successfully.")
+                TF_NN_CALIBRATION_SETTINGS["SAVE_MODEL_NAME"] = f"{load_model_name}_cont_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            else:
+                print(f"Warning: Model '{load_model_name}' not found at '{model_path}'. A new model will be initialized.")
+                nn_model = ResidualParameterModel(total_params_to_predict, TF_NN_CALIBRATION_SETTINGS['upper_bound'],
+                                                  TF_NN_CALIBRATION_SETTINGS['hidden_layer_size'], TF_NN_CALIBRATION_SETTINGS['batch_momentum'], dtype=tf.float64)
+        else:
+            print("\n--- Initializing a new model ---")
+            nn_model = ResidualParameterModel(total_params_to_predict, TF_NN_CALIBRATION_SETTINGS['upper_bound'],
+                                              TF_NN_CALIBRATION_SETTINGS['hidden_layer_size'], TF_NN_CALIBRATION_SETTINGS['batch_momentum'], dtype=tf.float64)
+
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(**TF_NN_CALIBRATION_SETTINGS['learning_rate_config'])
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
         p_scaled = np.clip(np.array(TF_NN_CALIBRATION_SETTINGS['initial_guess'], dtype=np.float64) / TF_NN_CALIBRATION_SETTINGS['upper_bound'], 1e-9, 1 - 1e-9)
@@ -737,10 +779,32 @@ if __name__ == '__main__':
             print(f"\nEpoch {epoch+1} Summary | Avg. Train RMSE: {avg_epoch_rmse:7.2f} bps | Time Elapsed: {_format_time(elapsed)}")
         
         print("\n--- Training Finished ---")
+        
+        # --- Save the final trained model ---
+        save_model_name: str | None = TF_NN_CALIBRATION_SETTINGS.get("SAVE_MODEL_NAME")
+        if save_model_name:
+            model_save_path = os.path.join(FOLDER_MODELS, save_model_name + '.keras')
+            print(f"\n--- Saving model to {model_save_path} ---")
+            nn_model.save(model_save_path)
+            print("--- Model saved successfully ---")
+        else:
+            print("\n--- Model not saved (no SAVE_MODEL_NAME specified) ---")
+
 
         # 6. --- VALIDATION/TESTING AND SAVING LOOP ---
         if test_files:
             print("\n--- Evaluating Model on Test Data and Saving Results ---")
+            output_folder_name = save_model_name if TF_NN_CALIBRATION_SETTINGS.get('num_epochs', 0) > 0 else load_model_name
+            if not output_folder_name:
+                print("Warning: Could not determine output folder name for results. Saving to base directory.")
+                output_folder_name = "unknown_model"
+
+            # Create the specific subdirectories for the results of this model
+            params_output_dir = os.path.join(FOLDER_RESULTS_PARAMS_NN, output_folder_name)
+            predictions_output_dir = os.path.join(FOLDER_RESULTS_NN, output_folder_name)
+            os.makedirs(params_output_dir, exist_ok=True)
+            os.makedirs(predictions_output_dir, exist_ok=True)
+            
             test_results_for_plot: dict = {}
             for eval_date, zero_path, vol_path in test_files:
                 print(f"\n--- Processing test day: {eval_date.strftime('%d-%m-%Y')} ---")
@@ -782,7 +846,7 @@ if __name__ == '__main__':
                 }
                 
                 output_date_str: str = eval_date.strftime("%d-%m-%Y")
-                param_output_path: str = os.path.join(FOLDER_RESULTS_PARAMS_NN, f"{output_date_str}.json")
+                param_output_path: str = os.path.join(params_output_dir, f"{output_date_str}.json")
                 with open(param_output_path, 'w') as f:
                     json.dump(param_data, f, indent=4)
                 print(f"--- Parameters successfully saved to: {param_output_path} ---")
@@ -791,7 +855,7 @@ if __name__ == '__main__':
                 print(f"Validation RMSE for {eval_date}: {rmse_bps:.4f} bps")
                 
                 if not results_df.empty:
-                    csv_output_path: str = os.path.join(FOLDER_RESULTS_NN, f"{output_date_str}.csv")
+                    csv_output_path: str = os.path.join(predictions_output_dir, f"{output_date_str}.csv")                    
                     results_df.to_csv(csv_output_path, index=False)
                     print(f"--- Predictions successfully saved to: {csv_output_path} ---")
                 else:
@@ -809,3 +873,4 @@ if __name__ == '__main__':
 
     except (FileNotFoundError, ValueError) as e: print(f"\nERROR: {e}")
     except Exception as e: print(f"\nAn unexpected error occurred: {e}"); traceback.print_exc()
+    
