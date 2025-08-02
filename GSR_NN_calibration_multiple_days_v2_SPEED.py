@@ -18,20 +18,17 @@ import traceback
 import json
 
 #--------------------CONFIG--------------------
-# Set to True to re-run data preparation, False to use existing processed/bootstrapped files.
 PREPROCESS_CURVES: bool = False
 BOOTSTRAP_CURVES: bool = False
 
-FOLDER_SWAP_CURVES: str = r'data\EUR SWAP CURVE'    # Folder containing the raw swap curves.
-FOLDER_ZERO_CURVES: str = r'data\EUR ZERO CURVE'    # Folder containing bootstrapped zero curves or in which the those will be stored.
+FOLDER_SWAP_CURVES: str = r'data\EUR SWAP CURVE'
+FOLDER_ZERO_CURVES: str = r'data\EUR ZERO CURVE'
 FOLDER_VOLATILITY_CUBES: str = r'data\EUR BVOL CUBE'
-
-# --- NEW: Folders for Neural Network results ---
 FOLDER_RESULTS_NN: str = r'results\neural_network\predictions'
 FOLDER_RESULTS_PARAMS_NN: str = r'results\neural_network\parameters'
 
 
-#--------------------PREPROCESS CURVES (No changes)--------------------
+#--------------------PREPROCESS CURVES--------------------
 if PREPROCESS_CURVES:
     print("--- Starting: Preprocessing Raw Swap Curves ---")
     processed_folder = os.path.join(FOLDER_SWAP_CURVES, 'processed')
@@ -61,7 +58,7 @@ if PREPROCESS_CURVES:
     print("--- Finished: Preprocessing ---")
 
 
-#--------------------BOOTSTRAP ZERO CURVES (No changes)--------------------
+#--------------------BOOTSTRAP ZERO CURVES--------------------
 def _interpolate(x: float, x_points: list[float] | NDArray , y_points: list[float] | NDArray) -> float:
     return float(np.interp(x, x_points, y_points))
 
@@ -109,7 +106,7 @@ if BOOTSTRAP_CURVES:
     print("--- Finished: Bootstrapping ---")
 
 
-#--------------------DATA DISCOVERY AND SPLITTING (No changes)--------------------
+#--------------------DATA DISCOVERY AND SPLITTING--------------------
 def load_and_split_data_files(
     zero_curve_folder: str,
     vol_cube_folder: str,
@@ -142,17 +139,17 @@ def load_and_split_data_files(
     print(f"Splitting data: {len(train_files)} days for training, {len(test_files)} days for validation.")
     return train_files, test_files
 
-#--------------------NEW: HELPER FOR LOADING VOL CUBE--------------------
+#--------------------HELPER FOR LOADING VOL CUBE--------------------
 def load_volatility_cube(file_path: str) -> pd.DataFrame:
     """Loads and cleans the volatility cube DataFrame."""
     df = pd.read_excel(file_path, engine='openpyxl')
-    df.rename(columns={df.columns[1]: 'Type'}, inplace=True) # The 'Type' column is usually the second one
+    df.rename(columns={df.columns[1]: 'Type'}, inplace=True)
     for col in df.columns:
         if 'Unnamed' in str(col): df.drop(col, axis=1, inplace=True)
     df['Expiry'] = df['Expiry'].ffill()
     return df
 
-#--------------------HELPER AND PLOTTING FUNCTIONS (No changes)--------------------
+#--------------------HELPER AND PLOTTING FUNCTIONS--------------------
 def parse_tenor(tenor_str: str) -> ql.Period:
     tenor_str = tenor_str.strip().upper()
     if 'YR' in tenor_str: return ql.Period(int(tenor_str.replace('YR', '')), ql.Years)
@@ -229,7 +226,7 @@ def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date)
     ax3.view_init(elev=30, azim=-120); plt.tight_layout(rect=[0, 0.03, 1, 0.95]); plt.show()
 
 
-#--------------------TENSORFLOW NEURAL NETWORK CALIBRATION HELPERS (No changes to these helpers)--------------------
+#--------------------TENSORFLOW NEURAL NETWORK CALIBRATION HELPERS--------------------
 def _format_time(seconds: float) -> str:
     s = int(round(seconds)); h, r = divmod(s, 3600); m, s = divmod(r, 60)
     return f"{h:02d}:{m:02d}:{s:02d}"
@@ -255,7 +252,6 @@ def _expand_params_to_unified_timeline(initial_params_quotes: List[ql.SimpleQuot
         expanded_handles.append(initial_params_handles[idx])
     return expanded_handles
 
-# MODIFIED: This function now accepts a pre-fitted scaler.
 def prepare_nn_features(
     term_structure_handle: ql.RelinkableYieldTermStructureHandle,
     eval_date: ql.Date,
@@ -267,7 +263,6 @@ def prepare_nn_features(
     """
     day_counter = ql.Actual365Fixed()
     rates = [term_structure_handle.zeroRate(eval_date + ql.Period(int(ty * 365.25), ql.Days), day_counter, ql.Continuous).rate() for ty in feature_tenors]
-    # Use the pre-fitted scaler to ONLY TRANSFORM the data. Do not fit again.
     return scaler.transform(np.array(rates).reshape(1, -1))
 
 class ResidualParameterModel(tf.keras.Model):
@@ -275,25 +270,20 @@ class ResidualParameterModel(tf.keras.Model):
         super().__init__(name=name, dtype='float64')
         self.upper_bound = tf.constant(upper_bound, dtype=tf.float64)
         self.hidden1 = tf.keras.layers.Dense(hidden_layer_size, dtype=tf.float64)
-        # self.bn1 = tf.keras.layers.BatchNormalization(momentum=batch_momentum, dtype=tf.float64)
         self.hidden2 = tf.keras.layers.Dense(hidden_layer_size, dtype=tf.float64)
-        # self.bn2 = tf.keras.layers.BatchNormalization(momentum=batch_momentum, dtype=tf.float64)
         self.output_layer = tf.keras.layers.Dense(total_params_to_predict, dtype=tf.float64, kernel_initializer='zeros', bias_initializer='zeros')
 
     def call(self, inputs, training=False):
         feature_vector, initial_logits = inputs
         x = self.hidden1(feature_vector)
-        # x = self.bn1(x, training=training)
         x = tf.keras.activations.relu(x)
         x = self.hidden2(x)
-        # x = self.bn2(x, training=training)
         x = tf.keras.activations.relu(x)
         delta_logits = self.output_layer(x)
         final_logits = initial_logits + delta_logits
         return self.upper_bound * tf.keras.activations.sigmoid(final_logits)
 
 
-#--------------------REFACTORED: EVALUATION FUNCTION (No changes)--------------------
 def evaluate_model_on_day(
     eval_date: datetime.date,
     zero_curve_df: pd.DataFrame,
@@ -320,7 +310,7 @@ def evaluate_model_on_day(
     expanded_reversion_handles = _expand_params_to_unified_timeline(reversion_quotes, a_step_dates, unified_step_dates)
     expanded_sigma_handles = _expand_params_to_unified_timeline(sigma_quotes, sigma_step_dates, unified_step_dates)
     final_model = ql.Gsr(term_structure_handle, unified_step_dates, expanded_sigma_handles, expanded_reversion_handles, 61.0)
-    final_engine = ql.Gaussian1dSwaptionEngine(final_model, 64, 7.0, True, False, term_structure_handle)
+    final_engine = ql.Gaussian1dSwaptionEngine(final_model, settings['pricing_engine_integration_points'], 7.0, True, False, term_structure_handle)
     results_data = []; squared_errors = []
     for helper, expiry_str, tenor_str in helpers_with_info:
         helper.setPricingEngine(final_engine)
@@ -343,26 +333,45 @@ def evaluate_model_on_day(
 #--------------------MAIN EXECUTION LOGIC--------------------
 if __name__ == '__main__':
     try:
-        # --- Create results directories if they don't exist ---
         os.makedirs(FOLDER_RESULTS_NN, exist_ok=True)
         os.makedirs(FOLDER_RESULTS_PARAMS_NN, exist_ok=True)
 
         TRAIN_SPLIT_PERCENTAGE = 80.0
         
         TF_NN_CALIBRATION_SETTINGS = {
+            # Number of piecewise constant segments for the mean-reversion parameter 'a'. 1 means 'a' is constant.
             "num_a_segments": 1,
+            # Number of piecewise constant segments for the volatility parameter 'sigma'. More segments allow for a more flexible term structure of volatility.
             "num_sigma_segments": 3,
+            # If True, the neural network will predict the mean-reversion 'a'. If False, 'a' is fixed to its value in 'initial_guess'.
             "optimize_a": True,
+            # The upper limit for the predicted parameters ('a' and 'sigma'). The NN output is scaled by this value, effectively constraining the search space.
             "upper_bound": 0.1,
-            "learning_rate_config": {"initial_learning_rate": 1e-2, "decay_steps": 100, "decay_rate": 0.95},
-            "num_epochs": 15,
+            # Number of integration points for the Gaussian1dSwaptionEngine. Higher values increase pricing accuracy but slow down calibration.
+            "pricing_engine_integration_points": 32,
+            # Configuration for the learning rate decay schedule. Helps in finding a good solution by reducing the learning rate during training.
+            "learning_rate_config": {
+                "initial_learning_rate": 1e-2,  # The starting learning rate for the Adam optimizer.
+                "decay_steps": 100,             # The number of training steps after which the learning rate is reduced.
+                "decay_rate": 0.95              # The factor by which the learning rate is multiplied.
+            },
+            # The total number of times the model will iterate over the entire training dataset.
+            "num_epochs": 1,
+            # The relative step size used for the finite difference method to approximate gradients of the QuantLib loss function.
             "h_relative": 1e-7,
+            # The number of neurons in each of the two hidden layers of the neural network.
             "hidden_layer_size": 32,
+            # Initial guess for the parameters to be calibrated ('a' and 'sigma' values). The NN learns to predict a 'residual' or adjustment to these.
             "initial_guess": [0.020566979477481182, 0.0002299520131905028, 0.00021618386141957264, 0.00017446618702943582],
+            # The maximum norm for gradients. Used for gradient clipping to prevent the exploding gradients problem during training.
             "gradient_clip_norm": 2.0,
+            # The number of parallel threads to use for calculating the finite-difference gradients, speeding up training steps.
             "num_threads": 8,
+            # The momentum parameter for the moving average in Batch Normalization layers. Note: BN layers are currently commented out.
             "batch_momentum": 0.99,
+            # Minimum swaption expiry (in years) to be included in the calibration. Swaptions with shorter expiries will be filtered out.
             "min_expiry_years": 1.0,
+            # Minimum swaption tenor (in years) to be included in the calibration. Swaptions with shorter tenors will be filtered out.
             "min_tenor_years": 1.0
         }
         
@@ -388,7 +397,7 @@ if __name__ == '__main__':
         feature_scaler.fit(np.array(all_training_features))
         print("Feature scaler has been fitted to the training data.")
 
-        # OPTIMIZATION: Pre-load all training data into memory
+        # 3. Pre-load all training data into memory
         print("\n--- Pre-loading all training data into memory ---")
         loaded_train_data = []
         for i, (eval_date, zero_path, vol_path) in enumerate(train_files):
@@ -399,7 +408,7 @@ if __name__ == '__main__':
             loaded_train_data.append((eval_date, zero_curve_df, vol_cube_df))
         print("\nAll training data has been loaded.")
 
-        # 3. Initialize the shared model and optimizer
+        # 4. Initialize the shared model and optimizer
         num_a_params_to_predict = TF_NN_CALIBRATION_SETTINGS['num_a_segments'] if TF_NN_CALIBRATION_SETTINGS['optimize_a'] else 0
         total_params_to_predict = num_a_params_to_predict + TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']
         assert len(TF_NN_CALIBRATION_SETTINGS['initial_guess']) == total_params_to_predict, \
@@ -412,7 +421,7 @@ if __name__ == '__main__':
         p_scaled = np.clip(np.array(TF_NN_CALIBRATION_SETTINGS['initial_guess'], dtype=np.float64) / TF_NN_CALIBRATION_SETTINGS['upper_bound'], 1e-9, 1 - 1e-9)
         initial_logits = tf.constant([np.log(p_scaled / (1 - p_scaled))], dtype=tf.float64)
 
-        # 4. --- TRAINING LOOP ---
+        # 5. --- TRAINING LOOP ---
         print("\n--- Starting Model Training ---")
         start_time = time.monotonic()
         for epoch in range(TF_NN_CALIBRATION_SETTINGS['num_epochs']):
@@ -443,7 +452,7 @@ if __name__ == '__main__':
                         exp_rev_h = _expand_params_to_unified_timeline(reversion_quotes, a_steps, unified_steps)
                         exp_sig_h = _expand_params_to_unified_timeline(sigma_quotes, s_steps, unified_steps)
                         thread_model = ql.Gsr(term_structure_handle, unified_steps, exp_sig_h, exp_rev_h, 61.0)
-                        thread_engine = ql.Gaussian1dSwaptionEngine(thread_model, 64, 7.0, True, False, term_structure_handle)
+                        thread_engine = ql.Gaussian1dSwaptionEngine(thread_model, TF_NN_CALIBRATION_SETTINGS['pricing_engine_integration_points'], 7.0, True, False, term_structure_handle)
                         squared_errors = []
                         for original_helper, _, _ in helpers_with_info:
                             original_helper.setPricingEngine(thread_engine); model_val = original_helper.modelValue()
@@ -485,7 +494,7 @@ if __name__ == '__main__':
         
         print("\n--- Training Finished ---")
 
-        # 5. --- VALIDATION/TESTING AND SAVING LOOP ---
+        # 6. --- VALIDATION/TESTING AND SAVING LOOP ---
         if test_files:
             print("\n--- Evaluating Model on Test Data and Saving Results ---")
             test_results_for_plot = {}
@@ -497,11 +506,9 @@ if __name__ == '__main__':
                 ql.Settings.instance().evaluationDate = ql_eval_date
                 term_structure_handle = create_ql_yield_curve(zero_curve_df, eval_date)
                 
-                # Predict parameters with the trained model
                 feature_vector = prepare_nn_features(term_structure_handle, ql_eval_date, feature_scaler)
                 predicted_params = nn_model((tf.constant(feature_vector, dtype=tf.float64), initial_logits), training=False).numpy()[0]
                 
-                # Separate predicted 'a' and 'sigma' parameters
                 num_a = num_a_params_to_predict
                 calibrated_as = predicted_params[:num_a].tolist()
                 calibrated_sigmas = predicted_params[num_a:].tolist()
@@ -509,8 +516,6 @@ if __name__ == '__main__':
                 print(f"  Mean Reversion (a): {calibrated_as}")
                 print(f"  Volatility (sigma): {calibrated_sigmas}")
                 
-                # --- NEW: Save Predicted Parameters to JSON ---
-                # First, determine the step dates for this specific day's data
                 helpers_with_info = prepare_calibration_helpers(vol_cube_df, term_structure_handle, TF_NN_CALIBRATION_SETTINGS['min_expiry_years'], TF_NN_CALIBRATION_SETTINGS['min_tenor_years'])
                 if not helpers_with_info:
                     print(f"Skipping parameter/result saving for {eval_date} due to lack of valid swaption helpers.")
@@ -538,11 +543,9 @@ if __name__ == '__main__':
                     json.dump(param_data, f, indent=4)
                 print(f"--- Parameters successfully saved to: {param_output_path} ---")
 
-                # Evaluate the model to get the results dataframe and RMSE
                 rmse_bps, results_df = evaluate_model_on_day(eval_date, zero_curve_df, vol_cube_df, predicted_params, TF_NN_CALIBRATION_SETTINGS)
                 print(f"Validation RMSE for {eval_date}: {rmse_bps:.4f} bps")
                 
-                # --- NEW: Save Prediction Results to CSV ---
                 if not results_df.empty:
                     csv_output_path = os.path.join(FOLDER_RESULTS_NN, f"{output_date_str}.csv")
                     results_df.to_csv(csv_output_path, index=False)
@@ -552,7 +555,7 @@ if __name__ == '__main__':
                 
                 test_results_for_plot[eval_date] = (rmse_bps, results_df)
 
-            # 6. Plot results for the last day in the test set
+            # 7. Plot results for the last day in the test set
             if test_results_for_plot:
                 last_test_date = test_files[-1][0]
                 print(f"\n--- Plotting calibration results for last test day: {last_test_date} ---")
