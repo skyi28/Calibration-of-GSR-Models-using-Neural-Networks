@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import QuantLib as ql
 from numpy.typing import NDArray
-from typing import List, Tuple, Optional, Set
+from typing import List, Tuple, Optional, Set, Union
 import json
 import sys
 
@@ -18,12 +18,19 @@ from matplotlib import cm
 PREPROCESS_CURVES: bool = False
 BOOTSTRAP_CURVES: bool = False
 
-FOLDER_SWAP_CURVES: str = r'data\EUR SWAP CURVE'    # Folder containing the raw swap curves.
-FOLDER_ZERO_CURVES: str = r'data\EUR ZERO CURVE'    # Folder containing bootstrapped zero curves or in which the those will be stored.
-FOLDER_VOLATILITY_CUBES: str = r'data\EUR BVOL CUBE'
+# Assume data is in a 'data' subdirectory relative to the script
+# and results will be saved in a 'results' subdirectory.
+# This makes the paths relative and more portable.
+BASE_DIR = os.getcwd()
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+RESULTS_DIR = os.path.join(BASE_DIR, 'results')
 
-FOLDER_RESULTS: str = r'results\traditional\predictions'
-FOLDER_RESULTS_PARAMS: str = r'results\traditional\parameters'
+FOLDER_SWAP_CURVES: str = os.path.join(DATA_DIR, 'EUR SWAP CURVE')
+FOLDER_ZERO_CURVES: str = os.path.join(DATA_DIR, 'EUR ZERO CURVE')
+FOLDER_VOLATILITY_CUBES: str = os.path.join(DATA_DIR, 'EUR BVOL CUBE')
+
+FOLDER_RESULTS: str = os.path.join(RESULTS_DIR, 'traditional', 'predictions')
+FOLDER_RESULTS_PARAMS: str = os.path.join(RESULTS_DIR, 'traditional', 'parameters')
 
 
 #--------------------PREPROCESS CURVES--------------------
@@ -31,10 +38,12 @@ if PREPROCESS_CURVES:
     print("--- Starting: Preprocessing Raw Swap Curves ---")
     processed_folder: str = os.path.join(FOLDER_SWAP_CURVES, 'processed')
     raw_folder: str = os.path.join(FOLDER_SWAP_CURVES, 'raw')
-    if not os.path.exists(processed_folder):
-        os.makedirs(processed_folder)
+    os.makedirs(processed_folder, exist_ok=True)
     if not os.path.exists(raw_folder):
         print(f"Warning: Raw data folder not found at {raw_folder}")
+        # Create dummy folder to avoid further errors
+        os.makedirs(raw_folder, exist_ok=True)
+
 
     for entry_name in os.listdir(raw_folder):
         if entry_name.endswith('.xlsx'):
@@ -132,8 +141,8 @@ def bootstrap_zero_curve_with_quantlib(
 if BOOTSTRAP_CURVES:
     print("--- Starting: Bootstrapping Zero Curves ---")
     preprocessed_folder = os.path.join(FOLDER_SWAP_CURVES, 'processed')
-    if not os.path.exists(FOLDER_ZERO_CURVES):
-        os.makedirs(FOLDER_ZERO_CURVES)
+    os.makedirs(FOLDER_ZERO_CURVES, exist_ok=True)
+
 
     for entry_name in os.listdir(preprocessed_folder):
         if entry_name.endswith('.csv'):
@@ -162,7 +171,7 @@ if os.path.exists(vol_xlsx_folder):
     for entry_name in os.listdir(vol_xlsx_folder):
         if entry_name.endswith('.xlsx'):
             vol_path = os.path.join(vol_xlsx_folder, entry_name)
-            swaption_volatility_cube: pd.DataFrame = pd.read_excel(vol_path)
+            swaption_volatility_cube: pd.DataFrame = pd.read_excel(vol_path, engine='openpyxl')
             swaption_volatility_cube.rename(columns={'Unnamed: 1': 'Type'}, inplace=True)
             for col in swaption_volatility_cube.columns:
                 if 'Unnamed' in str(col):
@@ -324,6 +333,7 @@ def _get_step_dates_from_expiries(
 ) -> List[ql.Date]:
     """
     Calculates the step dates for piecewise parameters based on available expiry dates.
+    This function selects a representative subset of expiries to act as step dates.
     """
     if num_segments <= 1:
         return []
@@ -336,13 +346,13 @@ def _get_step_dates_from_expiries(
     if num_segments <= 1:
         return []
 
-    indices = np.linspace(0, len(included_expiries_yrs) - 1, num_segments + 1).astype(int)[1:-1]
+    # Select num_segments-1 points from the list of expiries to be the step dates
+    indices = np.linspace(0, len(included_expiries_yrs) - 1, num_segments).astype(int)[:-1]
     time_points_in_years = [included_expiries_yrs[i] for i in indices]
 
     step_dates = [ql_eval_date + ql.Period(int(y * 365.25), ql.Days) for y in time_points_in_years]
     return step_dates
 
-# --- NEW HELPER FUNCTION TO MANAGE UNIFIED TIMELINE ---
 def _expand_params_to_unified_timeline(
     initial_params: List[ql.QuoteHandle],
     param_step_dates: List[ql.Date],
@@ -371,14 +381,12 @@ def _expand_params_to_unified_timeline(
 
     return expanded_handles
 
-
-# --- UPDATED CALIBRATION FUNCTION ---
 def calibrate_hull_white(
     eval_date: datetime.date,
     zero_curve_df: pd.DataFrame,
     vol_cube_df: pd.DataFrame,
     num_a_segments: int = 1,
-    num_sigma_segments: int = 1,
+    num_sigma_segments: Union[int, str] = 'auto',
     optimize_a: bool = False,
     initial_a: float = 0.01,
     initial_sigma: float = 0.01,
@@ -389,13 +397,9 @@ def calibrate_hull_white(
     """
     Calibrates a one-factor Hull-White (via the GSR model) to a set of ATM swaptions.
     
-    Returns:
-        A tuple containing:
-        - final_as (List[float]): The calibrated mean-reversion values.
-        - a_step_dates (List[ql.Date]): The step dates for the 'a' parameter.
-        - final_sigmas (List[float]): The calibrated volatility values.
-        - sigma_step_dates (List[ql.Date]): The step dates for the 'sigma' parameter.
-        - results_df (pd.DataFrame): DataFrame with detailed calibration errors.
+    The number of volatility parameters (`num_sigma_segments`) can be a fixed integer or
+    the string 'auto', which sets the number of parameters equal to the number of
+    unique swaption expiries remaining after filtering.
     """
     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     ql.Settings.instance().evaluationDate = ql_eval_date
@@ -413,14 +417,25 @@ def calibrate_hull_white(
 
     included_expiries_yrs = sorted(list(set([parse_tenor_to_years(expiry_str) for _, expiry_str, _ in helpers_with_info])))
 
-    a_step_dates = _get_step_dates_from_expiries(ql_eval_date, included_expiries_yrs, num_a_segments)
-    sigma_step_dates = _get_step_dates_from_expiries(ql_eval_date, included_expiries_yrs, num_sigma_segments)
+    final_num_sigma_segments: int
+    if isinstance(num_sigma_segments, str) and num_sigma_segments.lower() == 'auto':
+        final_num_sigma_segments = len(included_expiries_yrs)
+        print(f"--- 'auto' setting: Number of volatility segments set to {final_num_sigma_segments} (matching unique expiries). ---")
+        if final_num_sigma_segments == 0:
+            raise ValueError("Automatic volatility parameter determination failed: No swaption expiries remain after filtering.")
+        sigma_step_dates = [ql_eval_date + ql.Period(int(y * 365.25), ql.Days) for y in included_expiries_yrs[:-1]]
+    else:
+        final_num_sigma_segments = int(num_sigma_segments)
+        sigma_step_dates = _get_step_dates_from_expiries(ql_eval_date, included_expiries_yrs, final_num_sigma_segments)
+        print(f"--- Fixed setting: Number of volatility segments set to {final_num_sigma_segments}. ---")
     
+    a_step_dates = _get_step_dates_from_expiries(ql_eval_date, included_expiries_yrs, num_a_segments)
+
     unified_step_dates = sorted(list(set(a_step_dates + sigma_step_dates)))
     if unified_step_dates:
         print(f"--- Using unified step dates at years: {[round(ql.Actual365Fixed().yearFraction(ql_eval_date, d), 2) for d in unified_step_dates]} ---")
 
-    sigma_handles_initial = [ql.QuoteHandle(ql.SimpleQuote(initial_sigma)) for _ in range(num_sigma_segments)]
+    sigma_handles_initial = [ql.QuoteHandle(ql.SimpleQuote(initial_sigma)) for _ in range(final_num_sigma_segments)]
     if optimize_a:
         reversion_handles_initial = [ql.QuoteHandle(ql.SimpleQuote(initial_a)) for _ in range(num_a_segments)]
     else:
@@ -517,44 +532,32 @@ def calibrate_hull_white(
     results_df['Expiry'] = results_df['ExpiryStr'].apply(parse_tenor_to_years)
     results_df['Tenor'] = results_df['TenorStr'].apply(parse_tenor_to_years)
     
-    # --- NEW: Return all parameter information ---
     return final_as, a_step_dates, final_sigmas, sigma_step_dates, results_df
 
-
-# --- UPDATED: Function to run calibration for a single day and save all results ---
 def run_and_save_calibration_for_date(
     eval_date_str: str,
     calibration_settings: dict,
     show_plot: bool = False
 ):
-    """
-    Loads data, runs calibration, saves the results DataFrame,
-    and saves the model parameters to a JSON file.
-    """
     print(f"\n{'='*25} STARTING CALIBRATION FOR: {eval_date_str} {'='*25}")
     try:
         eval_date = datetime.datetime.strptime(eval_date_str, "%d.%m.%Y").date()
 
-        # Define file paths
         zero_curve_path = os.path.join(FOLDER_ZERO_CURVES, f"{eval_date_str}.csv")
         vol_cube_path = os.path.join(FOLDER_VOLATILITY_CUBES, "xlsx", f"{eval_date_str}.xlsx")
 
-        # Check for file existence
         if not os.path.exists(zero_curve_path) or not os.path.exists(vol_cube_path):
             raise FileNotFoundError(f"Data files for {eval_date_str} not found. Skipping.")
 
-        # Load data
         zero_curve_df = pd.read_csv(zero_curve_path)
         vol_cube_df = pd.read_excel(vol_cube_path, engine='openpyxl')
 
-        # Preprocess volatility cube
         vol_cube_df.rename(columns={'Unnamed: 1': 'Type'}, inplace=True)
-        for col in vol_cube_df.columns:
+        for col in list(vol_cube_df.columns):
             if 'Unnamed' in str(col):
                 vol_cube_df.drop(col, axis=1, inplace=True)
         vol_cube_df['Expiry'] = vol_cube_df['Expiry'].ffill()
 
-        # --- UPDATED: Unpack all results from calibration function ---
         calibrated_as, a_step_dates, calibrated_sigmas, sigma_step_dates, results_df = calibrate_hull_white(
             eval_date=eval_date,
             zero_curve_df=zero_curve_df,
@@ -564,7 +567,6 @@ def run_and_save_calibration_for_date(
 
         output_date_str = eval_date.strftime("%d-%m-%Y")
 
-        # Save results DataFrame
         if not results_df.empty:
             output_path = os.path.join(FOLDER_RESULTS, f"{output_date_str}.csv")
             results_df.to_csv(output_path, index=False)
@@ -575,17 +577,16 @@ def run_and_save_calibration_for_date(
         else:
             print(f"\n--- Calibration for {eval_date_str} did not produce results to save. ---")
 
-        # --- NEW: Save calibrated parameters to JSON ---
         if calibrated_as and calibrated_sigmas:
             param_data = {
                 'evaluationDate': eval_date.strftime('%Y-%m-%d'),
                 'meanReversion': {
                     'values': calibrated_as,
-                    'stepDates': [datetime.date(d.year(), d.month(), d.dayOfMonth()).strftime('%Y-%m-%d') for d in a_step_dates]
+                    'stepDates': [d.ISO() for d in a_step_dates]
                 },
                 'volatility': {
                     'values': calibrated_sigmas,
-                    'stepDates': [datetime.date(d.year(), d.month(), d.dayOfMonth()).strftime('%Y-%m-%d') for d in sigma_step_dates]
+                    'stepDates': [d.ISO() for d in sigma_step_dates]
                 }
             }
 
@@ -593,7 +594,6 @@ def run_and_save_calibration_for_date(
             with open(param_output_path, 'w') as f:
                 json.dump(param_data, f, indent=4)
             print(f"--- Parameters for {eval_date_str} successfully saved to: {param_output_path} ---")
-
 
     except Exception as e:
         import traceback
@@ -603,14 +603,12 @@ def run_and_save_calibration_for_date(
     print(f"\n{'='*25} FINISHED CALIBRATION FOR: {eval_date_str} {'='*25}")
 
 if __name__ == '__main__':
-    # --- Ensure the results directories exist ---
     os.makedirs(FOLDER_RESULTS, exist_ok=True)
     os.makedirs(FOLDER_RESULTS_PARAMS, exist_ok=True)
     
-    # --- Define calibration settings ---
     CALIBRATION_SETTINGS = {
         "num_a_segments": 1,
-        "num_sigma_segments": 3,
+        "num_sigma_segments": "auto", # can be an integer or 'auto'. If 'auto', it will match the number of unique expiries.
         "optimize_a": True,
         "initial_a": 0.02,
         "initial_sigma": 0.005,
@@ -619,15 +617,21 @@ if __name__ == '__main__':
         "min_tenor_years": 1.0
     }
 
-    # --- Find all dates with available data ---
     try:
         vol_files_folder = os.path.join(FOLDER_VOLATILITY_CUBES, 'xlsx')
+
+        if not os.path.exists(FOLDER_ZERO_CURVES):
+            os.makedirs(FOLDER_ZERO_CURVES)
+            print(f"Created missing directory: {FOLDER_ZERO_CURVES}")
+        if not os.path.exists(vol_files_folder):
+            os.makedirs(vol_files_folder)
+            print(f"Created missing directory: {vol_files_folder}")
 
         zero_curve_dates: Set[str] = {
             f.replace('.csv', '') for f in os.listdir(FOLDER_ZERO_CURVES) if f.endswith('.csv')
         }
         vol_cube_dates: Set[str] = {
-            f.replace('.xlsx', '') for f in os.listdir(vol_files_folder) if f.endswith('.xlsx')
+            f.replace('.xlsx', '') for f in os.listdir(vol_xlsx_folder) if f.endswith('.xlsx')
         }
 
         available_dates: List[str] = sorted(list(zero_curve_dates.intersection(vol_cube_dates)))
@@ -648,9 +652,6 @@ if __name__ == '__main__':
 
             print("\n\nBatch calibration process finished for all available dates.")
 
-    except FileNotFoundError as e:
-        print(f"\nError: A required data folder was not found.")
-        print(f"Details: {e}")
     except Exception as e:
         import traceback
         print(f"\nAn unexpected error occurred during the main process: {e}")
