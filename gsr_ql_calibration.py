@@ -383,7 +383,8 @@ def calibrate_hull_white(
     initial_a: float = 0.01,
     initial_sigma: float = 0.01,
     min_expiry_years: float = 0.0,
-    min_tenor_years: float = 0.0
+    min_tenor_years: float = 0.0,
+    pricing_engine_integration_points: int = 64
 ) -> Tuple[List[float], List[ql.Date], List[float], List[ql.Date], pd.DataFrame]:
     """
     Calibrates a one-factor Hull-White (via the GSR model) to a set of ATM swaptions.
@@ -431,7 +432,7 @@ def calibrate_hull_white(
     model = ql.Gsr(term_structure_handle, unified_step_dates, expanded_sigma_handles, expanded_reversion_handles, 61.0)
     
     calibration_helpers = [h for h, _, _ in helpers_with_info]
-    engine = ql.Gaussian1dSwaptionEngine(model, 64, 7.0, True, False, term_structure_handle)
+    engine = ql.Gaussian1dSwaptionEngine(model, pricing_engine_integration_points, 7.0, True, False, term_structure_handle)
     for helper in calibration_helpers:
         helper.setPricingEngine(engine)
 
@@ -613,6 +614,7 @@ if __name__ == '__main__':
         "optimize_a": True,
         "initial_a": 0.02,
         "initial_sigma": 0.005,
+        "pricing_engine_integration_points": 32,
         "min_expiry_years": 1.0,
         "min_tenor_years": 1.0
     }
