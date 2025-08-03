@@ -49,92 +49,107 @@ if PREPROCESS_CURVES:
         if entry_name.endswith('.xlsx'):
             path_swap_curve: str = os.path.join(raw_folder, entry_name)
             swap_curve: pd.DataFrame = pd.read_excel(path_swap_curve, engine='openpyxl')
+            
             processed_swap_curve: pd.DataFrame = swap_curve[['Term', 'Unit']].copy()
 
             swap_curve_date_str: str = entry_name.split('.xlsx')[0]
             swap_curve_date: datetime.datetime = datetime.datetime.strptime(swap_curve_date_str, '%d.%m.%Y')
+            
             processed_swap_curve_dates: list[datetime.datetime] = []
             for i in range(len(swap_curve)):
                 new_date: datetime.datetime = swap_curve_date + datetime.timedelta(days=int(30.4375 * swap_curve['Term'].iloc[i]) if swap_curve['Unit'].iloc[i] == 'MO'
                                                                                    else int(365.25 * swap_curve['Term'].iloc[i]))
                 processed_swap_curve_dates.append(new_date)
-            processed_swap_curve.drop(['Term', 'Unit'], axis=1, inplace=True)
+            
             processed_swap_curve['Date'] = processed_swap_curve_dates
             processed_swap_curve['Rate'] = swap_curve[['Bid', 'Ask']].mean(axis=1) / 100
+            
+            processed_swap_curve = processed_swap_curve[['Date', 'Rate', 'Term', 'Unit']]
+            
             processed_swap_curve.to_csv(os.path.join(processed_folder, f"{swap_curve_date_str}.csv"), index=False)
     print("--- Finished: Preprocessing ---")
 
 
 #--------------------BOOTSTRAP ZERO CURVES--------------------
-def _interpolate(x: float, x_points: list[float] | NDArray , y_points: list[float] | NDArray) -> float:
-    """
-    Performs linear interpolation.
-    
-    Args:
-        x (float): The point to interpolate.
-        x_points (list or np.array): The x-coordinates of the known points.
-        y_points (list or np.array): The y-coordinates of the known points.
-        
-    Returns:
-        float: The interpolated y-value.
-    """
-    return float(np.interp(x, x_points, y_points))
-
-def bootstrap_zero_curve(
+def bootstrap_zero_curve_with_quantlib(
     processed_swap_curve: pd.DataFrame,
-    valuation_date: datetime.datetime,
-    freq: int = 2,
-    day_count_convention: float = 365.25
+    valuation_date: datetime.datetime
 ) -> pd.DataFrame:
     """
-    Bootstraps a zero-coupon curve from a given par swap curve DataFrame.
-
-    Args:
-        processed_swap_curve (pd.DataFrame): DataFrame containing 'Date' and 'Rate' columns,
-            where 'Date' is the maturity date of the swap and 'Rate' is the par swap rate.
-        valuation_date (datetime.datetime): The reference date from which the tenors are calculated.
-        freq (int, optional): Number of fixed coupon payments per year. Defaults to 2.
-        day_count_convention (float, optional): Day count convention used for year fractions. Defaults to 365.25.
-
-    Returns:
-        pd.DataFrame: DataFrame with 'Date', 'Tenor', 'DiscountFactor', and 'ZeroRate' columns,
-            where 'DiscountFactor' and 'ZeroRate' are derived from the bootstrapping process.
+    Bootstraps a zero-coupon curve from a given swap curve DataFrame using QuantLib.
+    This version correctly uses 'Term' and 'Unit' columns for tenor creation.
     """
+    # 1. Set Evaluation Date
+    ql_valuation_date = ql.Date(valuation_date.day, valuation_date.month, valuation_date.year)
+    ql.Settings.instance().evaluationDate = ql_valuation_date
 
-    df: pd.DataFrame = processed_swap_curve.copy()
-    df['Tenor'] = df['Date'].apply(lambda d: round((d - valuation_date).days / day_count_convention, 2))
-    df = df.sort_values(by='Tenor').reset_index(drop=True)
-    known_tenors: list[float] = [0.0]
-    known_dfs: list[float] = [1.0]
-    zero_rates_list, discount_factors_list = [], []
+    calendar: ql.Calendar = ql.TARGET()
+    day_count: ql.Actual365Fixed = ql.Actual365Fixed()
+
+    df: pd.DataFrame = processed_swap_curve.sort_values(by='Date').reset_index(drop=True)
+    df = df[df['Date'] > valuation_date]
+
+    rate_helpers: list[ql.SwapRateHelper] = []
+    swap_index: ql.Euribor6M = ql.Euribor6M(ql.YieldTermStructureHandle())
+
     for _, row in df.iterrows():
-        tenor, swap_rate = row['Tenor'], row['Rate']
-        payment_tenors: NDArray = np.arange(1/freq, tenor + 1/freq, 1/freq)
-        sum_known_dfs: float = sum(_interpolate(float(t), known_tenors, known_dfs) for t in payment_tenors if t < tenor)
-        coupon: float = swap_rate / freq
-        new_df: float = (1 - coupon * sum_known_dfs) / (1 + coupon)
-        zero_rate: float = -np.log(new_df) / tenor
-        discount_factors_list.append(new_df)
-        zero_rates_list.append(zero_rate)
-        known_tenors.append(tenor)
-        known_dfs.append(new_df)
-    df['DiscountFactor'], df['ZeroRate'] = discount_factors_list, zero_rates_list
-    df.drop('Rate', axis=1, inplace=True)
-    cols: list[str] = df.columns.tolist()
-    new_order: list[str] = ['Date', 'Tenor'] + [col for col in cols if col not in ('Date', 'Tenor')]
-    return df[new_order]
+        rate: float = float(row['Rate'])
+        
+        unit: str = row['Unit'].strip().upper()
+        term_length: int = int(row['Term'])
+        
+        if unit == 'MO':
+            tenor_period = ql.Period(term_length, ql.Months)
+        elif unit == 'YR':
+            tenor_period = ql.Period(term_length, ql.Years)
+        else:
+            raise ValueError(f"Unsupported tenor unit: {row['Unit']}")
+
+        helper: ql.SwapRateHelper = ql.SwapRateHelper(
+            ql.QuoteHandle(ql.SimpleQuote(rate)),
+            tenor_period,
+            calendar,
+            ql.Annual,  # Fixed leg frequency for EUR swaps is Annual
+            ql.Unadjusted,
+            day_count,
+            swap_index
+        )
+        rate_helpers.append(helper)
+
+    yield_curve: ql.PiecewiseLogLinearDiscount = ql.PiecewiseLogLinearDiscount(
+        ql_valuation_date, rate_helpers, day_count
+    )
+    yield_curve.enableExtrapolation()
+
+    results: list[dict] = []
+    for row in df.itertuples():
+        maturity_date = row.Date
+        ql_date = ql.Date(maturity_date.day, maturity_date.month, maturity_date.year)
+        tenor_frac = day_count.yearFraction(ql_valuation_date, ql_date)
+        zero_rate = yield_curve.zeroRate(ql_date, day_count, ql.Continuous).rate()
+        discount_factor = yield_curve.discount(ql_date)
+        
+        results.append({
+            'Date': maturity_date,
+            'Tenor': tenor_frac,
+            'DiscountFactor': discount_factor,
+            'ZeroRate': zero_rate
+        })
+
+    return pd.DataFrame(results)
 
 if BOOTSTRAP_CURVES:
     print("--- Starting: Bootstrapping Zero Curves ---")
-    preprocessed_folder: str = os.path.join(FOLDER_SWAP_CURVES, 'processed')
+    preprocessed_folder = os.path.join(FOLDER_SWAP_CURVES, 'processed')
     if not os.path.exists(FOLDER_ZERO_CURVES):
         os.makedirs(FOLDER_ZERO_CURVES)
+
     for entry_name in os.listdir(preprocessed_folder):
         if entry_name.endswith('.csv'):
             swap_curve_date_str: str = entry_name.split('.csv')[0]
             swap_curve_date: datetime.datetime = datetime.datetime.strptime(swap_curve_date_str, '%d.%m.%Y')
             processed_swap_curve: pd.DataFrame = pd.read_csv(os.path.join(preprocessed_folder, entry_name), parse_dates=['Date'])
-            zero_curve: pd.DataFrame = bootstrap_zero_curve(processed_swap_curve, swap_curve_date)
+            zero_curve: pd.DataFrame = bootstrap_zero_curve_with_quantlib(processed_swap_curve, swap_curve_date)
             zero_curve.to_csv(os.path.join(FOLDER_ZERO_CURVES, f"{swap_curve_date_str}.csv"), index=False)
     print("--- Finished: Bootstrapping ---")
 
