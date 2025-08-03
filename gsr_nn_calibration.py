@@ -77,7 +77,13 @@ def bootstrap_zero_curve_with_quantlib(
 ) -> pd.DataFrame:
     """
     Bootstraps a zero-coupon curve from a given swap curve DataFrame using QuantLib.
-    This version correctly uses 'Term' and 'Unit' columns for tenor creation.
+    
+    Args:
+        processed_swap_curve (pd.DataFrame): The DataFrame containing the swap curve data.
+        valuation_date (datetime.datetime): The valuation date of the yield curve.
+    
+    Returns:
+        pd.DataFrame: The bootstrapped zero curve.
     """
     # 1. Set Evaluation Date
     ql_valuation_date = ql.Date(valuation_date.day, valuation_date.month, valuation_date.year)
