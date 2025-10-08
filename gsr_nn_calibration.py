@@ -472,6 +472,12 @@ class ResidualParameterModel(tf.keras.Model):
     def call(self, inputs) -> tf.Tensor:
         """
         Forward pass through the ResidualParameterModel.
+
+        Args:
+            inputs (Tuple[tf.Tensor, tf.Tensor]): A tuple of two tensors. The first tensor is the feature vector, the second tensor is the initial logits.
+
+        Returns:
+            tf.Tensor: The predicted parameters, transformed by the sigmoid function and scaled by the upper bound.
         """
         feature_vector, initial_logits = inputs
         x = self.hidden1(feature_vector)
@@ -481,8 +487,14 @@ class ResidualParameterModel(tf.keras.Model):
         return self.upper_bound * tf.keras.activations.sigmoid(final_logits)
 
     def get_config(self):
-        """Returns the configuration of the model."""
-        # Get the config from the parent class (which includes name, dtype, etc.)
+        """
+        Gets the configuration of the model as a dictionary.
+
+        This method is needed to support model serialization and deserialization.
+
+        Returns:
+            dict: The configuration of the model.
+        """
         config = super().get_config()
         # Update it with our custom constructor arguments
         config.update({
@@ -495,7 +507,16 @@ class ResidualParameterModel(tf.keras.Model):
 
     @classmethod
     def from_config(cls, config):
-        """Creates a model from its config."""
+        """
+        Instantiates a ResidualParameterModel from its configuration (serializedName -> constructor arguments).
+
+        Args:
+            config (dict): The configuration of the model.
+
+        Returns:
+            ResidualParameterModel: The instantiated model.
+        """
+
         return cls(**config)
 
 def evaluate_model_on_day(

@@ -556,22 +556,22 @@ def calibrate_hull_white(
     calibrated_expanded_sigmas = list(model.volatility())
 
     def get_unique_calibrated_values(expanded_values: List[float], original_step_dates: List[ql.Date], unified_step_dates: List[ql.Date]) -> List[float]:
-    """
-    Extracts and returns unique calibrated values corresponding to original step dates.
+        """
+        Extracts and returns unique calibrated values corresponding to original step dates.
 
-    This function takes expanded calibration values and maps them back to the original
-    step dates by identifying the indices that align with the original steps in the
-    unified timeline. It ensures that only unique values are retained in their order
-    of appearance.
+        This function takes expanded calibration values and maps them back to the original
+        step dates by identifying the indices that align with the original steps in the
+        unified timeline. It ensures that only unique values are retained in their order
+        of appearance.
 
-    Args:
-        expanded_values (List[float]): The list of expanded calibration values.
-        original_step_dates (List[ql.Date]): The original step dates associated with the calibration.
-        unified_step_dates (List[ql.Date]): The unified step dates encompassing all segments.
+        Args:
+            expanded_values (List[float]): The list of expanded calibration values.
+            original_step_dates (List[ql.Date]): The original step dates associated with the calibration.
+            unified_step_dates (List[ql.Date]): The unified step dates encompassing all segments.
 
-    Returns:
-        List[float]: A list of unique calibrated values corresponding to the original step dates.
-    """
+        Returns:
+            List[float]: A list of unique calibrated values corresponding to the original step dates.
+        """
         if not original_step_dates:
             return [expanded_values[0]] 
         

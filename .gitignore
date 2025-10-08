@@ -1,4 +1,5 @@
 /.old_code_versions
+/.vscode
 
 /data/EUR BVOL CUBE
 /data/EUR SWAP CURVE
@@ -6,6 +7,8 @@
 /data/META
 
 /results/traditional/predictions
+/results/traditional/parameters
 /results/neural_network/predictions
+/results/neural_network/parameters
 
 NOTES.txt
