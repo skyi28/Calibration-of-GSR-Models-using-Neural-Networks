@@ -1,10 +1,24 @@
 """
 This script is designed to calibrate Hull-White GSR models using a neural network.
 
-It now includes functionality to save the trained model and to load a pre-trained
-model to continue the training process.
+This version is a fully operational implementation for performing a "real run" of
+both hyperparameter tuning (using a custom Keras HyperModel and the Hyperband algorithm)
+and final model training. All placeholder logic has been removed.
+
+It now includes three distinct workflows controlled by settings:
+1.  Full hyperparameter tuning and final model training.
+2.  Final model training using pre-existing best hyperparameters.
+3.  Evaluation-only mode, which loads a pre-trained model artifact and runs it
+    on the test set.
+
+Crucially, it now saves a comprehensive CSV file with all evaluation results,
+making it easy to generate plots and tables for academic papers or reports.
+
+WARNING: This script is computationally intensive and is intended for long-running
+execution on powerful hardware.
 """
 import datetime
+import glob
 import os
 import sys
 import time
@@ -22,17 +36,19 @@ from concurrent.futures import ThreadPoolExecutor
 import bisect
 import traceback
 import json
+import keras_tuner as kt
+import joblib
 
 #--------------------CONFIG--------------------
+# Set to False to skip the initial data preparation steps if they have already been run
 PREPROCESS_CURVES: bool = False
 BOOTSTRAP_CURVES: bool = False
 
 FOLDER_SWAP_CURVES: str = r'data\EUR SWAP CURVE'
 FOLDER_ZERO_CURVES: str = r'data\EUR ZERO CURVE'
 FOLDER_VOLATILITY_CUBES: str = r'data\EUR BVOL CUBE'
-FOLDER_RESULTS_NN: str = r'results\neural_network\predictions'
-FOLDER_RESULTS_PARAMS_NN: str = r'results\neural_network\parameters'
 FOLDER_MODELS: str = r'results\neural_network\models'
+FOLDER_HYPERPARAMETERS: str = r'results\neural_network\hyperparameters'
 
 
 #--------------------PREPROCESS CURVES--------------------
@@ -85,7 +101,6 @@ def bootstrap_zero_curve_with_quantlib(
     Returns:
         pd.DataFrame: The bootstrapped zero curve.
     """
-    # 1. Set Evaluation Date
     ql_valuation_date = ql.Date(valuation_date.day, valuation_date.month, valuation_date.year)
     ql.Settings.instance().evaluationDate = ql_valuation_date
 
@@ -100,7 +115,6 @@ def bootstrap_zero_curve_with_quantlib(
 
     for _, row in df.iterrows():
         rate: float = float(row['Rate'])
-        
         unit: str = row['Unit'].strip().upper()
         term_length: int = int(row['Term'])
         
@@ -158,32 +172,26 @@ if BOOTSTRAP_CURVES:
             zero_curve: pd.DataFrame = bootstrap_zero_curve_with_quantlib(processed_swap_curve, swap_curve_date)
             zero_curve.to_csv(os.path.join(FOLDER_ZERO_CURVES, f"{swap_curve_date_str}.csv"), index=False)
     print("--- Finished: Bootstrapping ---")
+    sys.exit(0)
 
 
 #--------------------DATA DISCOVERY AND SPLITTING--------------------
-def load_and_split_data_files(
+def load_and_split_data_chronologically(
     zero_curve_folder: str,
     vol_cube_folder: str,
-    train_split_percentage: float
-) -> Tuple[List[Tuple[datetime.date, str, str]], List[Tuple[datetime.date, str, str]]]:
+    train_split_percentage: float = 50.0,
+    validation_split_percentage: float = 20.0,
+    load_all: bool = True
+) -> Tuple[List[Tuple[datetime.date, str, str]], List[Tuple[datetime.date, str, str]], List[Tuple[datetime.date, str, str]]]:
     """
-    Discovers and loads available zero curve and volatility cube data files and splits them into
-    training and validation sets according to the given percentage.
-
-    Args:
-        zero_curve_folder (str): The folder containing the zero curve data files.
-        vol_cube_folder (str): The folder containing the volatility cube data files.
-        train_split_percentage (float): The percentage of available data to use for training.
-
-    Returns:
-        Tuple[List[Tuple[datetime.date, str, str]], List[Tuple[datetime.date, str, str]]]:
-            A tuple of two lists. The first list contains the training data, the second list contains the
-            validation data. Each list element is a tuple of (evaluation_date, zero_curve_path, vol_cube_path).
+    Discovers data files and splits them chronologically. If load_all is False,
+    only loads test files.
     """
-    print("\n--- Discovering and loading data files ---")
+    print("\n--- Discovering and splitting data files chronologically ---")
     vol_cube_xlsx_folder: str = os.path.join(vol_cube_folder, 'xlsx')
     if not os.path.exists(zero_curve_folder) or not os.path.exists(vol_cube_xlsx_folder):
         raise FileNotFoundError(f"Data folders not found. Searched for:\n- {zero_curve_folder}\n- {vol_cube_xlsx_folder}")
+
     available_files: List[Tuple[datetime.date, str, str]] = []
     for entry_name in os.listdir(zero_curve_folder):
         if entry_name.endswith('.csv'):
@@ -193,19 +201,32 @@ def load_and_split_data_files(
             vol_path: str = os.path.join(vol_cube_xlsx_folder, f"{date_str}.xlsx")
             if os.path.exists(vol_path):
                 available_files.append((eval_date, zero_path, vol_path))
-            else:
-                print(f"Warning: Zero curve found for {date_str}, but no corresponding volatility cube. Skipping.")
+
     if not available_files:
         raise ValueError("No matching pairs of zero curve and volatility data found.")
+
     available_files.sort(key=lambda x: x[0])
-    print(f"Found {len(available_files)} complete data sets from {available_files[0][0]} to {available_files[-1][0]}.")
-    split_index: int = int(len(available_files) * (train_split_percentage / 100.0))
-    train_files: List[Tuple[datetime.date, str, str]] = available_files[:split_index]
-    test_files: List[Tuple[datetime.date, str, str]] = available_files[split_index:]
-    if not train_files:
-        raise ValueError("Training split resulted in 0 files. Adjust train_split_percentage or add more data.")
-    print(f"Splitting data: {len(train_files)} days for training, {len(test_files)} days for validation.")
-    return train_files, test_files
+    total_files: int = len(available_files)
+    print(f"Found {total_files} complete data sets from {available_files[0][0]} to {available_files[-1][0]}.")
+
+    train_end_index = int(total_files * train_split_percentage / 100.0)
+    validation_end_index = train_end_index + int(total_files * validation_split_percentage / 100.0)
+
+    test_files: List[Tuple[datetime.date, str, str]] = available_files[validation_end_index:]
+
+    if not load_all:
+        print(f"Loading test data only: {len(test_files)} files.")
+        return [], [], test_files
+    
+    train_files: List[Tuple[datetime.date, str, str]] = available_files[:train_end_index]
+    validation_files: List[Tuple[datetime.date, str, str]] = available_files[train_end_index:validation_end_index]
+
+    if not train_files or not validation_files or not test_files:
+        raise ValueError("Data splitting resulted in one or more empty sets. Adjust percentages or add more data.")
+
+    print(f"Splitting data: {len(train_files)} for training, {len(validation_files)} for validation, and {len(test_files)} for testing.")
+    return train_files, validation_files, test_files
+
 
 #--------------------HELPER FOR LOADING VOL CUBE--------------------
 def load_volatility_cube(file_path: str) -> pd.DataFrame:
@@ -310,22 +331,23 @@ def prepare_calibration_helpers(
     vols_df: pd.DataFrame = vol_cube_df[vol_cube_df['Type'] == 'Vol'].set_index('Expiry')
     strikes_df: pd.DataFrame = vol_cube_df[vol_cube_df['Type'] == 'Strike'].set_index('Expiry')
     swap_index: ql.Euribor6M = ql.Euribor6M(term_structure_handle)
-    total_count, filtered_count = 0, 0
     for expiry_str in vols_df.index:
         for tenor_str in vols_df.columns:
             if tenor_str == 'Type': continue
             vol, strike = vols_df.loc[expiry_str, tenor_str], strikes_df.loc[expiry_str, tenor_str]
             if pd.isna(vol) or pd.isna(strike): continue
-            total_count += 1
             if parse_tenor_to_years(expiry_str) < min_expiry_years or parse_tenor_to_years(tenor_str) < min_tenor_years:
-                filtered_count += 1
                 continue
             vol_handle: ql.QuoteHandle = ql.QuoteHandle(ql.SimpleQuote(float(vol) / 10000.0))
-            helper: ql.SwaptionHelper = ql.SwaptionHelper(parse_tenor(expiry_str), parse_tenor(tenor_str), vol_handle, swap_index, ql.Period(6, ql.Months), swap_index.dayCounter(), swap_index.dayCounter(), term_structure_handle, ql.Normal)
+            helper: ql.SwaptionHelper = ql.SwaptionHelper(
+                parse_tenor(expiry_str), parse_tenor(tenor_str), vol_handle, swap_index,
+                ql.Period(6, ql.Months), swap_index.dayCounter(), swap_index.dayCounter(),
+                term_structure_handle, ql.Normal
+            )
             helpers_with_info.append((helper, expiry_str, tenor_str))
     return helpers_with_info
 
-def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date):
+def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date, model_save_dir: str):
     """
     Shows 3 diagrams as 3D plots in the same figure after the calibration.
 
@@ -335,14 +357,13 @@ def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date)
         results_df (pd.DataFrame): The DataFrame with the calibration results.
         eval_date (datetime.date): The evaluation date of the yield curve.
     """
-    
-    plot_data: pd.DataFrame = results_df.dropna(subset=['MarketVol', 'ModelVol', 'Difference']).copy()
+    plot_data: pd.DataFrame = results_df.dropna(subset=['MarketVol', 'ModelVol', 'Difference_bps']).copy()
     if plot_data.empty:
         print(f"\nCould not generate plots for {eval_date}: No valid data points available.")
         return
     X = plot_data['Expiry'].values; Y = plot_data['Tenor'].values
     Z_market: ArrayLike = plot_data['MarketVol'].values; Z_model = plot_data['ModelVol'].values
-    Z_diff: ArrayLike = plot_data['Difference'].values
+    Z_diff: ArrayLike = plot_data['Difference_bps'].values
     fig = plt.figure(figsize=(24, 8)); fig.suptitle(f'Hull-White Calibration Volatility Surfaces for {eval_date}', fontsize=16)
     ax1 = fig.add_subplot(1, 3, 1, projection='3d'); ax1.set_title('Observed Market Volatilities (bps)')
     surf1 = ax1.plot_trisurf(X, Y, Z_market, cmap=cm.viridis, antialiased=True, linewidth=0.1)
@@ -359,7 +380,9 @@ def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date)
     ax3.set_xlabel('Expiry (Years)'); ax3.set_ylabel('Tenor (Years)'); ax3.set_zlabel('Difference (bps)')
     fig.colorbar(surf3, ax=ax3, shrink=0.5, aspect=10, pad=0.1)
     max_reasonable_diff: float = np.nanmax(np.abs(Z_diff)); ax3.set_zlim(-max_reasonable_diff, max_reasonable_diff)
-    ax3.view_init(elev=30, azim=-120); plt.tight_layout(rect=[0, 0.03, 1, 0.95]); plt.show()
+    ax3.view_init(elev=30, azim=-120); plt.tight_layout(rect=[0, 0.03, 1, 0.95]); 
+    plt.savefig(os.path.join(model_save_dir, f'CalibrationPlot_{eval_date}.png'))
+    plt.show()
 
 
 #--------------------TENSORFLOW NEURAL NETWORK CALIBRATION HELPERS--------------------
@@ -443,45 +466,38 @@ def prepare_nn_features(
     return scaler.transform(np.array(rates).reshape(1, -1))
 
 class ResidualParameterModel(tf.keras.Model):
-    def __init__(self, total_params_to_predict, upper_bound, hidden_layer_size=64, batch_momentum=0.99, **kwargs):
-        """
-        Initializes the ResidualParameterModel with specified parameters.
-
-        Args:
-            total_params_to_predict (int): The number of parameters the model is designed to predict.
-            upper_bound (float): The upper bound for the predicted values.
-            hidden_layer_size (int, optional): The size of the hidden layers. Defaults to 64.
-            batch_momentum (float, optional): The momentum for batch normalization. Defaults to 0.99.
-            **kwargs: Additional keyword arguments passed to the parent tf.keras.Model constructor.
-        """
-        # Pass standard Keras arguments (like name, trainable, dtype) to the parent
+    def __init__(self, total_params_to_predict: int, upper_bound: float, layers: list, activation: str, use_dropout: bool, dropout_rate: float, **kwargs):
         super().__init__(**kwargs)
-        
-        # Store config parameters
         self.total_params_to_predict = total_params_to_predict
         self.upper_bound_value = upper_bound
-        self.hidden_layer_size = hidden_layer_size
-        self.batch_momentum = batch_momentum
-        
-        # Define layers
         self.upper_bound = tf.constant(self.upper_bound_value, dtype=tf.float64)
-        self.hidden1 = tf.keras.layers.Dense(self.hidden_layer_size, dtype=tf.float64, activation='relu')
-        self.hidden2 = tf.keras.layers.Dense(self.hidden_layer_size, dtype=tf.float64, activation='relu')
-        self.output_layer = tf.keras.layers.Dense(self.total_params_to_predict, dtype=tf.float64, kernel_initializer='zeros', bias_initializer='zeros')
+        
+        self._config = {
+            'total_params_to_predict': total_params_to_predict, 'upper_bound': upper_bound,
+            'layers': layers, 'activation': activation,
+            'use_dropout': use_dropout, 'dropout_rate': dropout_rate
+        }
 
-    def call(self, inputs) -> tf.Tensor:
-        """
-        Forward pass through the ResidualParameterModel.
+        self.hidden_layers = []
+        for num_neurons in layers:
+            self.hidden_layers.append(tf.keras.layers.Dense(num_neurons, activation=activation, dtype=tf.float64))
+            if use_dropout:
+                self.hidden_layers.append(tf.keras.layers.Dropout(dropout_rate, dtype=tf.float64))
+        
+        self.output_layer = tf.keras.layers.Dense(
+            self.total_params_to_predict, dtype=tf.float64,
+            kernel_initializer='zeros', bias_initializer='zeros'
+        )
 
-        Args:
-            inputs (Tuple[tf.Tensor, tf.Tensor]): A tuple of two tensors. The first tensor is the feature vector, the second tensor is the initial logits.
-
-        Returns:
-            tf.Tensor: The predicted parameters, transformed by the sigmoid function and scaled by the upper bound.
-        """
+    def call(self, inputs, training=False) -> tf.Tensor:
         feature_vector, initial_logits = inputs
-        x = self.hidden1(feature_vector)
-        x = self.hidden2(x)
+        x = feature_vector
+        for layer in self.hidden_layers:
+            if isinstance(layer, tf.keras.layers.Dropout):
+                x = layer(x, training=training)
+            else:
+                x = layer(x)
+        
         delta_logits = self.output_layer(x)
         final_logits = initial_logits + delta_logits
         return self.upper_bound * tf.keras.activations.sigmoid(final_logits)
@@ -496,13 +512,7 @@ class ResidualParameterModel(tf.keras.Model):
             dict: The configuration of the model.
         """
         config = super().get_config()
-        # Update it with our custom constructor arguments
-        config.update({
-            'total_params_to_predict': self.total_params_to_predict,
-            'upper_bound': self.upper_bound_value,
-            'hidden_layer_size': self.hidden_layer_size,
-            'batch_momentum': self.batch_momentum,
-        })
+        config.update(self._config)
         return config
 
     @classmethod
@@ -574,7 +584,7 @@ def evaluate_model_on_day(
             squared_errors.append((model_vol - helper.volatility().value())**2)
         except (RuntimeError, ValueError):
             model_vol_bps, error_bps = float('nan'), float('nan')
-        results_data.append({'ExpiryStr': expiry_str, 'TenorStr': tenor_str, 'MarketVol': market_vol_bps, 'ModelVol': model_vol_bps, 'Difference': error_bps})
+        results_data.append({'ExpiryStr': expiry_str, 'TenorStr': tenor_str, 'MarketVol': market_vol_bps, 'ModelVol': model_vol_bps, 'Difference_bps': error_bps})
     results_df: pd.DataFrame = pd.DataFrame(results_data)
     if not results_df.empty:
         results_df['Expiry'] = results_df['ExpiryStr'].apply(parse_tenor_to_years); results_df['Tenor'] = results_df['TenorStr'].apply(parse_tenor_to_years)
@@ -582,337 +592,360 @@ def evaluate_model_on_day(
     return final_rmse_bps, results_df
 
 
+# ------------------- HYPERPARAMETER TUNING AND TRAINING COMPONENTS -------------------
+def _calculate_loss_for_day(params: np.ndarray, ql_eval_date, term_structure_handle, helpers_with_info, settings) -> float:
+    """
+    The core, computationally-heavy loss calculation using QuantLib.
+    """
+    try:
+        num_a = settings['num_a_segments'] if settings['optimize_a'] else 0
+        a_params, sigma_params = params[:num_a], params[num_a:]
+        reversion_quotes = [ql.SimpleQuote(p) for p in a_params]
+        sigma_quotes = [ql.SimpleQuote(p) for p in sigma_params]
+        if not settings['optimize_a']:
+            reversion_quotes = [ql.SimpleQuote(p) for p in settings['initial_guess'][:num_a]] if num_a > 0 else [ql.SimpleQuote(0.01)]
+        
+        included_expiries = sorted(list(set([parse_tenor_to_years(e) for _, e, _ in helpers_with_info])))
+        a_steps = _get_step_dates_from_expiries(ql_eval_date, included_expiries, settings['num_a_segments'])
+        s_steps = _get_step_dates_from_expiries(ql_eval_date, included_expiries, settings['num_sigma_segments'])
+        unified_steps = sorted(list(set(a_steps + s_steps)))
+
+        exp_rev_h = _expand_params_to_unified_timeline(reversion_quotes, a_steps, unified_steps)
+        exp_sig_h = _expand_params_to_unified_timeline(sigma_quotes, s_steps, unified_steps)
+
+        thread_model = ql.Gsr(term_structure_handle, unified_steps, exp_sig_h, exp_rev_h, 61.0)
+        thread_engine = ql.Gaussian1dSwaptionEngine(thread_model, settings['pricing_engine_integration_points'], 7.0, True, False, term_structure_handle)
+        
+        squared_errors = []
+        for helper, _, _ in helpers_with_info:
+            helper.setPricingEngine(thread_engine)
+            model_val = helper.modelValue()
+            implied_vol = helper.impliedVolatility(model_val, 1e-4, 500, 0.0001, 1.0)
+            squared_errors.append((implied_vol - helper.volatility().value())**2)
+        
+        return float(np.mean(squared_errors)) if squared_errors else 1e6
+    except (RuntimeError, ValueError):
+        return 1e6
+
+def _perform_training_step(model, optimizer, feature_vector, initial_logits, ql_eval_date, term_structure_handle, helpers_with_info, settings):
+    """
+    Executes one forward and backward pass for a single day of data.
+    """
+    @tf.custom_gradient
+    def ql_loss_on_params(params_tensor):
+        loss_val = _calculate_loss_for_day(params_tensor.numpy()[0], ql_eval_date, term_structure_handle, helpers_with_info, settings)
+        
+        def grad_fn(dy):
+            base_params = params_tensor.numpy()[0]; h = settings['h_relative']
+            def _calc_single_grad(i):
+                p_plus = base_params.copy(); p_plus[i] += h
+                p_minus = base_params.copy(); p_minus[i] -= h
+                loss_plus = _calculate_loss_for_day(p_plus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
+                loss_minus = _calculate_loss_for_day(p_minus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
+                return (loss_plus - loss_minus) / (2 * h)
+            
+            with ThreadPoolExecutor(max_workers=settings.get("num_threads", os.cpu_count() or 1)) as executor:
+                grad = np.array(list(executor.map(_calc_single_grad, range(len(base_params)))))
+            return tf.constant([dy.numpy() * grad], dtype=tf.float64)
+        
+        return tf.constant(loss_val, dtype=tf.float64), grad_fn
+
+    with tf.GradientTape() as tape:
+        predicted_params = model((feature_vector, initial_logits), training=True)
+        loss = ql_loss_on_params(predicted_params)
+    
+    grads = tape.gradient(loss, model.trainable_variables)
+    if any(g is not None for g in grads):
+        clipped_grads = [(tf.clip_by_norm(g, settings['gradient_clip_norm']) if g is not None else None) for g in grads]
+        optimizer.apply_gradients(zip(clipped_grads, model.trainable_variables))
+    
+    return loss
+
+class HullWhiteHyperModel(kt.HyperModel):
+    """
+    A Keras Tuner HyperModel that defines the search space and the custom training loop.
+    """
+    def build(self, hp: kt.HyperParameters) -> ResidualParameterModel:
+        """Builds the Keras model with hyperparameters."""
+        num_layers = hp.Int('num_layers', 1, 5)
+        activation = hp.Choice('activation', ['relu', 'tanh'])
+        use_dropout = hp.Boolean('use_dropout')
+        dropout_rate = hp.Float('dropout_rate', 0.1, 0.5, step=0.1) if use_dropout else 0.0
+
+        layers = [hp.Int(f'neurons_{i}', 32, 256, step=32) for i in range(num_layers)]
+
+        # These parameters are fixed during the search but needed for model instantiation
+        total_params = TF_NN_CALIBRATION_SETTINGS['num_a_segments'] + TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']
+        upper_bound = TF_NN_CALIBRATION_SETTINGS['upper_bound']
+
+        model = ResidualParameterModel(
+            total_params_to_predict=total_params, upper_bound=upper_bound,
+            layers=layers, activation=activation, use_dropout=use_dropout,
+            dropout_rate=dropout_rate, dtype=tf.float64
+        )
+        return model
+
+    def fit(self, hp, model, loaded_train_data, loaded_val_data, settings, feature_scaler, initial_logits, **kwargs):
+        """Overrides the default fit method to implement the custom training loop."""
+        learning_rate = hp.Float("learning_rate", 1e-4, 1e-2, sampling="log")
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+
+        epochs = kwargs.get('epochs', 1)
+        trial = None
+        for callback in kwargs.get('callbacks', []):
+            if hasattr(callback, 'trial'):
+                trial = callback.trial
+                break
+        trial_id = trial.trial_id if trial else "unknown"
+        
+        for epoch in range(epochs):
+            print(f"\nTrial {trial_id} | Starting Epoch {epoch + 1}/{epochs}")
+            epoch_losses = []
+            total_days: int = len(loaded_train_data)
+            for day_idx, (eval_date, zero_df, vol_df) in enumerate(loaded_train_data):
+                print(f"\r  Training day {day_idx + 1}/{total_days}...", end='', flush=True)
+                ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
+                ql.Settings.instance().evaluationDate = ql_eval_date
+                term_structure = create_ql_yield_curve(zero_df, eval_date)
+                helpers = prepare_calibration_helpers(vol_df, term_structure, settings['min_expiry_years'], settings['min_tenor_years'])
+                if not helpers: continue
+                
+                feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler)
+                loss = _perform_training_step(model, optimizer, tf.constant(feature_vec, dtype=tf.float64), initial_logits, ql_eval_date, term_structure, helpers, settings)
+                if not np.isnan(loss):
+                    epoch_losses.append(np.sqrt(loss) * 10000)
+            
+            avg_epoch_rmse = np.mean(epoch_losses) if epoch_losses else float('inf')
+            print(f"\n  Trial {trial_id} | Epoch {epoch+1}/{epochs} | Avg Train RMSE: {avg_epoch_rmse:.2f} bps")
+
+            val_losses = []
+            for eval_date, zero_df, vol_df in loaded_val_data:
+                term_structure = create_ql_yield_curve(zero_df, eval_date)
+                feature_vec = prepare_nn_features(term_structure, ql.Date(eval_date.day, eval_date.month, eval_date.year), feature_scaler)
+                predicted_params = model((tf.constant(feature_vec, dtype=tf.float64), initial_logits), training=False).numpy()[0]
+                rmse, _ = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, settings)
+                if not np.isnan(rmse): val_losses.append(rmse)
+            
+            avg_val_rmse = np.mean(val_losses) if val_losses else float('inf')
+            print(f"  Trial {trial_id} | Epoch {epoch+1}/{epochs} | Avg Validation RMSE: {avg_val_rmse:.2f} bps")
+            
+        return { 'val_rmse': avg_val_rmse }
+
 #--------------------MAIN EXECUTION LOGIC--------------------
 if __name__ == '__main__':
     try:
-        os.makedirs(FOLDER_RESULTS_NN, exist_ok=True)
-        os.makedirs(FOLDER_RESULTS_PARAMS_NN, exist_ok=True)
-        os.makedirs(FOLDER_MODELS, exist_ok=True)
-
-        TRAIN_SPLIT_PERCENTAGE: float = 80.0
+        print("="*80)
+        print("WARNING: This script is computationally intensive and will take a very")
+        print("         long time to run. A full hyperparameter search may take days.")
+        print("="*80)
         
+        os.makedirs(FOLDER_MODELS, exist_ok=True)
+        os.makedirs(FOLDER_HYPERPARAMETERS, exist_ok=True)
+
         TF_NN_CALIBRATION_SETTINGS = {
-            # Number of piecewise constant segments for the mean-reversion parameter 'a'. 1 means 'a' is constant.
-            "num_a_segments": 1,
-            # Number of piecewise constant segments for the volatility parameter 'sigma'. More segments allow for a more flexible term structure of volatility.
-            "num_sigma_segments": 3,
-            # If True, the neural network will predict the mean-reversion 'a'. If False, 'a' is fixed to its value in 'initial_guess'.
-            "optimize_a": True,
-            # The upper limit for the predicted parameters ('a' and 'sigma'). The NN output is scaled by this value, effectively constraining the search space.
-            "upper_bound": 0.1,
-            # Number of integration points for the Gaussian1dSwaptionEngine. Higher values increase pricing accuracy but slow down calibration.
-            "pricing_engine_integration_points": 32,
-            # Configuration for the learning rate decay schedule. Helps in finding a good solution by reducing the learning rate during training.
-            "learning_rate_config": {
-                "initial_learning_rate": 1e-2,  # The starting learning rate for the Adam optimizer.
-                "decay_steps": 100,             # The number of training steps after which the learning rate is reduced.
-                "decay_rate": 0.95              # The factor by which the learning rate is multiplied.
+            # --- WORKFLOW CONTROLS ---
+            # Mode 1: Tune and Train
+            #   evaluate_only = False, perform_hyperparameter_tuning = True
+            # Mode 2: Train from best HPs
+            #   evaluate_only = False, perform_hyperparameter_tuning = False
+            # Mode 3: Evaluate a pre-trained model
+            #   evaluate_only = True
+            "evaluate_only": True,
+            "perform_hyperparameter_tuning": False,
+            "model_evaluation_dir": r"results\neural_network\models\model_20251008_110404",
+            "hyperband_settings": {
+                "max_epochs": 1, "factor": 3,
+                "directory": "results/neural_network/hyperband_tuner",
+                "project_name": "hull_white_calibration"
             },
-            # The total number of times the model will iterate over the entire training dataset.
-            "num_epochs": 1,
-            # The relative step size used for the finite difference method to approximate gradients of the QuantLib loss function.
-            "h_relative": 1e-7,
-            # The number of neurons in each of the two hidden layers of the neural network.
-            "hidden_layer_size": 32,
-            # Initial guess for the parameters to be calibrated ('a' and 'sigma' values). The NN learns to predict a 'residual' or adjustment to these.
-            "initial_guess": [0.020566979477481182, 0.0002299520131905028, 0.00021618386141957264, 0.00017446618702943582],
-            # The maximum norm for gradients. Used for gradient clipping to prevent the exploding gradients problem during training.
-            "gradient_clip_norm": 2.0,
-            # The number of parallel threads to use for calculating the finite-difference gradients, speeding up training steps.
-            "num_threads": 8,
-            # The momentum parameter for the moving average in Batch Normalization layers. Note: BN layers are currently commented out.
-            "batch_momentum": 0.99,
-            # Minimum swaption expiry (in years) to be included in the calibration. Swaptions with shorter expiries will be filtered out.
-            "min_expiry_years": 1.0,
-            # Minimum swaption tenor (in years) to be included in the calibration. Swaptions with shorter tenors will be filtered out.
-            "min_tenor_years": 1.0,
-            # Set to a model name (e.g., "model_20250802_215000" - no file ending) to load a pre-trained model. If None, a new model is created.
-            "LOAD_MODEL_NAME": None,
-            # The name used to save the model after training. A timestamp is added to ensure uniqueness.
-            "SAVE_MODEL_NAME": f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            "num_a_segments": 1, "num_sigma_segments": 3, "optimize_a": True,
+            "upper_bound": 0.1, "pricing_engine_integration_points": 32,
+            "num_epochs": 1, "h_relative": 1e-7,
+            "initial_guess": [0.02, 0.0002, 0.0002, 0.00017],
+            "gradient_clip_norm": 2.0, "num_threads": os.cpu_count() or 4,
+            "min_expiry_years": 2.0, "min_tenor_years": 2.0,
+            "SAVE_MODEL_DIR_NAME": f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
         }
         
-        # 1. Load and split all available data
-        train_files, test_files = load_and_split_data_files(FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES, TRAIN_SPLIT_PERCENTAGE)
-        if not test_files: print("Warning: No files left for testing/validation after split.")
-
-        # 2. Prepare the feature scaler using only training data
-        print("\n--- Preparing Feature Scaler using Training Data ---")
-        all_training_features: list[list[float]] = []
-        feature_tenors_for_scaling = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
-        for eval_date, zero_path, _ in train_files:
-            zero_curve_df: pd.DataFrame = pd.read_csv(zero_path)
-            ql_eval_date: ql.Date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
-            term_structure_handle: ql.RelinkableYieldTermStructureHandle = create_ql_yield_curve(zero_curve_df, eval_date)
-            day_counter: ql.Actual365Fixed = ql.Actual365Fixed()
-            rates: list[float] = [term_structure_handle.zeroRate(ql_eval_date + ql.Period(int(ty * 365.25), ql.Days), day_counter, ql.Continuous).rate() for ty in feature_tenors_for_scaling]
-            all_training_features.append(rates)
+        final_model = None
+        feature_scaler = None
+        initial_logits = None
+        model_save_dir = None
         
-        feature_scaler: StandardScaler = StandardScaler()
-        if not all_training_features:
-            raise ValueError("Could not extract any features from the training data to fit the scaler.")
-        feature_scaler.fit(np.array(all_training_features))
-        print("Feature scaler has been fitted to the training data.")
+        if TF_NN_CALIBRATION_SETTINGS['evaluate_only']:
+            print("\n--- WORKFLOW: EVALUATION-ONLY MODE ---")
+            model_save_dir = TF_NN_CALIBRATION_SETTINGS['model_evaluation_dir']
+            if not os.path.isdir(model_save_dir):
+                raise FileNotFoundError(f"Model evaluation directory not found: {model_save_dir}")
 
-        # 3. Pre-load all training data into memory
-        print("\n--- Pre-loading all training data into memory ---")
-        loaded_train_data: list[tuple[datetime.date, pd.DataFrame, pd.DataFrame]] = []
-        for i, (eval_date, zero_path, vol_path) in enumerate(train_files):
-            sys.stdout.write(f"\rLoading file {i+1}/{len(train_files)}: {os.path.basename(zero_path)}")
-            sys.stdout.flush()
-            zero_curve_df: pd.DataFrame = pd.read_csv(zero_path)
-            vol_cube_df: pd.DataFrame = load_volatility_cube(vol_path)
-            loaded_train_data.append((eval_date, zero_curve_df, vol_cube_df))
-        print("\nAll training data has been loaded.")
-
-        # 4. Initialize or load the shared model and optimizer
-        num_a_params_to_predict: int = TF_NN_CALIBRATION_SETTINGS['num_a_segments'] if TF_NN_CALIBRATION_SETTINGS['optimize_a'] else 0
-        total_params_to_predict: int = num_a_params_to_predict + TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']
-        assert len(TF_NN_CALIBRATION_SETTINGS['initial_guess']) == total_params_to_predict, \
-            f"Initial guess length must match total predictable parameters ({total_params_to_predict})"
-
-        nn_model: ResidualParameterModel
-        load_model_name: str | None = TF_NN_CALIBRATION_SETTINGS.get("LOAD_MODEL_NAME")
-
-        if load_model_name:
-            model_path: str = os.path.join(FOLDER_MODELS, load_model_name + '.keras')
-            if os.path.exists(model_path):
-                print(f"\n--- Loading existing model: {load_model_name} ---")
-                nn_model = tf.keras.models.load_model(model_path, custom_objects={'ResidualParameterModel': ResidualParameterModel})
-                print("Model loaded successfully.")
-                TF_NN_CALIBRATION_SETTINGS["SAVE_MODEL_NAME"] = f"{load_model_name}_cont_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            else:
-                print(f"Warning: Model '{load_model_name}' not found at '{model_path}'. A new model will be initialized.")
-                nn_model = ResidualParameterModel(total_params_to_predict, TF_NN_CALIBRATION_SETTINGS['upper_bound'],
-                                                  TF_NN_CALIBRATION_SETTINGS['hidden_layer_size'], TF_NN_CALIBRATION_SETTINGS['batch_momentum'], dtype=tf.float64)
-        else:
-            print("\n--- Initializing a new model ---")
-            nn_model = ResidualParameterModel(total_params_to_predict, TF_NN_CALIBRATION_SETTINGS['upper_bound'],
-                                              TF_NN_CALIBRATION_SETTINGS['hidden_layer_size'], TF_NN_CALIBRATION_SETTINGS['batch_momentum'], dtype=tf.float64)
-
-        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(**TF_NN_CALIBRATION_SETTINGS['learning_rate_config'])
-        optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-        p_scaled = np.clip(np.array(TF_NN_CALIBRATION_SETTINGS['initial_guess'], dtype=np.float64) / TF_NN_CALIBRATION_SETTINGS['upper_bound'], 1e-9, 1 - 1e-9)
-        initial_logits = tf.constant([np.log(p_scaled / (1 - p_scaled))], dtype=tf.float64)
-
-        # 5. --- TRAINING LOOP ---
-        print("\n--- Starting Model Training ---")
-        start_time: float = time.monotonic()
-        for epoch in range(TF_NN_CALIBRATION_SETTINGS['num_epochs']):
-            epoch_losses: list[float] = []
-            for day_idx, (eval_date, zero_curve_df, vol_cube_df) in enumerate(loaded_train_data):
-                ql_eval_date: ql.Date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
-                ql.Settings.instance().evaluationDate = ql_eval_date
-                term_structure_handle: ql.RelinkableYieldTermStructureHandle = create_ql_yield_curve(zero_curve_df, eval_date)
-                helpers_with_info: list[Tuple[ql.SwaptionHelper, str, str]] = prepare_calibration_helpers(vol_cube_df, term_structure_handle,
-                                                              TF_NN_CALIBRATION_SETTINGS['min_expiry_years'], TF_NN_CALIBRATION_SETTINGS['min_tenor_years'])
-                if not helpers_with_info:
-                    print(f"\nSkipping {eval_date} due to lack of valid swaption helpers.")
-                    continue
-                
-                feature_vector = prepare_nn_features(term_structure_handle, ql_eval_date, feature_scaler)
-                feature_vector = tf.constant(feature_vector, dtype=tf.float64)
-
-                def _calculate_loss_for_day(params: np.ndarray) -> float:
-                    """
-                    Calculates the loss for a given day using swaption pricing and implied volatility.
-
-                    Args:
-                        params (np.ndarray): Array containing the model parameters to be calibrated, 
-                                            split into mean reversion ('a') and volatility ('sigma') segments.
-
-                    Returns:
-                        float: Mean squared error between model-implied volatilities and market volatilities.
-                            Returns a large constant (1e6) in case of exceptions during calculation.
-
-                    This function sets up the GSR model using the provided parameters, expands these
-                    parameters to a unified timeline, and uses a Gaussian1dSwaptionEngine to price swaptions.
-                    The loss is computed as the mean squared difference between model-implied volatilities 
-                    and observed market volatilities for a set of calibration helpers.
-                    """
-                    try:
-                        num_a = num_a_params_to_predict; a_params, sigma_params = params[:num_a], params[num_a:]
-                        reversion_quotes: list[ql.SimpleQuote] = [ql.SimpleQuote(p) for p in a_params]
-                        sigma_quotes: list[ql.SimpleQuote] = [ql.SimpleQuote(p) for p in sigma_params]
-                        if not TF_NN_CALIBRATION_SETTINGS['optimize_a']: reversion_quotes = [ql.SimpleQuote(p) for p in TF_NN_CALIBRATION_SETTINGS['initial_guess'][:num_a]] if num_a > 0 else [ql.SimpleQuote(0.01)]
-                        included_expiries: list[float] = sorted(list(set([parse_tenor_to_years(e) for _, e, _ in helpers_with_info])))
-                        a_steps: list[ql.Date] = _get_step_dates_from_expiries(ql_eval_date, included_expiries, TF_NN_CALIBRATION_SETTINGS['num_a_segments'])
-                        s_steps: list[ql.Date] = _get_step_dates_from_expiries(ql_eval_date, included_expiries, TF_NN_CALIBRATION_SETTINGS['num_sigma_segments'])
-                        unified_steps: list[ql.Date] = sorted(list(set(a_steps + s_steps)))
-                        exp_rev_h: list[ql.QuoteHandle] = _expand_params_to_unified_timeline(reversion_quotes, a_steps, unified_steps)
-                        exp_sig_h: list[ql.QuoteHandle] = _expand_params_to_unified_timeline(sigma_quotes, s_steps, unified_steps)
-                        thread_model: ql.Gsr = ql.Gsr(term_structure_handle, unified_steps, exp_sig_h, exp_rev_h, 61.0)
-                        thread_engine: ql.Gaussian1dSwaptionEngine = ql.Gaussian1dSwaptionEngine(thread_model, TF_NN_CALIBRATION_SETTINGS['pricing_engine_integration_points'], 7.0, True, False, term_structure_handle)
-                        squared_errors: list[float] = []
-                        for original_helper, _, _ in helpers_with_info:
-                            original_helper.setPricingEngine(thread_engine); model_val = original_helper.modelValue()
-                            implied_vol: float = original_helper.impliedVolatility(model_val, 1e-4, 500, 0.0001, 1.0)
-                            squared_errors.append((implied_vol - original_helper.volatility().value())**2)
-                        return float(np.mean(squared_errors)) if squared_errors else 1e6
-                    except (RuntimeError, ValueError): return 1e6
-
-                @tf.custom_gradient
-                def ql_loss_on_params(params_tensor):
-                    """
-                    Computes the loss for a set of model parameters given a set of GSR helpers.
-
-                    The loss is computed by pricing each of the calibration helpers using a Gaussian1dSwaptionEngine
-                    and calculating the mean squared difference between the model-implied volatilities and the
-                    observed market volatilities.
-
-                    The gradient is computed using a finite difference approach.
-
-                    Args:
-                        params_tensor (tf.Tensor): A 1D tensor containing the model parameters to be calibrated.
-
-                    Returns:
-                        A tuple containing the loss value and a gradient function.
-                    """
-                    loss_val: float = _calculate_loss_for_day(params_tensor.numpy()[0])
-                    def grad_fn(dy):
-                        """
-                        Computes the gradient of the loss function using a finite difference approach.
-
-                        Args:
-                            dy (tf.Tensor): The upstream derivative, i.e. the loss value times the gradient of the loss function with respect to the model parameters.
-
-                        Returns:
-                            A tf.Tensor containing the gradient of the loss function with respect to the model parameters.
-                        """
-                        base_params = params_tensor.numpy()[0]; h: float = TF_NN_CALIBRATION_SETTINGS['h_relative']
-                        def _calc_single_grad(i):
-                            """
-                            Computes the gradient of the loss function with respect to a single model parameter.
-
-                            Args:
-                                i (int): Index of the model parameter to compute the gradient for.
-
-                            Returns:
-                                float: The gradient of the loss function with respect to the model parameter.
-
-                            This function computes the gradient of the loss function using a finite difference approach.
-                            The `base_params` are modified by adding and subtracting a small value (`h`) to the i-th parameter.
-                            The gradient is then computed as the difference between the loss values evaluated at the modified
-                            parameters, divided by twice the step size (`h`).
-                            """
-                            p_plus = base_params.copy(); p_plus[i] += h
-                            p_minus = base_params.copy(); p_minus[i] -= h
-                            return (_calculate_loss_for_day(p_plus) - _calculate_loss_for_day(p_minus)) / (2 * h)
-                        with ThreadPoolExecutor(max_workers=TF_NN_CALIBRATION_SETTINGS.get("num_threads", os.cpu_count() or 1)) as executor:
-                            grad = np.array(list(executor.map(_calc_single_grad, range(len(base_params)))))
-                        return tf.constant([dy.numpy() * grad], dtype=tf.float64)
-                    return tf.constant(loss_val, dtype=tf.float64), grad_fn
-
-                with tf.GradientTape() as tape:
-                    predicted_params = nn_model((feature_vector, initial_logits), training=True)
-                    loss = ql_loss_on_params(predicted_params)
-                
-                grads = tape.gradient(loss, nn_model.trainable_variables)
-                if grads:
-                    clipped_grads = [(tf.clip_by_norm(g, TF_NN_CALIBRATION_SETTINGS['gradient_clip_norm']) if g is not None else None) for g in grads]
-                    optimizer.apply_gradients(zip(clipped_grads, nn_model.trainable_variables))
-                
-                current_rmse: float = tf.sqrt(loss).numpy() * 10000; epoch_losses.append(current_rmse)
-                progress: float = (day_idx + 1) / len(loaded_train_data); bar: str = ('=' * int(progress * 20)).ljust(20)
-                sys.stdout.write(f"\rEpoch {epoch+1:2d}/{TF_NN_CALIBRATION_SETTINGS['num_epochs']} [{bar}] Day {day_idx+1:2d}/{len(loaded_train_data)} - RMSE: {current_rmse:7.2f} bps")
-                sys.stdout.flush()
-
-            avg_epoch_rmse: float = float(np.mean(epoch_losses)) if epoch_losses else float('nan'); elapsed: float = time.monotonic() - start_time
-            print(f"\nEpoch {epoch+1} Summary | Avg. Train RMSE: {avg_epoch_rmse:7.2f} bps | Time Elapsed: {_format_time(elapsed)}")
-        
-        print("\n--- Training Finished ---")
-        
-        # --- Save the final trained model ---
-        save_model_name: str | None = TF_NN_CALIBRATION_SETTINGS.get("SAVE_MODEL_NAME")
-        if save_model_name:
-            model_save_path = os.path.join(FOLDER_MODELS, save_model_name + '.keras')
-            print(f"\n--- Saving model to {model_save_path} ---")
-            nn_model.save(model_save_path)
-            print("--- Model saved successfully ---")
-        else:
-            print("\n--- Model not saved (no SAVE_MODEL_NAME specified) ---")
-
-
-        # 6. --- VALIDATION/TESTING AND SAVING LOOP ---
-        if test_files:
-            print("\n--- Evaluating Model on Test Data and Saving Results ---")
-            output_folder_name = save_model_name if TF_NN_CALIBRATION_SETTINGS.get('num_epochs', 0) > 0 else load_model_name
-            if not output_folder_name:
-                print("Warning: Could not determine output folder name for results. Saving to base directory.")
-                output_folder_name = "unknown_model"
-
-            # Create the specific subdirectories for the results of this model
-            params_output_dir = os.path.join(FOLDER_RESULTS_PARAMS_NN, output_folder_name)
-            predictions_output_dir = os.path.join(FOLDER_RESULTS_NN, output_folder_name)
-            os.makedirs(params_output_dir, exist_ok=True)
-            os.makedirs(predictions_output_dir, exist_ok=True)
+            print(f"Loading model artifact from: {model_save_dir}")
+            final_model = tf.keras.models.load_model(
+                os.path.join(model_save_dir, 'model.keras'), 
+                custom_objects={'ResidualParameterModel': ResidualParameterModel}
+            )
+            feature_scaler = joblib.load(os.path.join(model_save_dir, 'feature_scaler.joblib'))
+            initial_logits = tf.constant(np.load(os.path.join(model_save_dir, 'initial_logits.npy')), dtype=tf.float64)
+            print("Model artifact loaded successfully.")
             
-            test_results_for_plot: dict = {}
+            _, _, test_files = load_and_split_data_chronologically(
+                FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES, load_all=False
+            )
+
+        else:
+            print("\n--- WORKFLOW: TRAINING MODE ---")
+            train_files, val_files, test_files = load_and_split_data_chronologically(
+                FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES, train_split_percentage=50, validation_split_percentage=20
+            )
+
+            print("\n--- Preparing Feature Scaler using Training Data ---")
+            all_training_features = []
+            for eval_date, zero_path, _ in train_files:
+                zero_curve_df = pd.read_csv(zero_path)
+                term_structure = create_ql_yield_curve(zero_curve_df, eval_date)
+                rates = [term_structure.zeroRate(ql.Date(eval_date.day, eval_date.month, eval_date.year) + ql.Period(int(ty * 365.25), ql.Days), ql.Actual365Fixed(), ql.Continuous).rate() for ty in [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]]
+                all_training_features.append(rates)
+            
+            feature_scaler = StandardScaler()
+            feature_scaler.fit(np.array(all_training_features))
+            print("Feature scaler has been fitted to the training data.")
+
+            print("\n--- Pre-loading all data into memory ---")
+            loaded_train_data = [(d, pd.read_csv(zp), load_volatility_cube(vp)) for d, zp, vp in train_files]
+            loaded_val_data = [(d, pd.read_csv(zp), load_volatility_cube(vp)) for d, zp, vp in val_files]
+            print("All training and validation data has been loaded.")
+
+            p_scaled = np.clip(np.array(TF_NN_CALIBRATION_SETTINGS['initial_guess'], dtype=np.float64) / TF_NN_CALIBRATION_SETTINGS['upper_bound'], 1e-9, 1 - 1e-9)
+            initial_logits = tf.constant([np.log(p_scaled / (1 - p_scaled))], dtype=tf.float64)
+            
+            best_hyperparameters = None
+
+            if TF_NN_CALIBRATION_SETTINGS['perform_hyperparameter_tuning']:
+                print("\n--- Starting Hyperparameter Tuning with Hyperband ---")
+                hypermodel = HullWhiteHyperModel()
+                tuner = kt.Hyperband(
+                    hypermodel=hypermodel,
+                    objective=kt.Objective("val_rmse", direction="min"),
+                    max_epochs=TF_NN_CALIBRATION_SETTINGS['hyperband_settings']['max_epochs'],
+                    factor=TF_NN_CALIBRATION_SETTINGS['hyperband_settings']['factor'],
+                    directory=TF_NN_CALIBRATION_SETTINGS['hyperband_settings']['directory'],
+                    project_name=TF_NN_CALIBRATION_SETTINGS['hyperband_settings']['project_name']
+                )
+                tuner.search(
+                    loaded_train_data=loaded_train_data, loaded_val_data=loaded_val_data,
+                    settings=TF_NN_CALIBRATION_SETTINGS, feature_scaler=feature_scaler,
+                    initial_logits=initial_logits
+                )
+                
+                print("\n--- Hyperparameter Tuning Finished ---")
+                best_hyperparameters = tuner.get_best_hyperparameters(num_trials=1)[0]
+                print("Best Hyperparameters Found:")
+                for hp, value in best_hyperparameters.values.items(): print(f"  - {hp}: {value}")
+                    
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"best_hyperparameters_{timestamp}.json"
+                filepath = os.path.join(FOLDER_HYPERPARAMETERS, filename)
+                with open(filepath, 'w') as f: json.dump(best_hyperparameters.values, f, indent=4)
+                print(f"Best hyperparameters saved to {filepath}")
+
+            else:
+                print("\n--- Loading Best Hyperparameters from File ---")
+                list_of_files = glob.glob(os.path.join(FOLDER_HYPERPARAMETERS, '*.json'))
+                if not list_of_files:
+                    raise FileNotFoundError("perform_hyperparameter_tuning is False, but no hyperparameter files found.")
+                
+                latest_file = max(list_of_files, key=os.path.getctime)
+                print(f"Loading hyperparameters from: {latest_file}")
+                with open(latest_file, 'r') as f: loaded_hps = json.load(f)
+                best_hyperparameters = kt.HyperParameters()
+                for key, value in loaded_hps.items(): best_hyperparameters.Fixed(key, value)
+            
+            print("\n--- Training Final Model using Best Hyperparameters ---")
+            final_model = HullWhiteHyperModel().build(best_hyperparameters)
+            optimizer = tf.keras.optimizers.Adam(learning_rate=best_hyperparameters.get('learning_rate'))
+            combined_train_data = loaded_train_data + loaded_val_data
+            print(f"Training final model on {len(combined_train_data)} days of data for {TF_NN_CALIBRATION_SETTINGS['num_epochs']} epochs.")
+            
+            start_time = time.monotonic()
+            for epoch in range(TF_NN_CALIBRATION_SETTINGS['num_epochs']):
+                epoch_losses = []
+                for day_idx, (eval_date, zero_df, vol_df) in enumerate(combined_train_data):
+                    ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
+                    ql.Settings.instance().evaluationDate = ql_eval_date
+                    term_structure = create_ql_yield_curve(zero_df, eval_date)
+                    helpers = prepare_calibration_helpers(vol_df, term_structure, TF_NN_CALIBRATION_SETTINGS['min_expiry_years'], TF_NN_CALIBRATION_SETTINGS['min_tenor_years'])
+                    if not helpers: continue
+                    
+                    feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler)
+                    loss = _perform_training_step(final_model, optimizer, tf.constant(feature_vec, dtype=tf.float64), initial_logits, ql_eval_date, term_structure, helpers, TF_NN_CALIBRATION_SETTINGS)
+                    
+                    current_rmse = np.sqrt(loss) * 10000
+                    epoch_losses.append(current_rmse)
+                    progress = (day_idx + 1) / len(combined_train_data)
+                    bar = ('=' * int(progress * 20)).ljust(20)
+                    sys.stdout.write(f"\rEpoch {epoch+1:2d}/{TF_NN_CALIBRATION_SETTINGS['num_epochs']} [{bar}] Day {day_idx+1:3d}/{len(combined_train_data)} - RMSE: {current_rmse:7.2f} bps")
+                    sys.stdout.flush()
+                
+                avg_epoch_rmse = np.mean(epoch_losses) if epoch_losses else float('nan')
+                elapsed = time.monotonic() - start_time
+                print(f"\nEpoch {epoch+1} Summary | Avg. Train RMSE: {avg_epoch_rmse:7.2f} bps | Time Elapsed: {_format_time(elapsed)}")
+            
+            print("\n--- Final Training Finished ---")
+            
+            model_save_dir = os.path.join(FOLDER_MODELS, TF_NN_CALIBRATION_SETTINGS["SAVE_MODEL_DIR_NAME"])
+            os.makedirs(model_save_dir, exist_ok=True)
+            print(f"\n--- Saving model artifact to {model_save_dir} ---")
+            
+            final_model.save(os.path.join(model_save_dir, 'model.keras'))
+            joblib.dump(feature_scaler, os.path.join(model_save_dir, 'feature_scaler.joblib'))
+            np.save(os.path.join(model_save_dir, 'initial_logits.npy'), initial_logits.numpy())
+            
+            print("--- Model artifact saved successfully ---")
+
+        if test_files and final_model is not None:
+            print("\n--- Evaluating Final Model on Out-of-Sample Test Data ---")
+            all_results_dfs = [] # NEW: Initialize list to hold daily results
             for eval_date, zero_path, vol_path in test_files:
                 print(f"\n--- Processing test day: {eval_date.strftime('%d-%m-%Y')} ---")
-                zero_curve_df: pd.DataFrame = pd.read_csv(zero_path)
-                vol_cube_df: pd.DataFrame = load_volatility_cube(vol_path)
-                ql_eval_date: ql.Date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
-                ql.Settings.instance().evaluationDate = ql_eval_date
-                term_structure_handle: ql.RelinkableYieldTermStructureHandle = create_ql_yield_curve(zero_curve_df, eval_date)
+                zero_df = pd.read_csv(zero_path)
+                vol_df = load_volatility_cube(vol_path)
+                term_structure = create_ql_yield_curve(zero_df, eval_date)
                 
-                feature_vector: NDArray = prepare_nn_features(term_structure_handle, ql_eval_date, feature_scaler)
-                predicted_params: NDArray = nn_model((tf.constant(feature_vector, dtype=tf.float64), initial_logits), training=False).numpy()[0]
+                feature_vector = prepare_nn_features(term_structure, ql.Date(eval_date.day, eval_date.month, eval_date.year), feature_scaler)
+                predicted_params = final_model((tf.constant(feature_vector, dtype=tf.float64), initial_logits), training=False).numpy()[0]
                 
-                num_a: int = num_a_params_to_predict
-                calibrated_as: list[float] = predicted_params[:num_a].tolist()
-                calibrated_sigmas: list[float] = predicted_params[num_a:].tolist()
-                print("Predicted Parameters:")
-                print(f"  Mean Reversion (a): {calibrated_as}")
-                print(f"  Volatility (sigma): {calibrated_sigmas}")
-                
-                helpers_with_info: List[Tuple[ql.SwaptionHelper, str, str]] = prepare_calibration_helpers(vol_cube_df, term_structure_handle, TF_NN_CALIBRATION_SETTINGS['min_expiry_years'], TF_NN_CALIBRATION_SETTINGS['min_tenor_years'])
-                if not helpers_with_info:
-                    print(f"Skipping parameter/result saving for {eval_date} due to lack of valid swaption helpers.")
-                    continue
-                
-                included_expiries_yrs: list[float] = sorted(list(set([parse_tenor_to_years(expiry) for _, expiry, _ in helpers_with_info])))
-                a_step_dates: list[ql.Date] = _get_step_dates_from_expiries(ql_eval_date, included_expiries_yrs, TF_NN_CALIBRATION_SETTINGS['num_a_segments'])
-                sigma_step_dates: list[ql.Date] = _get_step_dates_from_expiries(ql_eval_date, included_expiries_yrs, TF_NN_CALIBRATION_SETTINGS['num_sigma_segments'])
+                rmse_bps, results_df = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, TF_NN_CALIBRATION_SETTINGS)
+                print(f"Test RMSE for {eval_date}: {rmse_bps:.4f} bps")
 
-                param_data: dict = {
-                    'evaluationDate': eval_date.strftime('%Y-%m-%d'),
-                    'meanReversion': {
-                        'values': calibrated_as,
-                        'stepDates': [datetime.date(d.year(), d.month(), d.dayOfMonth()).strftime('%Y-%m-%d') for d in a_step_dates]
-                    },
-                    'volatility': {
-                        'values': calibrated_sigmas,
-                        'stepDates': [datetime.date(d.year(), d.month(), d.dayOfMonth()).strftime('%Y-%m-%d') for d in sigma_step_dates]
-                    }
-                }
-                
-                output_date_str: str = eval_date.strftime("%d-%m-%Y")
-                param_output_path: str = os.path.join(params_output_dir, f"{output_date_str}.json")
-                with open(param_output_path, 'w') as f:
-                    json.dump(param_data, f, indent=4)
-                print(f"--- Parameters successfully saved to: {param_output_path} ---")
-
-                rmse_bps, results_df = evaluate_model_on_day(eval_date, zero_curve_df, vol_cube_df, predicted_params, TF_NN_CALIBRATION_SETTINGS)
-                print(f"Validation RMSE for {eval_date}: {rmse_bps:.4f} bps")
-                
                 if not results_df.empty:
-                    csv_output_path: str = os.path.join(predictions_output_dir, f"{output_date_str}.csv")                    
-                    results_df.to_csv(csv_output_path, index=False)
-                    print(f"--- Predictions successfully saved to: {csv_output_path} ---")
-                else:
-                    print(f"--- Evaluation for {eval_date} did not produce results to save. ---")
-                
-                test_results_for_plot[eval_date] = (rmse_bps, results_df)
+                    # NEW: Enrich the daily DataFrame with all necessary info
+                    day_results_df = results_df.copy()
+                    day_results_df['EvaluationDate'] = eval_date
+                    day_results_df['DailyRMSE_bps'] = rmse_bps
+                    
+                    # Add parameter columns dynamically
+                    num_a = TF_NN_CALIBRATION_SETTINGS['num_a_segments'] if TF_NN_CALIBRATION_SETTINGS['optimize_a'] else 0
+                    for i in range(num_a):
+                        day_results_df[f'a_{i+1}'] = predicted_params[i]
+                    for i in range(TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']):
+                        day_results_df[f'sigma_{i+1}'] = predicted_params[num_a + i]
+                        
+                    all_results_dfs.append(day_results_df)
 
-            # 7. Plot results for the last day in the test set
-            if test_results_for_plot:
-                last_test_date: datetime.date = test_files[-1][0]
+            if all_results_dfs:
+                # NEW: Concatenate all daily results and save to a single CSV
+                master_results_df = pd.concat(all_results_dfs, ignore_index=True)
+                results_save_path = os.path.join(model_save_dir, 'evaluation_results.csv')
+                master_results_df.to_csv(results_save_path, index=False)
+                print(f"\n--- Comprehensive evaluation results saved to: {results_save_path} ---")
+
+                # Plot results for the last test day as a final check
+                last_test_date = test_files[-1][0]
                 print(f"\n--- Plotting calibration results for last test day: {last_test_date} ---")
-                _, last_results_df = test_results_for_plot[last_test_date]
-                if not last_results_df.empty: plot_calibration_results(last_results_df, last_test_date)
-                else: print("Could not plot results as no valid data was returned from evaluation.")
+                last_day_df = master_results_df[master_results_df['EvaluationDate'] == last_test_date]
+                if not last_day_df.empty:
+                    plot_calibration_results(last_day_df, last_test_date, model_save_dir)
+        else:
+            print("\n--- No test files or model available for final evaluation. ---")
 
     except (FileNotFoundError, ValueError) as e: print(f"\nERROR: {e}")
     except Exception as e: print(f"\nAn unexpected error occurred: {e}"); traceback.print_exc()
-    
