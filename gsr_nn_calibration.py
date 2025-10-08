@@ -38,17 +38,19 @@ import traceback
 import json
 import keras_tuner as kt
 import joblib
+import yfinance as yf
 
 #--------------------CONFIG--------------------
 # Set to False to skip the initial data preparation steps if they have already been run
 PREPROCESS_CURVES: bool = False
 BOOTSTRAP_CURVES: bool = False
 
-FOLDER_SWAP_CURVES: str = r'data\EUR SWAP CURVE'
-FOLDER_ZERO_CURVES: str = r'data\EUR ZERO CURVE'
-FOLDER_VOLATILITY_CUBES: str = r'data\EUR BVOL CUBE'
-FOLDER_MODELS: str = r'results\neural_network\models'
-FOLDER_HYPERPARAMETERS: str = r'results\neural_network\hyperparameters'
+FOLDER_SWAP_CURVES: str = r'data/EUR SWAP CURVE'
+FOLDER_ZERO_CURVES: str = r'data/EUR ZERO CURVE'
+FOLDER_VOLATILITY_CUBES: str = r'data/EUR BVOL CUBE'
+FOLDER_MOVE: str = r'data/MOVE'
+FOLDER_MODELS: str = r'results/neural_network/models'
+FOLDER_HYPERPARAMETERS: str = r'results/neural_network/hyperparameters'
 
 
 #--------------------PREPROCESS CURVES--------------------
@@ -446,11 +448,12 @@ def _expand_params_to_unified_timeline(initial_params_quotes: List[ql.SimpleQuot
 def extract_raw_features(
     term_structure_handle: ql.RelinkableYieldTermStructureHandle,
     eval_date: ql.Date,
+    move_data: pd.DataFrame,
     feature_tenors: List[float] = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
 ) -> List[float]:
     """
-    Extracts a raw (unscaled) feature vector, including rates and key slopes,
-    from a yield curve term structure.
+    Extracts a raw (unscaled) feature vector, including rates, key slopes, and the MOVE index,
+    from a yield curve term structure and external data.
     """
     day_counter: ql.Actual365Fixed = ql.Actual365Fixed()
     
@@ -460,11 +463,9 @@ def extract_raw_features(
     # Helper to get rates for specific tenors
     def get_rate(tenor_in_years: float) -> float:
         if tenor_in_years < 1.0:
-            # Use ql.Months for tenors less than a year for precision
             num_months = int(tenor_in_years * 12)
             return term_structure_handle.zeroRate(eval_date + ql.Period(num_months, ql.Months), day_counter, ql.Continuous).rate()
         
-        # Use ql.Years for integer years. Using days for non-integer years can be more precise.
         days = int(tenor_in_years * 365.25)
         return term_structure_handle.zeroRate(eval_date + ql.Period(days, ql.Days), day_counter, ql.Continuous).rate()
 
@@ -480,8 +481,13 @@ def extract_raw_features(
     slope_2s10s = rate_10y - rate_2y
     slope_5s30s = rate_30y - rate_5y
     
-    # Combine the original rates with the new slope features
-    all_features = rates + [slope_3m10s, slope_2s10s, slope_5s30s]
+    # Look up the MOVE index value for the given day
+    py_date = datetime.date(eval_date.year(), eval_date.month(), eval_date.dayOfMonth())
+    pd_timestamp = pd.to_datetime(py_date)
+    move_value = move_data.loc[pd_timestamp, 'Open']
+
+    # Combine the original rates with the new slope features and the MOVE index
+    all_features = rates + [slope_3m10s, slope_2s10s, slope_5s30s, move_value]
     
     return all_features
 
@@ -489,23 +495,25 @@ def prepare_nn_features(
     term_structure_handle: ql.RelinkableYieldTermStructureHandle,
     eval_date: ql.Date,
     scaler: StandardScaler,
+    move_data: pd.DataFrame,
     feature_tenors: List[float] = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
 ) -> np.ndarray:
     """
     Prepares a feature vector from a yield curve term structure for a neural network calibration.
-    This function now extracts raw features (including slopes) and then scales them.
+    This function now extracts raw features (including slopes and MOVE index) and then scales them.
 
     Args:
         term_structure_handle (ql.RelinkableYieldTermStructureHandle): The yield curve term structure.
         eval_date (ql.Date): The evaluation date of the yield curve.
         scaler (StandardScaler): A pre-fitted StandardScaler object from scikit-learn.
+        move_data (pd.DataFrame): DataFrame with the MOVE index data.
         feature_tenors (List[float], optional): The tenors to use for the feature vector. Defaults to [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0].
 
     Returns:
         np.ndarray: The prepared and scaled feature vector as a numpy array.
     """
-    # Step 1: Extract all raw features (rates and slopes)
-    raw_features = extract_raw_features(term_structure_handle, eval_date, feature_tenors)
+    # Step 1: Extract all raw features (rates, slopes, and MOVE index)
+    raw_features = extract_raw_features(term_structure_handle, eval_date, move_data, feature_tenors)
     
     # Step 2: Scale the raw features using the pre-fitted scaler
     return scaler.transform(np.array(raw_features).reshape(1, -1))
@@ -731,7 +739,7 @@ class HullWhiteHyperModel(kt.HyperModel):
         )
         return model
 
-    def fit(self, hp, model, loaded_train_data, loaded_val_data, settings, feature_scaler, initial_logits, **kwargs):
+    def fit(self, hp, model, loaded_train_data, loaded_val_data, settings, feature_scaler, initial_logits, move_data, **kwargs):
         """Overrides the default fit method to implement the custom training loop."""
         learning_rate = hp.Float("learning_rate", 1e-4, 1e-2, sampling="log")
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -756,7 +764,7 @@ class HullWhiteHyperModel(kt.HyperModel):
                 helpers = prepare_calibration_helpers(vol_df, term_structure, settings['min_expiry_years'], settings['min_tenor_years'])
                 if not helpers: continue
                 
-                feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler)
+                feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, move_data)
                 loss = _perform_training_step(model, optimizer, tf.constant(feature_vec, dtype=tf.float64), initial_logits, ql_eval_date, term_structure, helpers, settings)
                 if not np.isnan(loss):
                     epoch_losses.append(np.sqrt(loss) * 10000)
@@ -767,7 +775,7 @@ class HullWhiteHyperModel(kt.HyperModel):
             val_losses = []
             for eval_date, zero_df, vol_df in loaded_val_data:
                 term_structure = create_ql_yield_curve(zero_df, eval_date)
-                feature_vec = prepare_nn_features(term_structure, ql.Date(eval_date.day, eval_date.month, eval_date.year), feature_scaler)
+                feature_vec = prepare_nn_features(term_structure, ql.Date(eval_date.day, eval_date.month, eval_date.year), feature_scaler, move_data)
                 predicted_params = model((tf.constant(feature_vec, dtype=tf.float64), initial_logits), training=False).numpy()[0]
                 rmse, _ = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, settings)
                 if not np.isnan(rmse): val_losses.append(rmse)
@@ -833,8 +841,8 @@ if __name__ == '__main__':
             initial_logits = tf.constant(np.load(os.path.join(model_save_dir, 'initial_logits.npy')), dtype=tf.float64)
             print("Model artifact loaded successfully.")
             
-            _, _, test_files = load_and_split_data_chronologically(
-                FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES, load_all=False
+            train_files, val_files, test_files = load_and_split_data_chronologically(
+                FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES, load_all=True
             )
 
         else:
@@ -843,6 +851,35 @@ if __name__ == '__main__':
                 FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES, train_split_percentage=50, validation_split_percentage=20
             )
 
+        # --- DOWNLOAD AND PREPARE MOVE INDEX DATA ---
+        move_csv_path = os.path.join(FOLDER_MOVE, 'move_index.csv')
+        all_files = train_files + val_files + test_files
+        start_date = all_files[0][0]
+        end_date = all_files[-1][0]
+
+        if not os.path.exists(move_csv_path):
+            print(f"\n--- MOVE index data not found. Downloading for range {start_date} to {end_date} ---")
+            os.makedirs(FOLDER_MOVE, exist_ok=True)
+            try:
+                # Add one day to end_date to make yfinance download inclusive
+                move_raw_data = yf.download('^MOVE', start=start_date, end=end_date + datetime.timedelta(days=1))
+                if move_raw_data.empty:
+                    raise ValueError("No data downloaded for ^MOVE. Check ticker and date range.")
+                move_raw_data.to_csv(move_csv_path)
+                print(f"MOVE index data saved to {move_csv_path}")
+            except Exception as e:
+                print(f"ERROR: Could not download MOVE index data. {e}")
+                sys.exit(1)
+        
+        print("\n--- Loading and preparing MOVE index data ---")
+        move_data = pd.read_csv(move_csv_path, header=[0, 1], index_col=0, parse_dates=True)
+        move_data.columns = move_data.columns.droplevel(1)
+        move_data.index.name = 'Date'
+        full_date_range = pd.date_range(start=start_date, end=end_date, freq='D')
+        move_data = move_data.reindex(full_date_range).ffill().bfill()
+        print("MOVE index data prepared.")
+        
+        if not TF_NN_CALIBRATION_SETTINGS['evaluate_only']:
             print("\n--- Preparing Feature Scaler using Training Data ---")
             all_training_features = []
             for eval_date, zero_path, _ in train_files:
@@ -850,14 +887,14 @@ if __name__ == '__main__':
                 term_structure = create_ql_yield_curve(zero_curve_df, eval_date)
                 ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
                 
-                # Extract the new, wider raw feature set (rates + slopes)
-                raw_features = extract_raw_features(term_structure, ql_eval_date)
+                # Extract the new, wider raw feature set (rates + slopes + MOVE)
+                raw_features = extract_raw_features(term_structure, ql_eval_date, move_data)
                 all_training_features.append(raw_features)
             
             # Fit the scaler on the new, richer feature set
             feature_scaler = StandardScaler()
             feature_scaler.fit(np.array(all_training_features))
-            print("Feature scaler has been fitted to the training data (including slopes).")
+            print("Feature scaler has been fitted to the training data (including slopes and MOVE index).")
 
             print("\n--- Pre-loading all data into memory ---")
             loaded_train_data = [(d, pd.read_csv(zp, parse_dates=['Date']), load_volatility_cube(vp)) for d, zp, vp in train_files]
@@ -887,7 +924,7 @@ if __name__ == '__main__':
                 tuner.search(
                     loaded_train_data=loaded_train_data, loaded_val_data=loaded_val_data,
                     settings=TF_NN_CALIBRATION_SETTINGS, feature_scaler=feature_scaler,
-                    initial_logits=initial_logits
+                    initial_logits=initial_logits, move_data=move_data
                 )
                 
                 tuning_elapsed = time.monotonic() - tuning_start_time
@@ -936,7 +973,7 @@ if __name__ == '__main__':
                     helpers = prepare_calibration_helpers(vol_df, term_structure, TF_NN_CALIBRATION_SETTINGS['min_expiry_years'], TF_NN_CALIBRATION_SETTINGS['min_tenor_years'])
                     if not helpers: continue
                     
-                    feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler)
+                    feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, move_data)
                     loss = _perform_training_step(final_model, optimizer, tf.constant(feature_vec, dtype=tf.float64), initial_logits, ql_eval_date, term_structure, helpers, TF_NN_CALIBRATION_SETTINGS)
                     
                     current_rmse = np.sqrt(loss) * 10000
@@ -978,7 +1015,7 @@ if __name__ == '__main__':
                 vol_df = load_volatility_cube(vol_path)
                 term_structure = create_ql_yield_curve(zero_df, eval_date)
                 
-                feature_vector = prepare_nn_features(term_structure, ql.Date(eval_date.day, eval_date.month, eval_date.year), feature_scaler)
+                feature_vector = prepare_nn_features(term_structure, ql.Date(eval_date.day, eval_date.month, eval_date.year), feature_scaler, move_data)
                 predicted_params = final_model((tf.constant(feature_vector, dtype=tf.float64), initial_logits), training=False).numpy()[0]
                 
                 rmse_bps, results_df = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, TF_NN_CALIBRATION_SETTINGS)
