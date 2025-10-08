@@ -830,13 +830,19 @@ if __name__ == '__main__':
                     directory=TF_NN_CALIBRATION_SETTINGS['hyperband_settings']['directory'],
                     project_name=TF_NN_CALIBRATION_SETTINGS['hyperband_settings']['project_name']
                 )
+                
+                tuning_start_time = time.monotonic()
+                print(f"Hyperband Tuner initialized. Starting search at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                
                 tuner.search(
                     loaded_train_data=loaded_train_data, loaded_val_data=loaded_val_data,
                     settings=TF_NN_CALIBRATION_SETTINGS, feature_scaler=feature_scaler,
                     initial_logits=initial_logits
                 )
                 
+                tuning_elapsed = time.monotonic() - tuning_start_time
                 print("\n--- Hyperparameter Tuning Finished ---")
+                print(f"\nHyperparameter tuning completed in {_format_time(tuning_elapsed)}.")
                 best_hyperparameters = tuner.get_best_hyperparameters(num_trials=1)[0]
                 print("Best Hyperparameters Found:")
                 for hp, value in best_hyperparameters.values.items(): print(f"  - {hp}: {value}")
@@ -846,7 +852,13 @@ if __name__ == '__main__':
                 filepath = os.path.join(FOLDER_HYPERPARAMETERS, filename)
                 with open(filepath, 'w') as f: json.dump(best_hyperparameters.values, f, indent=4)
                 print(f"Best hyperparameters saved to {filepath}")
-
+                timing_log = {'hyperparameter_tuning_time_seconds': tuning_duration_seconds}
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                timing_log = {'hyperparameter_tuning_time_seconds': tuning_elapsed}
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                timing_log_filepath = os.path.join(FOLDER_HYPERPARAMETERS, f"tuning_time_{timestamp}.json")
+                with open(timing_log_filepath, 'w') as f: json.dump(timing_log, f, indent=4)
+                print(f"Tuning time log saved to {timing_log_filepath}")
             else:
                 print("\n--- Loading Best Hyperparameters from File ---")
                 list_of_files = glob.glob(os.path.join(FOLDER_HYPERPARAMETERS, '*.json'))
@@ -900,11 +912,18 @@ if __name__ == '__main__':
             np.save(os.path.join(model_save_dir, 'initial_logits.npy'), initial_logits.numpy())
             
             print("--- Model artifact saved successfully ---")
+            
+            timing_log = {'training_time_seconds': time.monotonic() - start_time}
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            timing_log_filepath = os.path.join(model_save_dir, f"training_time_{timestamp}.json")
+            with open(timing_log_filepath, 'w') as f: json.dump(timing_log, f, indent=4)
+            print(f"Training time log saved to {timing_log_filepath}")
 
         if test_files and final_model is not None:
             print("\n--- Evaluating Final Model on Out-of-Sample Test Data ---")
             all_results_dfs = [] # NEW: Initialize list to hold daily results
             for eval_date, zero_path, vol_path in test_files:
+                prediction_start_time = time.monotonic()
                 print(f"\n--- Processing test day: {eval_date.strftime('%d-%m-%Y')} ---")
                 zero_df = pd.read_csv(zero_path)
                 vol_df = load_volatility_cube(vol_path)
@@ -915,12 +934,15 @@ if __name__ == '__main__':
                 
                 rmse_bps, results_df = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, TF_NN_CALIBRATION_SETTINGS)
                 print(f"Test RMSE for {eval_date}: {rmse_bps:.4f} bps")
+                prediction_elapsed = time.monotonic() - prediction_start_time
+                print(f"Time taken for evaluation: {_format_time(prediction_elapsed)}")
 
                 if not results_df.empty:
                     # NEW: Enrich the daily DataFrame with all necessary info
                     day_results_df = results_df.copy()
                     day_results_df['EvaluationDate'] = eval_date
                     day_results_df['DailyRMSE_bps'] = rmse_bps
+                    day_results_df['PredictionTimeSeconds'] = prediction_elapsed
                     
                     # Add parameter columns dynamically
                     num_a = TF_NN_CALIBRATION_SETTINGS['num_a_segments'] if TF_NN_CALIBRATION_SETTINGS['optimize_a'] else 0

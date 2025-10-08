@@ -5,8 +5,8 @@ import numpy as np
 import QuantLib as ql
 from numpy.typing import NDArray
 from typing import List, Tuple, Optional, Set, Union
-import json
 import sys
+import time
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
@@ -23,8 +23,8 @@ FOLDER_SWAP_CURVES: str = os.path.join(DATA_DIR, 'EUR SWAP CURVE')
 FOLDER_ZERO_CURVES: str = os.path.join(DATA_DIR, 'EUR ZERO CURVE')
 FOLDER_VOLATILITY_CUBES: str = os.path.join(DATA_DIR, 'EUR BVOL CUBE')
 
-FOLDER_RESULTS: str = os.path.join(RESULTS_DIR, 'traditional', 'predictions')
-FOLDER_RESULTS_PARAMS: str = os.path.join(RESULTS_DIR, 'traditional', 'parameters')
+# NEW: Define a single output folder for the consolidated results
+FOLDER_RESULTS_TRADITIONAL: str = os.path.join(RESULTS_DIR, 'traditional')
 
 
 #--------------------PREPROCESS CURVES--------------------
@@ -304,7 +304,7 @@ def prepare_calibration_helpers(
 
     return helpers_with_info
 
-def plot_calibration_results(results_df: pd.DataFrame):
+def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date, save_dir: str):
     """
     Shows 3 diagrams as 3D plots in the same figure after the calibration.
 
@@ -312,24 +312,23 @@ def plot_calibration_results(results_df: pd.DataFrame):
 
     Args:
         results_df (pd.DataFrame): The DataFrame with the calibration results.
-
-    Returns:
-        None
+        eval_date (datetime.date): The evaluation date for the plot title.
+        save_dir (str): The directory to save the plot image.
     """
-    plot_data = results_df.dropna(subset=['MarketVol', 'ModelVol', 'Difference']).copy()
+    plot_data = results_df.dropna(subset=['MarketVol', 'ModelVol', 'Difference_bps']).copy()
 
     if plot_data.empty:
-        print("\nCould not generate plots: No valid data points available after calibration.")
+        print(f"\nCould not generate plots for {eval_date}: No valid data points available.")
         return
 
     X = plot_data['Expiry'].values
     Y = plot_data['Tenor'].values
     Z_market = plot_data['MarketVol'].values
     Z_model = plot_data['ModelVol'].values
-    Z_diff = plot_data['Difference'].values
+    Z_diff = plot_data['Difference_bps'].values
 
     fig = plt.figure(figsize=(24, 8))
-    fig.suptitle('Hull-White Calibration Volatility Surfaces', fontsize=16)
+    fig.suptitle(f'Hull-White Calibration Volatility Surfaces for {eval_date}', fontsize=16)
 
     ax1 = fig.add_subplot(1, 3, 1, projection='3d')
     ax1.set_title('Observed Market Volatilities (bps)')
@@ -347,11 +346,10 @@ def plot_calibration_results(results_df: pd.DataFrame):
     ax2.set_ylabel('Tenor (Years)')
     ax2.set_zlabel('Volatility (bps)')
     fig.colorbar(surf2, ax=ax2, shrink=0.5, aspect=10, pad=0.1)
-    ax2.zaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x:.0f}'))
-    ax2.view_init(elev=30, azim=-120)
-
+    
     market_min, market_max = np.nanmin(Z_market), np.nanmax(Z_market)
     ax2.set_zlim(market_min * 0.9, market_max * 1.1)
+    ax2.view_init(elev=30, azim=-120)
 
     ax3 = fig.add_subplot(1, 3, 3, projection='3d')
     ax3.set_title('Difference (Market - Model) (bps)')
@@ -360,13 +358,13 @@ def plot_calibration_results(results_df: pd.DataFrame):
     ax3.set_ylabel('Tenor (Years)')
     ax3.set_zlabel('Difference (bps)')
     fig.colorbar(surf3, ax=ax3, shrink=0.5, aspect=10, pad=0.1)
-    ax3.zaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x:.1f}'))
+    
+    max_reasonable_diff = np.nanmax(np.abs(Z_diff))
+    ax3.set_zlim(-max_reasonable_diff, max_reasonable_diff)
     ax3.view_init(elev=30, azim=-120)
 
-    max_reasonable_diff = 50.0
-    ax3.set_zlim(-max_reasonable_diff, max_reasonable_diff)
-
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.savefig(os.path.join(save_dir, f'CalibrationPlot_{eval_date}.png'))
     plt.show()
 
 def _get_step_dates_from_expiries(
@@ -387,17 +385,19 @@ def _get_step_dates_from_expiries(
     """
     if num_segments <= 1:
         return []
+    
+    unique_expiries = sorted(list(set(included_expiries_yrs)))
 
-    if len(included_expiries_yrs) < num_segments:
-         print(f"Warning: Not enough unique expiries ({len(included_expiries_yrs)}) to create "
-               f"{num_segments - 1} steps. Reducing number of segments to {len(included_expiries_yrs)}.")
-         num_segments = len(included_expiries_yrs)
+    if len(unique_expiries) < num_segments:
+         print(f"Warning: Not enough unique expiries ({len(unique_expiries)}) to create "
+               f"{num_segments - 1} steps. Reducing number of segments to {len(unique_expiries)}.")
+         num_segments = len(unique_expiries)
 
     if num_segments <= 1:
         return []
 
-    indices = np.linspace(0, len(included_expiries_yrs) - 1, num_segments).astype(int)[:-1]
-    time_points_in_years = [included_expiries_yrs[i] for i in indices]
+    indices = np.linspace(0, len(unique_expiries) - 1, num_segments + 1).astype(int)[1:-1]
+    time_points_in_years = [unique_expiries[i] for i in indices]
 
     step_dates = [ql_eval_date + ql.Period(int(y * 365.25), ql.Days) for y in time_points_in_years]
     return step_dates
@@ -449,7 +449,7 @@ def calibrate_hull_white(
     min_expiry_years: float = 0.0,
     min_tenor_years: float = 0.0,
     pricing_engine_integration_points: int = 64
-) -> Tuple[List[float], List[ql.Date], List[float], List[ql.Date], pd.DataFrame]:
+) -> Tuple[Optional[List[float]], Optional[List[float]], Optional[pd.DataFrame], float]:
     """
     Calibrate a Hull-White model to a set of swaption market quotes.
 
@@ -506,7 +506,8 @@ def calibrate_hull_white(
         min_tenor_years=min_tenor_years
     )
     if not helpers_with_info:
-        raise ValueError("No valid swaption helpers could be created from the input data given the filtering criteria.")
+        print("No valid swaption helpers could be created from the input data given the filtering criteria.")
+        return None, None, None, float('nan')
 
     included_expiries_yrs = sorted(list(set([parse_tenor_to_years(expiry_str) for _, expiry_str, _ in helpers_with_info])))
 
@@ -515,7 +516,8 @@ def calibrate_hull_white(
         final_num_sigma_segments = len(included_expiries_yrs)
         print(f"--- 'auto' setting: Number of volatility segments set to {final_num_sigma_segments} (matching unique expiries). ---")
         if final_num_sigma_segments == 0:
-            raise ValueError("Automatic volatility parameter determination failed: No swaption expiries remain after filtering.")
+            print("Automatic volatility parameter determination failed: No swaption expiries remain after filtering.")
+            return None, None, None, float('nan')
         sigma_step_dates = [ql_eval_date + ql.Period(int(y * 365.25), ql.Days) for y in included_expiries_yrs[:-1]]
     else:
         final_num_sigma_segments = int(num_sigma_segments)
@@ -580,7 +582,6 @@ def calibrate_hull_white(
         for i, d_unified in enumerate(unified_step_dates):
             if d_unified.serialNumber() in original_serials:
                 indices_to_report.append(i + 1)
-        
         unique_vals = list(dict.fromkeys([expanded_values[i] for i in sorted(list(set(indices_to_report)))]))
         return unique_vals
 
@@ -606,136 +607,48 @@ def calibrate_hull_white(
     print_parameter_results("Volatility (sigma)", final_sigmas, sigma_step_dates, '(Calibrated)')
     print("-" * 45)
     
-    print("\n--- Calibration Diagnostics (Market vs. Model) ---")
-    print(f"{'Expiry':>6} | {'Tenor':>6} | {'Market Vol (bps)':>18} | {'Model Vol (bps)':>16} | {'Error (bps)':>14}")
-    print("-" * 80)
-    
     vols_df = vol_cube_df[vol_cube_df['Type'] == 'Vol'].set_index('Expiry')
     
     results_data = []
-    for helper, expiry_str_orig, tenor_str_orig in helpers_with_info:
-        market_vol_bps = vols_df.loc[expiry_str_orig, tenor_str_orig]
-        model_npv = helper.modelValue()
+    squared_errors = []
+    for helper, expiry_str, tenor_str in helpers_with_info:
+        market_vol: float = helper.volatility().value()
+        market_vol_bps: float = market_vol * 10000
         try:
-            implied_vol = helper.impliedVolatility(model_npv, 1e-4, 500, 0.0001, 1.0)
-            model_vol_bps = implied_vol * 10000
-            error_bps = model_vol_bps - market_vol_bps
-        except RuntimeError:
-            model_vol_bps = float('nan')
-            error_bps = float('nan')
-        
-        expiry_str = expiry_str_orig.replace("YR", "Y").replace("MO", "M")
-        tenor_str = tenor_str_orig.replace("YR", "Y").replace("MO", "M")
-        
-        print(f"{expiry_str:>6} | {tenor_str:>6} | {market_vol_bps:18.4f} | {model_vol_bps:16.4f} | {error_bps:14.4f}")
-        
+            model_npv: float = helper.modelValue()
+            model_vol: float = helper.impliedVolatility(model_npv, 1e-4, 500, 0.0001, 1.0)
+            model_vol_bps: float = model_vol * 10000
+            error_bps: float = model_vol_bps - market_vol_bps
+            squared_errors.append(error_bps**2)
+        except (RuntimeError, ValueError):
+            model_vol_bps, error_bps = float('nan'), float('nan')
+
         results_data.append({
-            'ExpiryStr': expiry_str_orig,
-            'TenorStr': tenor_str_orig,
-            'MarketVol': market_vol_bps,
-            'ModelVol': model_vol_bps,
-            'Difference': error_bps
+            'ExpiryStr': expiry_str, 'TenorStr': tenor_str,
+            'MarketVol': market_vol_bps, 'ModelVol': model_vol_bps,
+            'Difference_bps': error_bps
         })
         
     results_df = pd.DataFrame(results_data)
     results_df['Expiry'] = results_df['ExpiryStr'].apply(parse_tenor_to_years)
     results_df['Tenor'] = results_df['TenorStr'].apply(parse_tenor_to_years)
     
-    return final_as, a_step_dates, final_sigmas, sigma_step_dates, results_df
+    rmse_bps: float = np.sqrt(np.mean(squared_errors)) if squared_errors else float('nan')
+    
+    print(f"Daily RMSE for {eval_date}: {rmse_bps:.4f} bps")
 
-def run_and_save_calibration_for_date(
-    eval_date_str: str,
-    calibration_settings: dict,
-    show_plot: bool = False
-):
-    """
-    Runs the Hull-White calibration for a given evaluation date and saves the results and parameters to disk.
+    return final_as, final_sigmas, results_df, rmse_bps
 
-    This function will read in the zero curve and volatility cube data from the corresponding CSV and Excel files
-    under the folders FOLDER_ZERO_CURVES and FOLDER_VOLATILITY_CUBES, then run the calibration using the provided
-    calibration settings. If the calibration is successful, the results will be saved to a CSV file under the folder
-    FOLDER_RESULTS, and the calibrated parameters will be saved to a JSON file under the folder FOLDER_RESULTS_PARAMS.
-
-    If the show_plot argument is True, a 3D plot of the calibration results will be displayed.
-
-    Args:
-        eval_date_str (str): The evaluation date for which to run the calibration in the format "%d.%m.%Y".
-        calibration_settings (dict): A dictionary containing the settings for the calibration.
-        show_plot (bool, optional): Whether to display a 3D plot of the calibration results. Defaults to False.
-    """
-    print(f"\n{'='*25} STARTING CALIBRATION FOR: {eval_date_str} {'='*25}")
-    try:
-        eval_date = datetime.datetime.strptime(eval_date_str, "%d.%m.%Y").date()
-
-        zero_curve_path = os.path.join(FOLDER_ZERO_CURVES, f"{eval_date_str}.csv")
-        vol_cube_path = os.path.join(FOLDER_VOLATILITY_CUBES, "xlsx", f"{eval_date_str}.xlsx")
-
-        if not os.path.exists(zero_curve_path) or not os.path.exists(vol_cube_path):
-            raise FileNotFoundError(f"Data files for {eval_date_str} not found. Skipping.")
-
-        zero_curve_df = pd.read_csv(zero_curve_path)
-        vol_cube_df = pd.read_excel(vol_cube_path, engine='openpyxl')
-
-        vol_cube_df.rename(columns={'Unnamed: 1': 'Type'}, inplace=True)
-        for col in list(vol_cube_df.columns):
-            if 'Unnamed' in str(col):
-                vol_cube_df.drop(col, axis=1, inplace=True)
-        vol_cube_df['Expiry'] = vol_cube_df['Expiry'].ffill()
-
-        calibrated_as, a_step_dates, calibrated_sigmas, sigma_step_dates, results_df = calibrate_hull_white(
-            eval_date=eval_date,
-            zero_curve_df=zero_curve_df,
-            vol_cube_df=vol_cube_df,
-            **calibration_settings
-        )
-
-        output_date_str = eval_date.strftime("%d-%m-%Y")
-
-        if not results_df.empty:
-            output_path = os.path.join(FOLDER_RESULTS, f"{output_date_str}.csv")
-            results_df.to_csv(output_path, index=False)
-            print(f"\n--- Results for {eval_date_str} successfully saved to: {output_path} ---")
-            
-            if show_plot:
-                plot_calibration_results(results_df)
-        else:
-            print(f"\n--- Calibration for {eval_date_str} did not produce results to save. ---")
-
-        if calibrated_as and calibrated_sigmas:
-            param_data = {
-                'evaluationDate': eval_date.strftime('%Y-%m-%d'),
-                'meanReversion': {
-                    'values': calibrated_as,
-                    'stepDates': [d.ISO() for d in a_step_dates]
-                },
-                'volatility': {
-                    'values': calibrated_sigmas,
-                    'stepDates': [d.ISO() for d in sigma_step_dates]
-                }
-            }
-
-            param_output_path = os.path.join(FOLDER_RESULTS_PARAMS, f"{output_date_str}.json")
-            with open(param_output_path, 'w') as f:
-                json.dump(param_data, f, indent=4)
-            print(f"--- Parameters for {eval_date_str} successfully saved to: {param_output_path} ---")
-
-    except Exception as e:
-        import traceback
-        print(f"\n--- ERROR during calibration for {eval_date_str}: {e} ---")
-        traceback.print_exc()
-        
-    print(f"\n{'='*25} FINISHED CALIBRATION FOR: {eval_date_str} {'='*25}")
 
 if __name__ == '__main__':
-    os.makedirs(FOLDER_RESULTS, exist_ok=True)
-    os.makedirs(FOLDER_RESULTS_PARAMS, exist_ok=True)
+    os.makedirs(FOLDER_RESULTS_TRADITIONAL, exist_ok=True)
     
     CALIBRATION_SETTINGS = {
         # The number of mean reversion parameters to calibrate.
         "num_a_segments": 1,
         # The number of volatility parameters to calibrate.
         # Can be an integer or 'auto'. If 'auto', the number of parameters will be equal to the number of unique expiries.
-        "num_sigma_segments": "auto",
+        "num_sigma_segments": "3",
         # If True, the mean reversion parameter 'a' will be calibrated.
         # Otherwise, it will be fixed to the value of 'initial_a'.
         "optimize_a": True,
@@ -761,12 +674,8 @@ if __name__ == '__main__':
             os.makedirs(vol_files_folder)
             print(f"Created missing directory: {vol_files_folder}")
 
-        zero_curve_dates: Set[str] = {
-            f.replace('.csv', '') for f in os.listdir(FOLDER_ZERO_CURVES) if f.endswith('.csv')
-        }
-        vol_cube_dates: Set[str] = {
-            f.replace('.xlsx', '') for f in os.listdir(vol_xlsx_folder) if f.endswith('.xlsx')
-        }
+        zero_curve_dates: Set[str] = {f.replace('.csv', '') for f in os.listdir(FOLDER_ZERO_CURVES) if f.endswith('.csv')}
+        vol_cube_dates: Set[str] = {f.replace('.xlsx', '') for f in os.listdir(vol_files_folder) if f.endswith('.xlsx')}
 
         available_dates: List[str] = sorted(list(zero_curve_dates.intersection(vol_cube_dates)))
 
@@ -777,14 +686,66 @@ if __name__ == '__main__':
         else:
             print(f"Found {len(available_dates)} matching data sets. Starting batch calibration...")
             
+            all_results_dfs = []
             for date_str in available_dates:
-                run_and_save_calibration_for_date(
-                    date_str,
-                    CALIBRATION_SETTINGS,
-                    show_plot=False
-                )
+                start_time = time.monotonic()
+                print(f"\n{'='*25} STARTING CALIBRATION FOR: {date_str} {'='*25}")
+                try:
+                    eval_date = datetime.datetime.strptime(date_str, "%d.%m.%Y").date()
+                    zero_curve_path = os.path.join(FOLDER_ZERO_CURVES, f"{date_str}.csv")
+                    vol_cube_path = os.path.join(vol_files_folder, f"{date_str}.xlsx")
 
-            print("\n\nBatch calibration process finished for all available dates.")
+                    zero_curve_df = pd.read_csv(zero_curve_path)
+                    vol_cube_df = pd.read_excel(vol_cube_path, engine='openpyxl')
+                    vol_cube_df.rename(columns={'Unnamed: 1': 'Type'}, inplace=True)
+                    for col in list(vol_cube_df.columns):
+                        if 'Unnamed' in str(col): vol_cube_df.drop(col, axis=1, inplace=True)
+                    vol_cube_df['Expiry'] = vol_cube_df['Expiry'].ffill()
+
+                    calibrated_as, calibrated_sigmas, results_df, rmse_bps = calibrate_hull_white(
+                        eval_date=eval_date,
+                        zero_curve_df=zero_curve_df,
+                        vol_cube_df=vol_cube_df,
+                        **CALIBRATION_SETTINGS
+                    )
+                    end_time = time.monotonic()
+                    elapsed = end_time - start_time
+                    print(f"Finished calibration for {date_str} in {elapsed:.2f} seconds.")
+                    
+                    if results_df is not None and not results_df.empty:
+                        day_results_df = results_df.copy()
+                        day_results_df['EvaluationDate'] = eval_date
+                        day_results_df['DailyRMSE_bps'] = rmse_bps
+                        day_results_df['PredictionTimeSeconds'] = elapsed
+                        
+                        if calibrated_as:
+                            for i, a_val in enumerate(calibrated_as):
+                                day_results_df[f'a_{i+1}'] = a_val
+                        if calibrated_sigmas:
+                            for i, s_val in enumerate(calibrated_sigmas):
+                                day_results_df[f'sigma_{i+1}'] = s_val
+                        
+                        all_results_dfs.append(day_results_df)
+
+                except Exception as e:
+                    import traceback
+                    print(f"\n--- ERROR during calibration for {date_str}: {e} ---")
+                    traceback.print_exc()
+        
+                print(f"{'='*25} FINISHED CALIBRATION FOR: {date_str} {'='*25}")
+
+            if all_results_dfs:
+                master_results_df = pd.concat(all_results_dfs, ignore_index=True)
+                results_save_path = os.path.join(FOLDER_RESULTS_TRADITIONAL, 'evaluation_results.csv')
+                master_results_df.to_csv(results_save_path, index=False)
+                print(f"\n\n--- Comprehensive evaluation results saved to: {results_save_path} ---")
+
+                last_eval_date = all_results_dfs[-1]['EvaluationDate'].iloc[0]
+                print(f"\n--- Plotting calibration results for last day: {last_eval_date} ---")
+                plot_calibration_results(all_results_dfs[-1], last_eval_date, FOLDER_RESULTS_TRADITIONAL)
+
+            else:
+                print("\n\nBatch calibration process finished, but no results were generated.")
 
     except Exception as e:
         import traceback
