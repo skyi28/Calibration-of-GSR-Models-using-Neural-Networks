@@ -443,6 +443,48 @@ def _expand_params_to_unified_timeline(initial_params_quotes: List[ql.SimpleQuot
         expanded_handles.append(initial_params_handles[idx])
     return expanded_handles
 
+def extract_raw_features(
+    term_structure_handle: ql.RelinkableYieldTermStructureHandle,
+    eval_date: ql.Date,
+    feature_tenors: List[float] = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
+) -> List[float]:
+    """
+    Extracts a raw (unscaled) feature vector, including rates and key slopes,
+    from a yield curve term structure.
+    """
+    day_counter: ql.Actual365Fixed = ql.Actual365Fixed()
+    
+    # Get the base rates as before
+    rates: list[float] = [term_structure_handle.zeroRate(eval_date + ql.Period(int(ty * 365.25), ql.Days), day_counter, ql.Continuous).rate() for ty in feature_tenors]
+    
+    # Helper to get rates for specific tenors
+    def get_rate(tenor_in_years: float) -> float:
+        if tenor_in_years < 1.0:
+            # Use ql.Months for tenors less than a year for precision
+            num_months = int(tenor_in_years * 12)
+            return term_structure_handle.zeroRate(eval_date + ql.Period(num_months, ql.Months), day_counter, ql.Continuous).rate()
+        
+        # Use ql.Years for integer years. Using days for non-integer years can be more precise.
+        days = int(tenor_in_years * 365.25)
+        return term_structure_handle.zeroRate(eval_date + ql.Period(days, ql.Days), day_counter, ql.Continuous).rate()
+
+    # Get the specific rates needed for all slopes
+    rate_3m = get_rate(0.25)
+    rate_2y = get_rate(2.0)
+    rate_5y = get_rate(5.0)
+    rate_10y = get_rate(10.0)
+    rate_30y = get_rate(30.0)
+    
+    # Calculate the slopes
+    slope_3m10s = rate_10y - rate_3m
+    slope_2s10s = rate_10y - rate_2y
+    slope_5s30s = rate_30y - rate_5y
+    
+    # Combine the original rates with the new slope features
+    all_features = rates + [slope_3m10s, slope_2s10s, slope_5s30s]
+    
+    return all_features
+
 def prepare_nn_features(
     term_structure_handle: ql.RelinkableYieldTermStructureHandle,
     eval_date: ql.Date,
@@ -451,19 +493,23 @@ def prepare_nn_features(
 ) -> np.ndarray:
     """
     Prepares a feature vector from a yield curve term structure for a neural network calibration.
+    This function now extracts raw features (including slopes) and then scales them.
 
     Args:
         term_structure_handle (ql.RelinkableYieldTermStructureHandle): The yield curve term structure.
         eval_date (ql.Date): The evaluation date of the yield curve.
-        scaler (StandardScaler): A StandardScaler object from scikit-learn.
+        scaler (StandardScaler): A pre-fitted StandardScaler object from scikit-learn.
         feature_tenors (List[float], optional): The tenors to use for the feature vector. Defaults to [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0].
 
     Returns:
-        np.ndarray: The prepared feature vector as a numpy array.
+        np.ndarray: The prepared and scaled feature vector as a numpy array.
     """
-    day_counter: ql.Actual365Fixed = ql.Actual365Fixed()
-    rates: list[float] = [term_structure_handle.zeroRate(eval_date + ql.Period(int(ty * 365.25), ql.Days), day_counter, ql.Continuous).rate() for ty in feature_tenors]
-    return scaler.transform(np.array(rates).reshape(1, -1))
+    # Step 1: Extract all raw features (rates and slopes)
+    raw_features = extract_raw_features(term_structure_handle, eval_date, feature_tenors)
+    
+    # Step 2: Scale the raw features using the pre-fitted scaler
+    return scaler.transform(np.array(raw_features).reshape(1, -1))
+
 
 class ResidualParameterModel(tf.keras.Model):
     def __init__(self, total_params_to_predict: int, upper_bound: float, layers: list, activation: str, use_dropout: bool, dropout_rate: float, **kwargs):
@@ -750,7 +796,7 @@ if __name__ == '__main__':
             #   evaluate_only = False, perform_hyperparameter_tuning = False
             # Mode 3: Evaluate a pre-trained model
             #   evaluate_only = True
-            "evaluate_only": True,
+            "evaluate_only": False,
             "perform_hyperparameter_tuning": False,
             "model_evaluation_dir": r"results\neural_network\models\model_20251008_110404",
             "hyperband_settings": {
@@ -800,18 +846,22 @@ if __name__ == '__main__':
             print("\n--- Preparing Feature Scaler using Training Data ---")
             all_training_features = []
             for eval_date, zero_path, _ in train_files:
-                zero_curve_df = pd.read_csv(zero_path)
+                zero_curve_df = pd.read_csv(zero_path, parse_dates=['Date'])
                 term_structure = create_ql_yield_curve(zero_curve_df, eval_date)
-                rates = [term_structure.zeroRate(ql.Date(eval_date.day, eval_date.month, eval_date.year) + ql.Period(int(ty * 365.25), ql.Days), ql.Actual365Fixed(), ql.Continuous).rate() for ty in [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]]
-                all_training_features.append(rates)
+                ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
+                
+                # Extract the new, wider raw feature set (rates + slopes)
+                raw_features = extract_raw_features(term_structure, ql_eval_date)
+                all_training_features.append(raw_features)
             
+            # Fit the scaler on the new, richer feature set
             feature_scaler = StandardScaler()
             feature_scaler.fit(np.array(all_training_features))
-            print("Feature scaler has been fitted to the training data.")
+            print("Feature scaler has been fitted to the training data (including slopes).")
 
             print("\n--- Pre-loading all data into memory ---")
-            loaded_train_data = [(d, pd.read_csv(zp), load_volatility_cube(vp)) for d, zp, vp in train_files]
-            loaded_val_data = [(d, pd.read_csv(zp), load_volatility_cube(vp)) for d, zp, vp in val_files]
+            loaded_train_data = [(d, pd.read_csv(zp, parse_dates=['Date']), load_volatility_cube(vp)) for d, zp, vp in train_files]
+            loaded_val_data = [(d, pd.read_csv(zp, parse_dates=['Date']), load_volatility_cube(vp)) for d, zp, vp in val_files]
             print("All training and validation data has been loaded.")
 
             p_scaled = np.clip(np.array(TF_NN_CALIBRATION_SETTINGS['initial_guess'], dtype=np.float64) / TF_NN_CALIBRATION_SETTINGS['upper_bound'], 1e-9, 1 - 1e-9)
@@ -852,8 +902,6 @@ if __name__ == '__main__':
                 filepath = os.path.join(FOLDER_HYPERPARAMETERS, filename)
                 with open(filepath, 'w') as f: json.dump(best_hyperparameters.values, f, indent=4)
                 print(f"Best hyperparameters saved to {filepath}")
-                timing_log = {'hyperparameter_tuning_time_seconds': tuning_duration_seconds}
-                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 timing_log = {'hyperparameter_tuning_time_seconds': tuning_elapsed}
                 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 timing_log_filepath = os.path.join(FOLDER_HYPERPARAMETERS, f"tuning_time_{timestamp}.json")
@@ -873,7 +921,8 @@ if __name__ == '__main__':
             
             print("\n--- Training Final Model using Best Hyperparameters ---")
             final_model = HullWhiteHyperModel().build(best_hyperparameters)
-            optimizer = tf.keras.optimizers.Adam(learning_rate=best_hyperparameters.get('learning_rate'))
+            learning_rate = best_hyperparameters.get('learning_rate') or 0.001 # Fallback
+            optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
             combined_train_data = loaded_train_data + loaded_val_data
             print(f"Training final model on {len(combined_train_data)} days of data for {TF_NN_CALIBRATION_SETTINGS['num_epochs']} epochs.")
             
@@ -925,7 +974,7 @@ if __name__ == '__main__':
             for eval_date, zero_path, vol_path in test_files:
                 prediction_start_time = time.monotonic()
                 print(f"\n--- Processing test day: {eval_date.strftime('%d-%m-%Y')} ---")
-                zero_df = pd.read_csv(zero_path)
+                zero_df = pd.read_csv(zero_path, parse_dates=['Date'])
                 vol_df = load_volatility_cube(vol_path)
                 term_structure = create_ql_yield_curve(zero_df, eval_date)
                 
