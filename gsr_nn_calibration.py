@@ -20,6 +20,7 @@ execution on powerful hardware.
 import datetime
 import glob
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # Filter out tensorflow information messages
 import sys
 import time
 import pandas as pd
@@ -32,7 +33,7 @@ from numpy.typing import NDArray
 from typing import List, Tuple, Optional, Dict
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor # Tried ProcessPoolExecutor but it was slower for I/O-bound tasks
 import bisect
 import traceback
 import json
