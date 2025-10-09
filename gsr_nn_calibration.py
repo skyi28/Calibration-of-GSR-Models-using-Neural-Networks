@@ -40,6 +40,7 @@ import json
 import keras_tuner as kt
 import joblib
 import yfinance as yf
+import random
 
 #--------------------CONFIG--------------------
 # Set to False to skip the initial data preparation steps if they have already been run
@@ -682,15 +683,23 @@ def _calculate_loss_for_day(params: np.ndarray, ql_eval_date, term_structure_han
         thread_model = ql.Gsr(term_structure_handle, unified_steps, exp_sig_h, exp_rev_h, 61.0)
         thread_engine = ql.Gaussian1dSwaptionEngine(thread_model, settings['pricing_engine_integration_points'], 7.0, True, False, term_structure_handle)
         
+        instrument_batch_size: int = int(len(helpers_with_info) * settings.get("instrument_batch_size_percentage", 100) / 100)
+        if settings.get("instrument_batch_size_percentage", 100) / 100 < 1:
+            helpers_to_price = random.sample(helpers_with_info, instrument_batch_size)
+        else:
+            helpers_to_price = helpers_with_info
+        
         squared_errors = []
-        for helper, _, _ in helpers_with_info:
+        for helper, _, _ in helpers_to_price:
             helper.setPricingEngine(thread_engine)
+            market_vol = helper.volatility().value()
             model_val = helper.modelValue()
-            implied_vol = helper.impliedVolatility(model_val, 1e-4, 500, 0.0001, 1.0)
+            implied_vol = helper.impliedVolatility(model_val, 1e-3, 500, market_vol * 0.01, market_vol * 4)
             squared_errors.append((implied_vol - helper.volatility().value())**2)
         
         return float(np.mean(squared_errors)) if squared_errors else 1e6
     except (RuntimeError, ValueError):
+        print(traceback.format_exc())
         return 1e6
 
 def _perform_training_step(model, optimizer, feature_vector, initial_logits, ql_eval_date, term_structure_handle, helpers_with_info, settings):
@@ -699,19 +708,37 @@ def _perform_training_step(model, optimizer, feature_vector, initial_logits, ql_
     """
     @tf.custom_gradient
     def ql_loss_on_params(params_tensor):
-        loss_val = _calculate_loss_for_day(params_tensor.numpy()[0], ql_eval_date, term_structure_handle, helpers_with_info, settings)
+        # Forward pass: calculate the loss for the unperturbed parameters.
+        # This loss_val will be returned and can be reused for the forward difference method.
+        base_params = params_tensor.numpy()[0]
+        loss_val = _calculate_loss_for_day(base_params, ql_eval_date, term_structure_handle, helpers_with_info, settings)
         
         def grad_fn(dy):
-            base_params = params_tensor.numpy()[0]; h = settings['h_relative']
-            def _calc_single_grad(i):
-                p_plus = base_params.copy(); p_plus[i] += h
-                p_minus = base_params.copy(); p_minus[i] -= h
-                loss_plus = _calculate_loss_for_day(p_plus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
-                loss_minus = _calculate_loss_for_day(p_minus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
-                return (loss_plus - loss_minus) / (2 * h)
+            # Backward pass: calculate gradient using the method specified in settings.
+            h = settings['h_relative']
+            gradient_method = settings.get('gradient_method', 'forward').lower()
+
+            # --- Select Gradient Calculation Method ---
+            if gradient_method == 'central':
+                # Central Difference: More accurate, 2N calls to loss function.
+                def _calc_single_grad(i):
+                    p_plus = base_params.copy(); p_plus[i] += h
+                    p_minus = base_params.copy(); p_minus[i] -= h
+                    loss_plus = _calculate_loss_for_day(p_plus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
+                    loss_minus = _calculate_loss_for_day(p_minus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
+                    return (loss_plus - loss_minus) / (2 * h)
+            else:
+                # Forward Difference (default): Less accurate, N calls to loss function (reuses loss_val).
+                def _calc_single_grad(i):
+                    p_plus = base_params.copy()
+                    p_plus[i] += h
+                    loss_plus = _calculate_loss_for_day(p_plus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
+                    # Reuse loss_val from the forward pass
+                    return (loss_plus - loss_val) / h
             
             with ThreadPoolExecutor(max_workers=settings.get("num_threads", os.cpu_count() or 1)) as executor:
                 grad = np.array(list(executor.map(_calc_single_grad, range(len(base_params)))))
+            
             return tf.constant([dy.numpy() * grad], dtype=tf.float64)
         
         return tf.constant(loss_val, dtype=tf.float64), grad_fn
@@ -826,9 +853,11 @@ if __name__ == '__main__':
                 "project_name": "hull_white_calibration"
             },
             "num_a_segments": 1, "num_sigma_segments": 3, "optimize_a": True,
+            "instrument_batch_size_percentage": 100, # Use a subset (x%) of instruments per day to calculate the gradient for speed
             "upper_bound": 0.1, "pricing_engine_integration_points": 32,
-            "num_epochs": 1, "h_relative": 1e-7,
+            "num_epochs": 2, "h_relative": 1e-7,
             "initial_guess": [0.02, 0.0002, 0.0002, 0.00017],
+            "gradient_method": "central", # Options: "forward" or "central". Forward is ~2x faster but less precise.
             "gradient_clip_norm": 2.0, "num_threads": os.cpu_count() or 4,
             "min_expiry_years": 2.0, "min_tenor_years": 2.0,
             "SAVE_MODEL_DIR_NAME": f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
