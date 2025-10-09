@@ -314,34 +314,45 @@ def create_ql_yield_curve(
 def prepare_calibration_helpers(
     vol_cube_df: pd.DataFrame,
     term_structure_handle: ql.RelinkableYieldTermStructureHandle,
-    min_expiry_years: float = 0.0,
-    min_tenor_years: float = 0.0
+    settings: Dict
 ) -> List[Tuple[ql.SwaptionHelper, str, str]]:
     """
     Parses the swaption volatility cube and creates a list of QuantLib SwaptionHelper objects,
-    optionally filtering by minimum expiry and tenor.
+    optionally filtering by minimum expiry, tenor, or for co-terminal swaptions only.
 
     Args:
         vol_cube_df (pd.DataFrame): The DataFrame containing the swaption volatility cube.
         term_structure_handle (ql.RelinkableYieldTermStructureHandle): The yield curve to use for pricing.
-        min_expiry_years (float, optional): The minimum expiry time in years. Defaults to 0.0.
-        min_tenor_years (float, optional): The minimum tenor time in years. Defaults to 0.0.
+        settings (Dict): A dictionary of settings which may contain 'min_expiry_years', 
+            'min_tenor_years', and 'use_coterminal_only'.
 
     Returns:
         List[Tuple[ql.SwaptionHelper, str, str]]: A list of tuples, where each tuple contains a SwaptionHelper,
             the expiry string and the tenor string.
     """
+    min_expiry_years: float = settings.get("min_expiry_years", 0.0)
+    min_tenor_years: float = settings.get("min_tenor_years", 0.0)
+    use_coterminal_only: bool = settings.get("use_coterminal_only", False)
+    
     helpers_with_info: List[Tuple[ql.SwaptionHelper, str, str]] = []
     vols_df: pd.DataFrame = vol_cube_df[vol_cube_df['Type'] == 'Vol'].set_index('Expiry')
     strikes_df: pd.DataFrame = vol_cube_df[vol_cube_df['Type'] == 'Strike'].set_index('Expiry')
     swap_index: ql.Euribor6M = ql.Euribor6M(term_structure_handle)
+    
     for expiry_str in vols_df.index:
         for tenor_str in vols_df.columns:
             if tenor_str == 'Type': continue
+
+            if use_coterminal_only:
+                if parse_tenor_to_years(expiry_str) != parse_tenor_to_years(tenor_str):
+                    continue
+
             vol, strike = vols_df.loc[expiry_str, tenor_str], strikes_df.loc[expiry_str, tenor_str]
             if pd.isna(vol) or pd.isna(strike): continue
+            
             if parse_tenor_to_years(expiry_str) < min_expiry_years or parse_tenor_to_years(tenor_str) < min_tenor_years:
                 continue
+
             vol_handle: ql.QuoteHandle = ql.QuoteHandle(ql.SimpleQuote(float(vol) / 10000.0))
             helper: ql.SwaptionHelper = ql.SwaptionHelper(
                 parse_tenor(expiry_str), parse_tenor(tenor_str), vol_handle, swap_index,
@@ -349,6 +360,7 @@ def prepare_calibration_helpers(
                 term_structure_handle, ql.Normal
             )
             helpers_with_info.append((helper, expiry_str, tenor_str))
+            
     return helpers_with_info
 
 def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date, model_save_dir: str):
@@ -365,27 +377,62 @@ def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date,
     if plot_data.empty:
         print(f"\nCould not generate plots for {eval_date}: No valid data points available.")
         return
-    X = plot_data['Expiry'].values; Y = plot_data['Tenor'].values
-    Z_market: ArrayLike = plot_data['MarketVol'].values; Z_model = plot_data['ModelVol'].values
-    Z_diff: ArrayLike = plot_data['Difference_bps'].values
-    fig = plt.figure(figsize=(24, 8)); fig.suptitle(f'Hull-White Calibration Volatility Surfaces for {eval_date}', fontsize=16)
-    ax1 = fig.add_subplot(1, 3, 1, projection='3d'); ax1.set_title('Observed Market Volatilities (bps)')
-    surf1 = ax1.plot_trisurf(X, Y, Z_market, cmap=cm.viridis, antialiased=True, linewidth=0.1)
-    ax1.set_xlabel('Expiry (Years)'); ax1.set_ylabel('Tenor (Years)'); ax1.set_zlabel('Volatility (bps)')
-    fig.colorbar(surf1, ax=ax1, shrink=0.5, aspect=10, pad=0.1); ax1.view_init(elev=30, azim=-120)
-    ax2 = fig.add_subplot(1, 3, 2, projection='3d'); ax2.set_title('Model Implied Volatilities (bps)')
-    surf2 = ax2.plot_trisurf(X, Y, Z_model, cmap=cm.viridis, antialiased=True, linewidth=0.1)
-    ax2.set_xlabel('Expiry (Years)'); ax2.set_ylabel('Tenor (Years)'); ax2.set_zlabel('Volatility (bps)')
-    fig.colorbar(surf2, ax=ax2, shrink=0.5, aspect=10, pad=0.1)
-    market_min, market_max = np.nanmin(Z_market), np.nanmax(Z_market)
-    ax2.set_zlim(market_min * 0.9, market_max * 1.1); ax2.view_init(elev=30, azim=-120)
-    ax3 = fig.add_subplot(1, 3, 3, projection='3d'); ax3.set_title('Difference (Market - Model) (bps)')
-    surf3 = ax3.plot_trisurf(X, Y, Z_diff, cmap=cm.coolwarm_r, antialiased=True, linewidth=0.1)
-    ax3.set_xlabel('Expiry (Years)'); ax3.set_ylabel('Tenor (Years)'); ax3.set_zlabel('Difference (bps)')
-    fig.colorbar(surf3, ax=ax3, shrink=0.5, aspect=10, pad=0.1)
-    max_reasonable_diff: float = np.nanmax(np.abs(Z_diff)); ax3.set_zlim(-max_reasonable_diff, max_reasonable_diff)
-    ax3.view_init(elev=30, azim=-120); plt.tight_layout(rect=[0, 0.03, 1, 0.95]); 
-    plt.savefig(os.path.join(model_save_dir, f'CalibrationPlot_{eval_date}.png'))
+    
+    # Determine if the data is one-dimensional (co-terminal)
+    is_coterminal = np.allclose(plot_data['Expiry'].values, plot_data['Tenor'].values)
+
+    if is_coterminal:
+        # --- 2D PLOTTING FOR CO-TERMINAL SWAPTIONS ---
+        print(f"Co-terminal data detected for {eval_date}. Generating 2D plots.")
+        
+        # Sort data by tenor for a clean line plot
+        plot_data = plot_data.sort_values(by='Tenor').reset_index()
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
+        fig.suptitle(f'Hull-White Co-terminal Calibration for {eval_date}', fontsize=16)
+
+        # Subplot 1: Market vs Model Volatility
+        ax1.plot(plot_data['Tenor'], plot_data['MarketVol'], 'o-', label='Market Volatility')
+        ax1.plot(plot_data['Tenor'], plot_data['ModelVol'], 'x--', label='Model Volatility')
+        ax1.set_title('Market vs. Model Implied Volatilities')
+        ax1.set_xlabel('Tenor (Years)')
+        ax1.set_ylabel('Volatility (bps)')
+        ax1.legend()
+        ax1.grid(True, which='both', linestyle='--', linewidth=0.5)
+
+        # Subplot 2: Difference in BPS
+        colors = ['red' if x > 0 else 'green' for x in plot_data['Difference_bps']]
+        ax2.bar(plot_data['Tenor'], plot_data['Difference_bps'], width=0.5, color=colors, alpha=0.8)
+        ax2.axhline(0, color='black', linestyle='--', linewidth=1)
+        ax2.set_title('Difference (Model - Market)')
+        ax2.set_xlabel('Tenor (Years)')
+        ax2.set_ylabel('Difference (bps)')
+        ax2.grid(True, which='major', axis='y', linestyle='--', linewidth=0.5)
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    else:
+        print(f"Non co-terminal data detected for {eval_date}. Generating 3D plots.")
+        X = plot_data['Expiry'].values; Y = plot_data['Tenor'].values
+        Z_market: ArrayLike = plot_data['MarketVol'].values; Z_model = plot_data['ModelVol'].values
+        Z_diff: ArrayLike = plot_data['Difference_bps'].values
+        fig = plt.figure(figsize=(24, 8)); fig.suptitle(f'Hull-White Calibration Volatility Surfaces for {eval_date}', fontsize=16)
+        ax1 = fig.add_subplot(1, 3, 1, projection='3d'); ax1.set_title('Observed Market Volatilities (bps)')
+        surf1 = ax1.plot_trisurf(X, Y, Z_market, cmap=cm.viridis, antialiased=True, linewidth=0.1)
+        ax1.set_xlabel('Expiry (Years)'); ax1.set_ylabel('Tenor (Years)'); ax1.set_zlabel('Volatility (bps)')
+        fig.colorbar(surf1, ax=ax1, shrink=0.5, aspect=10, pad=0.1); ax1.view_init(elev=30, azim=-120)
+        ax2 = fig.add_subplot(1, 3, 2, projection='3d'); ax2.set_title('Model Implied Volatilities (bps)')
+        surf2 = ax2.plot_trisurf(X, Y, Z_model, cmap=cm.viridis, antialiased=True, linewidth=0.1)
+        ax2.set_xlabel('Expiry (Years)'); ax2.set_ylabel('Tenor (Years)'); ax2.set_zlabel('Volatility (bps)')
+        fig.colorbar(surf2, ax=ax2, shrink=0.5, aspect=10, pad=0.1)
+        market_min, market_max = np.nanmin(Z_market), np.nanmax(Z_market)
+        ax2.set_zlim(market_min * 0.9, market_max * 1.1); ax2.view_init(elev=30, azim=-120)
+        ax3 = fig.add_subplot(1, 3, 3, projection='3d'); ax3.set_title('Difference (Market - Model) (bps)')
+        surf3 = ax3.plot_trisurf(X, Y, Z_diff, cmap=cm.coolwarm_r, antialiased=True, linewidth=0.1)
+        ax3.set_xlabel('Expiry (Years)'); ax3.set_ylabel('Tenor (Years)'); ax3.set_zlabel('Difference (bps)')
+        fig.colorbar(surf3, ax=ax3, shrink=0.5, aspect=10, pad=0.1)
+        max_reasonable_diff: float = np.nanmax(np.abs(Z_diff)); ax3.set_zlim(-max_reasonable_diff, max_reasonable_diff)
+        ax3.view_init(elev=30, azim=-120); plt.tight_layout(rect=[0, 0.03, 1, 0.95]); 
+        plt.savefig(os.path.join(model_save_dir, f'CalibrationPlot_{eval_date}.png'))
     plt.show()
 
 
@@ -623,7 +670,7 @@ def evaluate_model_on_day(
     ql_eval_date: ql.Date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     ql.Settings.instance().evaluationDate = ql_eval_date
     term_structure_handle: ql.RelinkableYieldTermStructureHandle = create_ql_yield_curve(zero_curve_df, eval_date)
-    helpers_with_info: List[Tuple[ql.SwaptionHelper, str, str]] = prepare_calibration_helpers(vol_cube_df, term_structure_handle, settings.get("min_expiry_years", 0.0), settings.get("min_tenor_years", 0.0))
+    helpers_with_info: List[Tuple[ql.SwaptionHelper, str, str]] = prepare_calibration_helpers(vol_cube_df, term_structure_handle, settings)
     if not helpers_with_info: return float('nan'), pd.DataFrame()
     num_a_params: int = settings['num_a_segments'] if settings['optimize_a'] else 0
     calibrated_as: list[float] = calibrated_params[:num_a_params]
@@ -810,7 +857,7 @@ class HullWhiteHyperModel(kt.HyperModel):
                 ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
                 ql.Settings.instance().evaluationDate = ql_eval_date
                 term_structure = create_ql_yield_curve(zero_df, eval_date)
-                helpers = prepare_calibration_helpers(vol_df, term_structure, settings['min_expiry_years'], settings['min_tenor_years'])
+                helpers = prepare_calibration_helpers(vol_df, term_structure, settings)
                 if not helpers: continue
                 
                 feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data)
@@ -868,12 +915,13 @@ if __name__ == '__main__':
             "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True, # Increased sigma segments
             "instrument_batch_size_percentage": 100,
             "upper_bound": 0.1, "pricing_engine_integration_points": 32,
-            "num_epochs": 2, "h_relative": 1e-7, # Increased epochs
+            "num_epochs": 20, "h_relative": 1e-7, # Increased epochs
             "initial_guess": [0.02, 0.0002, 0.0002, 0.00017, 0.00017, 0.00017, 0.00017, 0.00017], # Adjusted for more segments
             "gradient_method": "forward", # either "forward" or "central"
             "underestimation_penalty": 1.5, # New parameter to penalize underestimation. Set to 1.0 for standard MSE.
             "gradient_clip_norm": 2.0, "num_threads": os.cpu_count() or 1,
             "min_expiry_years": 2.0, "min_tenor_years": 2.0,
+            "use_coterminal_only": True, # If True, only uses swaptions where expiry equals tenor.
             "SAVE_MODEL_DIR_NAME": f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
         }
         
@@ -1038,7 +1086,7 @@ if __name__ == '__main__':
                     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
                     ql.Settings.instance().evaluationDate = ql_eval_date
                     term_structure = create_ql_yield_curve(zero_df, eval_date)
-                    helpers = prepare_calibration_helpers(vol_df, term_structure, TF_NN_CALIBRATION_SETTINGS['min_expiry_years'], TF_NN_CALIBRATION_SETTINGS['min_tenor_years'])
+                    helpers = prepare_calibration_helpers(vol_df, term_structure, TF_NN_CALIBRATION_SETTINGS)
                     if not helpers: continue
                     
                     feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data)
