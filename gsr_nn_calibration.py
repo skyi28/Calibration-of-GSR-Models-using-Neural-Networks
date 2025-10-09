@@ -663,6 +663,7 @@ def evaluate_model_on_day(
 def _calculate_loss_for_day(params: np.ndarray, ql_eval_date, term_structure_handle, helpers_with_info, settings) -> float:
     """
     The core, computationally-heavy loss calculation using QuantLib.
+    Now includes an asymmetric penalty for underestimation.
     """
     try:
         num_a = settings['num_a_segments'] if settings['optimize_a'] else 0
@@ -689,15 +690,24 @@ def _calculate_loss_for_day(params: np.ndarray, ql_eval_date, term_structure_han
         else:
             helpers_to_price = helpers_with_info
         
-        squared_errors = []
+        weighted_squared_errors = []
+        underestimation_penalty = settings.get("underestimation_penalty", 1.0)
+
         for helper, _, _ in helpers_to_price:
             helper.setPricingEngine(thread_engine)
             market_vol = helper.volatility().value()
             model_val = helper.modelValue()
             implied_vol = helper.impliedVolatility(model_val, 1e-3, 500, market_vol * 0.01, market_vol * 4)
-            squared_errors.append((implied_vol - helper.volatility().value())**2)
+            
+            error = implied_vol - market_vol
+            
+            # --- NEW: Asymmetric Loss Calculation ---
+            if error < 0: # This is an underestimation (implied_vol < market_vol)
+                weighted_squared_errors.append((error**2) * underestimation_penalty)
+            else: # This is an overestimation
+                weighted_squared_errors.append(error**2)
         
-        return float(np.mean(squared_errors)) if squared_errors else 1e6
+        return float(np.mean(weighted_squared_errors)) if weighted_squared_errors else 1e6
     except (RuntimeError, ValueError):
         print(traceback.format_exc())
         return 1e6
@@ -765,7 +775,7 @@ class HullWhiteHyperModel(kt.HyperModel):
         use_dropout = hp.Boolean('use_dropout')
         dropout_rate = hp.Float('dropout_rate', 0.1, 0.5, step=0.1) if use_dropout else 0.0
 
-        layers = [hp.Int(f'neurons_{i}', 32, 256, step=32) for i in range(num_layers)]
+        layers = [hp.Int(f'neurons_{i}', 16, 128, step=16) for i in range(num_layers)]
 
         # These parameters are fixed during the search but needed for model instantiation
         total_params = TF_NN_CALIBRATION_SETTINGS['num_a_segments'] + TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']
@@ -806,10 +816,11 @@ class HullWhiteHyperModel(kt.HyperModel):
                 feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data)
                 loss = _perform_training_step(model, optimizer, tf.constant(feature_vec, dtype=tf.float64), initial_logits, ql_eval_date, term_structure, helpers, settings)
                 if not np.isnan(loss):
+                    # Note: This RMSE is now based on the *weighted* errors
                     epoch_losses.append(np.sqrt(loss) * 10000)
             
             avg_epoch_rmse = np.mean(epoch_losses) if epoch_losses else float('inf')
-            print(f"\n  Trial {trial_id} | Epoch {epoch+1}/{epochs} | Avg Train RMSE: {avg_epoch_rmse:.2f} bps")
+            print(f"\n  Trial {trial_id} | Epoch {epoch+1}/{epochs} | Avg Train RMSE (Weighted): {avg_epoch_rmse:.2f} bps")
 
             val_losses = []
             for eval_date, zero_df, vol_df in loaded_val_data:
@@ -817,11 +828,12 @@ class HullWhiteHyperModel(kt.HyperModel):
                 ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
                 feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data)
                 predicted_params = model((tf.constant(feature_vec, dtype=tf.float64), initial_logits), training=False).numpy()[0]
+                # Evaluation uses the standard (unweighted) RMSE
                 rmse, _ = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, settings)
                 if not np.isnan(rmse): val_losses.append(rmse)
             
             avg_val_rmse = np.mean(val_losses) if val_losses else float('inf')
-            print(f"  Trial {trial_id} | Epoch {epoch+1}/{epochs} | Avg Validation RMSE: {avg_val_rmse:.2f} bps")
+            print(f"  Trial {trial_id} | Epoch {epoch+1}/{epochs} | Avg Validation RMSE (Unweighted): {avg_val_rmse:.2f} bps")
             
         return { 'val_rmse': avg_val_rmse }
 
@@ -852,13 +864,15 @@ if __name__ == '__main__':
                 "directory": "results/neural_network/hyperband_tuner",
                 "project_name": "hull_white_calibration"
             },
-            "num_a_segments": 1, "num_sigma_segments": 3, "optimize_a": True,
-            "instrument_batch_size_percentage": 100, # Use a subset (x%) of instruments per day to calculate the gradient for speed
+            # --- MODEL AND TRAINING SETTINGS ---
+            "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True, # Increased sigma segments
+            "instrument_batch_size_percentage": 100,
             "upper_bound": 0.1, "pricing_engine_integration_points": 32,
-            "num_epochs": 2, "h_relative": 1e-7,
-            "initial_guess": [0.02, 0.0002, 0.0002, 0.00017],
-            "gradient_method": "central", # Options: "forward" or "central". Forward is ~2x faster but less precise.
-            "gradient_clip_norm": 2.0, "num_threads": os.cpu_count() or 4,
+            "num_epochs": 2, "h_relative": 1e-7, # Increased epochs
+            "initial_guess": [0.02, 0.0002, 0.0002, 0.00017, 0.00017, 0.00017, 0.00017, 0.00017], # Adjusted for more segments
+            "gradient_method": "forward", # either "forward" or "central"
+            "underestimation_penalty": 1.5, # New parameter to penalize underestimation. Set to 1.0 for standard MSE.
+            "gradient_clip_norm": 2.0, "num_threads": os.cpu_count() or 1,
             "min_expiry_years": 2.0, "min_tenor_years": 2.0,
             "SAVE_MODEL_DIR_NAME": f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
         }
@@ -949,6 +963,11 @@ if __name__ == '__main__':
             loaded_train_data = [(d, pd.read_csv(zp, parse_dates=['Date']), load_volatility_cube(vp)) for d, zp, vp in train_files]
             loaded_val_data = [(d, pd.read_csv(zp, parse_dates=['Date']), load_volatility_cube(vp)) for d, zp, vp in val_files]
             print("All training and validation data has been loaded.")
+            
+            # Make sure initial guess matches number of parameters
+            num_params_to_predict = (TF_NN_CALIBRATION_SETTINGS['num_a_segments'] if TF_NN_CALIBRATION_SETTINGS['optimize_a'] else 0) + TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']
+            if len(TF_NN_CALIBRATION_SETTINGS['initial_guess']) != num_params_to_predict:
+                 raise ValueError(f"Length of 'initial_guess' ({len(TF_NN_CALIBRATION_SETTINGS['initial_guess'])}) must match the total number of parameters to predict ({num_params_to_predict}).")
 
             p_scaled = np.clip(np.array(TF_NN_CALIBRATION_SETTINGS['initial_guess'], dtype=np.float64) / TF_NN_CALIBRATION_SETTINGS['upper_bound'], 1e-9, 1 - 1e-9)
             initial_logits = tf.constant([np.log(p_scaled / (1 - p_scaled))], dtype=tf.float64)
@@ -1029,12 +1048,12 @@ if __name__ == '__main__':
                     epoch_losses.append(current_rmse)
                     progress = (day_idx + 1) / len(combined_train_data)
                     bar = ('=' * int(progress * 20)).ljust(20)
-                    sys.stdout.write(f"\rEpoch {epoch+1:2d}/{TF_NN_CALIBRATION_SETTINGS['num_epochs']} [{bar}] Day {day_idx+1:3d}/{len(combined_train_data)} - RMSE: {current_rmse:7.2f} bps")
+                    sys.stdout.write(f"\rEpoch {epoch+1:2d}/{TF_NN_CALIBRATION_SETTINGS['num_epochs']} [{bar}] Day {day_idx+1:3d}/{len(combined_train_data)} - Weighted RMSE: {current_rmse:7.2f} bps")
                     sys.stdout.flush()
                 
                 avg_epoch_rmse = np.mean(epoch_losses) if epoch_losses else float('nan')
                 elapsed = time.monotonic() - start_time
-                print(f"\nEpoch {epoch+1} Summary | Avg. Train RMSE: {avg_epoch_rmse:7.2f} bps | Time Elapsed: {_format_time(elapsed)}")
+                print(f"\nEpoch {epoch+1} Summary | Avg. Train RMSE (Weighted): {avg_epoch_rmse:7.2f} bps | Time Elapsed: {_format_time( elapsed)}")
             
             print("\n--- Final Training Finished ---")
             
