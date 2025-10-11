@@ -533,7 +533,7 @@ def extract_raw_features(
 ) -> List[float]:
     """
     Extracts a raw (unscaled) feature vector from a yield curve and external market data.
-    The vector includes rates, key slopes, curvature, MOVE, VIX, and their ratio.
+    The vector now includes rates, multiple slopes, multiple curvatures, and their ratios.
     """
     day_counter: ql.Actual365Fixed = ql.Actual365Fixed()
     
@@ -549,36 +549,58 @@ def extract_raw_features(
         days = int(tenor_in_years * 365.25)
         return term_structure_handle.zeroRate(eval_date + ql.Period(days, ql.Days), day_counter, ql.Continuous).rate()
 
-    # Get the specific rates needed for slopes and curvature
+    # Get all the specific rates needed for slopes and curvatures
     rate_3m = get_rate(0.25)
+    rate_1y = get_rate(1.0)
     rate_2y = get_rate(2.0)
     rate_5y = get_rate(5.0)
     rate_10y = get_rate(10.0)
+    rate_20y = get_rate(20.0)
     rate_30y = get_rate(30.0)
     
-    # --- CALCULATE NEW FEATURES ---
+    # --- CALCULATE ORIGINAL AND NEW FEATURES ---
     # 1. Slopes
     slope_3m10s = rate_10y - rate_3m
     slope_2s10s = rate_10y - rate_2y
     slope_5s30s = rate_30y - rate_5y
     
-    # 2. Curvature (Butterfly)
-    curvature_2s5s10s = (2 * rate_5y) - rate_2y - rate_10y
+    # 2. Curvatures (Butterfly Spreads)
+    # Original medium-term curvature
+    curvature_2y5y10y = (2 * rate_5y) - rate_2y - rate_10y
+    
+    # NEW: Short-term curvature
+    curvature_1y2y5y = (2 * rate_2y) - rate_1y - rate_5y
+    
+    # NEW: Long-term curvature
+    curvature_10y20y30y = (2 * rate_20y) - rate_10y - rate_30y
 
-    # 3. External Data (MOVE, VIX, Ratio)
+    # 3. NEW: Curvature-to-Slope Ratio
+    # Avoid division by zero in flat curve environments
+    if abs(slope_2s10s) > 1e-6:
+        curvature_slope_ratio = curvature_2y5y10y / slope_2s10s
+    else:
+        curvature_slope_ratio = 0.0 # Assign a neutral value
+
+    # 4. External Data (MOVE, VIX, Ratio)
     py_date = datetime.date(eval_date.year(), eval_date.month(), eval_date.dayOfMonth())
     pd_timestamp = pd.to_datetime(py_date)
     
     move_value = external_data.loc[pd_timestamp, 'MOVE_Open']
     vix_value = external_data.loc[pd_timestamp, 'VIX_Open']
+    eurusd_value = external_data.loc[pd_timestamp, 'EURUSD_Open']
     
-    if vix_value > 1e-6: # Avoid division by zero or near-zero
+    if vix_value > 1e-6:
         move_vix_ratio = move_value / vix_value
     else:
-        move_vix_ratio = 1.0  # Assign a neutral default value
+        move_vix_ratio = 1.0
 
     # Combine all features into a single list
-    all_features = rates + [slope_3m10s, slope_2s10s, slope_5s30s, curvature_2s5s10s, move_value, vix_value, move_vix_ratio]
+    all_features = rates + [
+        slope_3m10s, slope_2s10s, slope_5s30s,
+        curvature_2y5y10y, curvature_1y2y5y, curvature_10y20y30y,
+        curvature_slope_ratio,
+        move_value, vix_value, move_vix_ratio, eurusd_value
+    ]
     
     return all_features
 
@@ -765,8 +787,10 @@ def perform_and_save_shap_analysis(
     # 1. Define Feature and Output Names for clear plot labels
     feature_tenors = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
     feature_names = [f'{int(t)}y_rate' for t in feature_tenors] + [
-        'slope_3m10y', 'slope_2y10y', 'slope_5y30y', 'curvature_2y5y10y',
-        'MOVE_Open', 'VIX_Open', 'MOVE_VIX_Ratio'
+        'slope_3m10y', 'slope_2y10y', 'slope_5y30y',
+        'curvature_2y5y10y', 'curvature_1y2y5y', 'curvature_10y20y30y',
+        'curvature_slope_ratio',
+        'MOVE_Open', 'VIX_Open', 'MOVE_VIX_Ratio', 'EURUSD_Open'
     ]
     num_a = settings['num_a_segments'] if settings.get('optimize_a', False) else 0
     num_sigma = settings['num_sigma_segments']
@@ -1106,7 +1130,7 @@ if __name__ == '__main__':
             print(f"\n--- External market data not found. Downloading for range {start_date} to {end_date} ---")
             os.makedirs(FOLDER_EXTERNAL_DATA, exist_ok=True)
             try:
-                tickers_to_download = ['^MOVE', '^VIX']
+                tickers_to_download = ['^MOVE', '^VIX', 'EURUSD=X']
                 # Add one day to end_date to make yfinance download inclusive
                 raw_data = yf.download(tickers_to_download, start=start_date, end=end_date + datetime.timedelta(days=1))
                 if raw_data.empty:
@@ -1114,7 +1138,7 @@ if __name__ == '__main__':
                 
                 # We only need the 'Open' prices
                 external_data_df = raw_data['Open'].copy()
-                external_data_df.rename(columns={'^MOVE': 'MOVE_Open', '^VIX': 'VIX_Open'}, inplace=True)
+                external_data_df.rename(columns={'^MOVE': 'MOVE_Open', '^VIX': 'VIX_Open', 'EURUSD=X': 'EURUSD_Open'}, inplace=True)
                 
                 external_data_df.to_csv(external_data_csv_path)
                 print(f"External market data (MOVE, VIX) saved to {external_data_csv_path}")
