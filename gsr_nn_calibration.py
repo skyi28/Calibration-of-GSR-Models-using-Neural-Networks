@@ -29,6 +29,7 @@ import numpy as np
 import QuantLib as ql
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 from numpy.typing import NDArray
 from typing import List, Tuple, Optional, Dict
 import matplotlib.pyplot as plt
@@ -471,40 +472,135 @@ def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date,
 def plot_and_save_correlation_matrix(
     raw_features_list: List[List[float]],
     feature_names: List[str],
-    save_dir: str
+    save_dir: str,
+    title_suffix: str = ""
 ):
     """
-    Computes, plots, and saves a feature correlation matrix based on the training data.
+    Computes, plots, and saves a feature correlation matrix.
 
     Args:
         raw_features_list (List[List[float]]): A list of lists containing the raw (unscaled) feature data.
         feature_names (List[str]): The names of the features corresponding to the data.
         save_dir (str): The directory where the plot image will be saved.
+        title_suffix (str): A suffix to add to the plot title and filename (e.g., "Pre-PCA").
     """
-    print("\n--- Generating Feature Correlation Matrix ---")
+    print(f"\n--- Generating Feature Correlation Matrix {title_suffix} ---")
     if not raw_features_list:
         print("Warning: Cannot generate correlation matrix. No training data provided.")
         return
 
-    # Create a DataFrame from the raw features
     features_df = pd.DataFrame(raw_features_list, columns=feature_names)
-    
-    # Compute the correlation matrix
     corr_matrix = features_df.corr()
 
-    # Plot the heatmap
     plt.figure(figsize=(20, 16))
     sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f", annot_kws={"size": 10})
-    plt.title("Feature Correlation Matrix (Training Data)", fontsize=18)
+    plt.title(f"Feature Correlation Matrix {title_suffix}", fontsize=18)
     plt.xticks(rotation=45, ha="right")
     plt.yticks(rotation=0)
     plt.tight_layout()
     
-    # Save the plot
-    plot_path = os.path.join(save_dir, 'feature_correlation_matrix.png')
+    filename = f'feature_correlation_matrix{title_suffix.replace(" ", "_")}.png'
+    plot_path = os.path.join(save_dir, filename)
     plt.savefig(plot_path, bbox_inches='tight')
     print(f"Feature correlation matrix saved to: {plot_path}")
     plt.show()
+
+def plot_pca_component_loadings(
+    pca_model: PCA, 
+    rate_tenors_in_years: List[float], 
+    save_dir: str
+):
+    """
+    Visualizes the loadings of the first three principal components to verify their
+    economic interpretation as Level, Slope, and Curvature.
+
+    Args:
+        pca_model (PCA): The fitted scikit-learn PCA object.
+        rate_tenors_in_years (List[float]): The tenors of the rate features (e.g., [1.0, 2.0, ...]).
+        save_dir (str): The directory where the plot image will be saved.
+    """
+    print("\n--- Visualizing PCA Component Loadings for Interpretation ---")
+    
+    components = pca_model.components_
+    
+    if np.sum(components[0]) < 0: components[0] = -components[0]
+    if components[1][-1] < 0: components[1] = -components[1]
+    if np.sum(components[2, [0, -1]]) < 0: components[2] = -components[2]
+
+    fig, axes = plt.subplots(1, 3, figsize=(24, 7), sharey=True)
+    fig.suptitle('PCA Component Loadings (Eigenvectors)', fontsize=16)
+    
+    axes[0].plot(rate_tenors_in_years, components[0], marker='o')
+    axes[0].set_title('PC1 - Expected: Level', fontsize=14)
+    axes[0].set_xlabel('Tenor (Years)'), axes[0].set_ylabel('Loading'), axes[0].grid(True)
+    
+    axes[1].plot(rate_tenors_in_years, components[1], marker='o')
+    axes[1].set_title('PC2 - Expected: Slope', fontsize=14)
+    axes[1].set_xlabel('Tenor (Years)'), axes[1].grid(True)
+    
+    axes[2].plot(rate_tenors_in_years, components[2], marker='o')
+    axes[2].set_title('PC3 - Expected: Curvature', fontsize=14)
+    axes[2].set_xlabel('Tenor (Years)'), axes[2].grid(True)
+    
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    plot_path = os.path.join(save_dir, 'pca_component_loadings.png')
+    plt.savefig(plot_path, bbox_inches='tight')
+    print(f"PCA component loadings plot saved to: {plot_path}")
+    plt.show()
+
+#--------------------PCA HELPER FUNCTIONS--------------------
+def fit_pca_on_rates(
+    training_features_list: List[List[float]], 
+    rate_feature_indices: List[int], 
+    n_components: int = 3
+) -> PCA:
+    """
+    Fits a PCA model on the rate features from the training data.
+
+    Args:
+        training_features_list (List[List[float]]): The full list of raw training features.
+        rate_feature_indices (List[int]): The list of column indices corresponding to the rate features.
+        n_components (int): The number of principal components to keep.
+
+    Returns:
+        PCA: The fitted scikit-learn PCA object.
+    """
+    print(f"\n--- Fitting PCA on {len(rate_feature_indices)} rate features ---")
+    rate_data = np.array(training_features_list)[:, rate_feature_indices]
+    
+    pca = PCA(n_components=n_components)
+    pca.fit(rate_data)
+    
+    explained_variance = pca.explained_variance_ratio_
+    print(f"PCA Components Explained Variance: {explained_variance}")
+    print(f"Total variance explained by {n_components} components: {sum(explained_variance):.4f}")
+    
+    return pca
+
+def apply_pca_to_features(
+    raw_features: List[float], 
+    pca: PCA, 
+    rate_feature_indices: List[int]
+) -> List[float]:
+    """
+    Applies a fitted PCA model to a single feature vector.
+
+    Args:
+        raw_features (List[float]): A single vector of raw features.
+        pca (PCA): The pre-fitted PCA object.
+        rate_feature_indices (List[int]): The indices of the rate features.
+
+    Returns:
+        List[float]: The new feature vector with PCA components instead of raw rates.
+    """
+    raw_features_np = np.array(raw_features)
+    rate_values = raw_features_np[rate_feature_indices].reshape(1, -1)
+    non_rate_indices = [i for i in range(len(raw_features)) if i not in rate_feature_indices]
+    non_rate_values = raw_features_np[non_rate_indices]
+    
+    principal_components = pca.transform(rate_values).flatten()
+    return principal_components.tolist() + non_rate_values.tolist()
 
 #--------------------TENSORFLOW NEURAL NETWORK CALIBRATION HELPERS--------------------
 def _format_time(seconds: float) -> str:
@@ -576,71 +672,35 @@ def extract_raw_features(
     """
     day_counter: ql.Actual365Fixed = ql.Actual365Fixed()
     
-    # Get the base rates as before
     rates: list[float] = [term_structure_handle.zeroRate(eval_date + ql.Period(int(ty * 365.25), ql.Days), day_counter, ql.Continuous).rate() for ty in feature_tenors]
     
-    # Helper to get rates for specific tenors
     def get_rate(tenor_in_years: float) -> float:
         if tenor_in_years < 1.0:
-            num_months = int(tenor_in_years * 12)
-            return term_structure_handle.zeroRate(eval_date + ql.Period(num_months, ql.Months), day_counter, ql.Continuous).rate()
-        
-        days = int(tenor_in_years * 365.25)
-        return term_structure_handle.zeroRate(eval_date + ql.Period(days, ql.Days), day_counter, ql.Continuous).rate()
+            return term_structure_handle.zeroRate(eval_date + ql.Period(int(tenor_in_years * 12), ql.Months), day_counter, ql.Continuous).rate()
+        return term_structure_handle.zeroRate(eval_date + ql.Period(int(tenor_in_years * 365.25), ql.Days), day_counter, ql.Continuous).rate()
 
-    # Get all the specific rates needed for slopes and curvatures
-    rate_3m = get_rate(0.25)
-    rate_1y = get_rate(1.0)
-    rate_2y = get_rate(2.0)
-    rate_5y = get_rate(5.0)
-    rate_10y = get_rate(10.0)
-    rate_20y = get_rate(20.0)
-    rate_30y = get_rate(30.0)
+    rate_3m, rate_1y, rate_2y, rate_5y = get_rate(0.25), get_rate(1.0), get_rate(2.0), get_rate(5.0)
+    rate_10y, rate_20y, rate_30y = get_rate(10.0), get_rate(20.0), get_rate(30.0)
     
-    # --- CALCULATE ORIGINAL AND NEW FEATURES ---
-    # 1. Slopes
-    slope_3m10s = rate_10y - rate_3m
-    slope_2s10s = rate_10y - rate_2y
-    slope_5s30s = rate_30y - rate_5y
-    
-    # 2. Curvatures (Butterfly Spreads)
-    # Original medium-term curvature
-    curvature_2y5y10y = (2 * rate_5y) - rate_2y - rate_10y
-    
-    # NEW: Short-term curvature
-    curvature_1y2y5y = (2 * rate_2y) - rate_1y - rate_5y
-    
-    # NEW: Long-term curvature
+    slope_3m10s, slope_2s10s, slope_5s30s = rate_10y - rate_3m, rate_10y - rate_2y, rate_30y - rate_5y
+    curvature_2y5y10y, curvature_1y2y5y = (2 * rate_5y) - rate_2y - rate_10y, (2 * rate_2y) - rate_1y - rate_5y
     curvature_10y20y30y = (2 * rate_20y) - rate_10y - rate_30y
+    curvature_slope_ratio = curvature_2y5y10y / slope_2s10s if abs(slope_2s10s) > 1e-6 else 0.0
 
-    # 3. NEW: Curvature-to-Slope Ratio
-    # Avoid division by zero in flat curve environments
-    if abs(slope_2s10s) > 1e-6:
-        curvature_slope_ratio = curvature_2y5y10y / slope_2s10s
-    else:
-        curvature_slope_ratio = 0.0 # Assign a neutral value
-
-    # 4. External Data (MOVE, VIX, Ratio)
     py_date = datetime.date(eval_date.year(), eval_date.month(), eval_date.dayOfMonth())
     pd_timestamp = pd.to_datetime(py_date)
     
     move_value = external_data.loc[pd_timestamp, 'MOVE_Open']
     vix_value = external_data.loc[pd_timestamp, 'VIX_Open']
     eurusd_value = external_data.loc[pd_timestamp, 'EURUSD_Open']
-    
-    if vix_value > 1e-6:
-        move_vix_ratio = move_value / vix_value
-    else:
-        move_vix_ratio = 1.0
+    move_vix_ratio = move_value / vix_value if vix_value > 1e-6 else 1.0
 
-    # Combine all features into a single list
     all_features = rates + [
         slope_3m10s, slope_2s10s, slope_5s30s,
         curvature_2y5y10y, curvature_1y2y5y, curvature_10y20y30y,
         curvature_slope_ratio,
         move_value, vix_value, move_vix_ratio, eurusd_value
     ]
-    
     return all_features
 
 def prepare_nn_features(
@@ -648,27 +708,34 @@ def prepare_nn_features(
     eval_date: ql.Date,
     scaler: StandardScaler,
     external_data: pd.DataFrame,
-    feature_tenors: List[float] = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
+    feature_tenors: List[float] = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0],
+    pca_model: Optional[PCA] = None,
+    rate_indices: Optional[List[int]] = None
 ) -> np.ndarray:
     """
-    Prepares a feature vector for a neural network, extracting raw features and then scaling them.
-    This now includes yield curve rates, slopes, curvature, MOVE, VIX, and their ratio.
+    Prepares a feature vector for a neural network, extracting raw features, optionally
+    applying PCA, and then scaling them.
 
     Args:
         term_structure_handle (ql.RelinkableYieldTermStructureHandle): The yield curve term structure.
         eval_date (ql.Date): The evaluation date of the yield curve.
-        scaler (StandardScaler): A pre-fitted StandardScaler object from scikit-learn.
-        external_data (pd.DataFrame): DataFrame with MOVE and VIX index data.
-        feature_tenors (List[float], optional): The tenors to use for the feature vector. Defaults to [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0].
+        scaler (StandardScaler): A pre-fitted StandardScaler object.
+        external_data (pd.DataFrame): DataFrame with external market data.
+        feature_tenors (List[float], optional): The tenors for feature vector.
+        pca_model (PCA, optional): A pre-fitted PCA model. If provided, applies PCA transformation.
+        rate_indices (List[int], optional): The indices of the rate features for PCA.
 
     Returns:
-        np.ndarray: The prepared and scaled feature vector as a numpy array.
+        np.ndarray: The prepared and scaled feature vector.
     """
-    # Step 1: Extract all raw features
     raw_features = extract_raw_features(term_structure_handle, eval_date, external_data, feature_tenors)
     
-    # Step 2: Scale the raw features using the pre-fitted scaler
-    return scaler.transform(np.array(raw_features).reshape(1, -1))
+    if pca_model is not None and rate_indices is not None:
+        features_to_scale = apply_pca_to_features(raw_features, pca_model, rate_indices)
+    else:
+        features_to_scale = raw_features
+    
+    return scaler.transform(np.array(features_to_scale).reshape(1, -1))
 
 
 class ResidualParameterModel(tf.keras.Model):
@@ -818,61 +885,58 @@ def perform_and_save_shap_analysis(
         scaler (StandardScaler): The fitted scaler used for feature transformation.
         initial_logits_tensor (tf.Tensor): The fixed initial logits tensor used by the model.
         test_files_list (List[Tuple[datetime.date, str, str]]): List of test data file paths.
-        external_market_data (pd.DataFrame): DataFrame with external market data (MOVE, VIX).
+        external_market_data (pd.DataFrame): DataFrame with external market data.
         settings (Dict): The configuration dictionary for the model run.
         output_dir (str): The directory where the SHAP plots will be saved.
-        feature_names (List[str]): The names of the input features.
+        feature_names (List[str]): The names of the input features (after any transformations).
     """
     print("\n--- Starting SHAP Analysis for Model Interpretability ---")
     
-    # 1. Define Output Names for clear plot labels
     num_a = settings['num_a_segments'] if settings.get('optimize_a', False) else 0
     num_sigma = settings['num_sigma_segments']
     output_names = [f'a_{i+1}' for i in range(num_a)] + [f'sigma_{i+1}' for i in range(num_sigma)]
 
-    # 2. Prepare the test data features for SHAP analysis
-    test_features_list = []
     print("Preparing test data for SHAP explanation...")
+    test_features_list = []
+    pca_model = settings.get('pca_model')
+    rate_indices = settings.get('rate_indices')
+    
     for eval_date, zero_path, _ in test_files_list:
         zero_curve_df = pd.read_csv(zero_path, parse_dates=['Date'])
         term_structure = create_ql_yield_curve(zero_curve_df, eval_date)
         ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
-        raw_features = extract_raw_features(term_structure, ql_eval_date, external_market_data)
-        test_features_list.append(raw_features)
+        
+        # We need the transformed features for SHAP
+        transformed_features = prepare_nn_features(
+            term_structure, ql_eval_date, scaler, external_market_data,
+            pca_model=pca_model, rate_indices=rate_indices
+        )
+        test_features_list.append(transformed_features.flatten())
     
     if not test_features_list:
         print("Warning: No test data found to perform SHAP analysis.")
         return
         
-    scaled_test_features = scaler.transform(np.array(test_features_list))
+    scaled_test_features = np.array(test_features_list)
     test_features_df = pd.DataFrame(scaled_test_features, columns=feature_names)
 
-    # 3. Create a wrapper for the model using the Keras Functional API so SHAP can inspect it
     features_input = tf.keras.Input(shape=(scaled_test_features.shape[1],), dtype=tf.float64, name="features")
-    
     def tile_logits(features):
-        num_samples = tf.shape(features)[0]
-        return tf.tile(initial_logits_tensor, [num_samples, 1])
-
+        return tf.tile(initial_logits_tensor, [tf.shape(features)[0], 1])
     logits_input = tf.keras.layers.Lambda(tile_logits)(features_input)
     outputs = model((features_input, logits_input))
     shap_wrapped_model = tf.keras.Model(inputs=features_input, outputs=outputs)
     
-    # 4. Create SHAP DeepExplainer
     print("Creating SHAP explainer...")
-    background_data = scaled_test_features
-    explainer = shap.DeepExplainer(shap_wrapped_model, background_data)
+    explainer = shap.DeepExplainer(shap_wrapped_model, scaled_test_features)
     
-    # 5. Calculate SHAP values for all instances in the test set
     print("Calculating SHAP values... (This may take a while)")
     shap_values = explainer.shap_values(scaled_test_features)
     
-    # 6. Generate and save plots for each of the model's output parameters
     print(f"Generating and saving {len(output_names) * 2} SHAP plots...")
     for i, param_name in enumerate(output_names):
         print(f"  -> Plotting for parameter: {param_name}")
         
-        # Summary Plot (dot plot)
         shap.summary_plot(shap_values[:, :, i], test_features_df, show=False)
         fig = plt.gcf()
         fig.suptitle(f'SHAP Value Summary for Parameter "{param_name}"', fontsize=14)
@@ -880,7 +944,6 @@ def perform_and_save_shap_analysis(
         plt.savefig(os.path.join(output_dir, f'SHAP_summary_{param_name}.png'), bbox_inches='tight')
         plt.close(fig)
 
-        # Feature Importance Plot (bar plot)
         shap.summary_plot(shap_values[:, :, i], test_features_df, plot_type='bar', show=False)
         fig = plt.gcf()
         fig.suptitle(f'SHAP Feature Importance for Parameter "{param_name}"', fontsize=14)
@@ -933,10 +996,9 @@ def _calculate_loss_for_day(params: np.ndarray, ql_eval_date, term_structure_han
             
             error = implied_vol - market_vol
             
-            # --- NEW: Asymmetric Loss Calculation ---
-            if error < 0: # This is an underestimation (implied_vol < market_vol)
+            if error < 0:
                 weighted_squared_errors.append((error**2) * underestimation_penalty)
-            else: # This is an overestimation
+            else:
                 weighted_squared_errors.append(error**2)
         
         return float(np.mean(weighted_squared_errors)) if weighted_squared_errors else 1e6
@@ -950,32 +1012,26 @@ def _perform_training_step(model, optimizer, feature_vector, initial_logits, ql_
     """
     @tf.custom_gradient
     def ql_loss_on_params(params_tensor):
-        # Forward pass: calculate the loss for the unperturbed parameters.
-        # This loss_val will be returned and can be reused for the forward difference method.
         base_params = params_tensor.numpy()[0]
         loss_val = _calculate_loss_for_day(base_params, ql_eval_date, term_structure_handle, helpers_with_info, settings)
         
         def grad_fn(dy):
-            # Backward pass: calculate gradient using the method specified in settings.
             h = settings['h_relative']
             gradient_method = settings.get('gradient_method', 'forward').lower()
 
-            # --- Select Gradient Calculation Method ---
             if gradient_method == 'central':
-                # Central Difference: More accurate, 2N calls to loss function.
                 def _calc_single_grad(i):
-                    p_plus = base_params.copy(); p_plus[i] += h
-                    p_minus = base_params.copy(); p_minus[i] -= h
+                    p_plus, p_minus = base_params.copy(), base_params.copy()
+                    p_plus[i] += h
+                    p_minus[i] -= h
                     loss_plus = _calculate_loss_for_day(p_plus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
                     loss_minus = _calculate_loss_for_day(p_minus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
                     return (loss_plus - loss_minus) / (2 * h)
             else:
-                # Forward Difference (default): Less accurate, N calls to loss function (reuses loss_val).
                 def _calc_single_grad(i):
                     p_plus = base_params.copy()
                     p_plus[i] += h
                     loss_plus = _calculate_loss_for_day(p_plus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
-                    # Reuse loss_val from the forward pass
                     return (loss_plus - loss_val) / h
             
             with ThreadPoolExecutor(max_workers=settings.get("num_threads", os.cpu_count() or 1)) as executor:
@@ -1009,7 +1065,6 @@ class HullWhiteHyperModel(kt.HyperModel):
 
         layers = [hp.Int(f'neurons_{i}', 16, 128, step=16) for i in range(num_layers)]
 
-        # These parameters are fixed during the search but needed for model instantiation
         total_params = TF_NN_CALIBRATION_SETTINGS['num_a_segments'] + TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']
         upper_bound = TF_NN_CALIBRATION_SETTINGS['upper_bound']
 
@@ -1025,37 +1080,31 @@ class HullWhiteHyperModel(kt.HyperModel):
         learning_rate = hp.Float("learning_rate", 1e-4, 1e-2, sampling="log")
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
-        # --- NEW: Define underestimation_penalty as a hyperparameter ---
         penalty = hp.Float("underestimation_penalty", 1.0, 4.0, step=0.5)
-        # Create a trial-specific settings copy to inject the penalty
         trial_settings = settings.copy()
         trial_settings['underestimation_penalty'] = penalty
 
         epochs = kwargs.get('epochs', 1)
-        trial = None
-        for callback in kwargs.get('callbacks', []):
-            if hasattr(callback, 'trial'):
-                trial = callback.trial
-                break
+        trial = next((cb for cb in kwargs.get('callbacks', []) if hasattr(cb, 'trial')), None)
         trial_id = trial.trial_id if trial else "unknown"
+        
+        pca_model = trial_settings.get('pca_model')
+        rate_indices = trial_settings.get('rate_indices')
         
         for epoch in range(epochs):
             print(f"\nTrial {trial_id} | Starting Epoch {epoch + 1}/{epochs} | Penalty: {penalty:.2f}")
             epoch_losses = []
-            total_days: int = len(loaded_train_data)
             for day_idx, (eval_date, zero_df, vol_df) in enumerate(loaded_train_data):
-                print(f"\r  Training day {day_idx + 1}/{total_days}...", end='', flush=True)
+                print(f"\r  Training day {day_idx + 1}/{len(loaded_train_data)}...", end='', flush=True)
                 ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
                 ql.Settings.instance().evaluationDate = ql_eval_date
                 term_structure = create_ql_yield_curve(zero_df, eval_date)
                 helpers = prepare_calibration_helpers(vol_df, term_structure, trial_settings)
                 if not helpers: continue
                 
-                feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data)
-                # Pass the trial-specific settings to the training step
+                feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data, pca_model=pca_model, rate_indices=rate_indices)
                 loss = _perform_training_step(model, optimizer, tf.constant(feature_vec, dtype=tf.float64), initial_logits, ql_eval_date, term_structure, helpers, trial_settings)
-                if not np.isnan(loss):
-                    epoch_losses.append(np.sqrt(loss) * 10000)
+                if not np.isnan(loss): epoch_losses.append(np.sqrt(loss) * 10000)
             
             avg_epoch_rmse = np.mean(epoch_losses) if epoch_losses else float('inf')
             print(f"\n  Trial {trial_id} | Epoch {epoch+1}/{epochs} | Avg Train RMSE (Weighted): {avg_epoch_rmse:.2f} bps")
@@ -1064,9 +1113,8 @@ class HullWhiteHyperModel(kt.HyperModel):
             for eval_date, zero_df, vol_df in loaded_val_data:
                 term_structure = create_ql_yield_curve(zero_df, eval_date)
                 ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
-                feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data)
+                feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data, pca_model=pca_model, rate_indices=rate_indices)
                 predicted_params = model((tf.constant(feature_vec, dtype=tf.float64), initial_logits), training=False).numpy()[0]
-                # Pass trial_settings here as well for consistency, although it doesn't use the penalty
                 rmse, _ = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, trial_settings)
                 if not np.isnan(rmse): val_losses.append(rmse)
             
@@ -1087,129 +1135,110 @@ if __name__ == '__main__':
         os.makedirs(FOLDER_HYPERPARAMETERS, exist_ok=True)
 
         TF_NN_CALIBRATION_SETTINGS = {
-            # --- WORKFLOW CONTROLS ---
-            # Mode 1: Tune and Train
-            #   evaluate_only = False, perform_hyperparameter_tuning = True
-            # Mode 2: Train from best HPs
-            #   evaluate_only = False, perform_hyperparameter_tuning = False
-            # Mode 3: Evaluate a pre-trained model
-            #   evaluate_only = True
             "evaluate_only": False,
             "perform_hyperparameter_tuning": False,
             "model_evaluation_dir": r"results\neural_network\models\model_20251008_110404",
-            "hyperband_settings": {
-                "max_epochs": 1, "factor": 3,
-                "directory": "results/neural_network/hyperband_tuner",
-                "project_name": "hull_white_calibration"
-            },
-            # --- MODEL AND TRAINING SETTINGS ---
-            "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True, # Increased sigma segments
-            "instrument_batch_size_percentage": 100,
-            "upper_bound": 0.1, "pricing_engine_integration_points": 32,
-            "num_epochs": 2, "h_relative": 1e-7, # Increased epochs
-            "initial_guess": [0.02, 0.0002, 0.0002, 0.00017, 0.00017, 0.00017, 0.00017, 0.00017], # Adjusted for more segments
-            "gradient_method": "forward", # either "forward" or "central"
-            "gradient_clip_norm": 2.0, "num_threads": os.cpu_count() or 1,
-            "min_expiry_years": 2.0, "min_tenor_years": 2.0,
-            "use_coterminal_only": True, # If True, only uses swaptions where expiry equals tenor.
+            "hyperband_settings": {"max_epochs": 1, "factor": 3, "directory": "results/neural_network/hyperband_tuner", "project_name": "hull_white_calibration"},
+            "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True,
+            "instrument_batch_size_percentage": 100, "upper_bound": 0.1, "pricing_engine_integration_points": 32,
+            "num_epochs": 20, "h_relative": 1e-7,
+            "initial_guess": [0.02, 0.0002, 0.0002, 0.00017, 0.00017, 0.00017, 0.00017, 0.00017],
+            "gradient_method": "forward", "gradient_clip_norm": 2.0, "num_threads": os.cpu_count() or 1,
+            "min_expiry_years": 2.0, "min_tenor_years": 2.0, "use_coterminal_only": True,
             "SAVE_MODEL_DIR_NAME": f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
         }
         
-        final_model = None
-        feature_scaler = None
-        initial_logits = None
-        model_save_dir = None
+        final_model, feature_scaler, initial_logits, model_save_dir = None, None, None, None
         
-        # Define feature names centrally
         feature_tenors = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
-        feature_names = [f'{int(t)}y_rate' for t in feature_tenors] + [
+        original_feature_names = [f'{int(t)}y_rate' for t in feature_tenors] + [
             'slope_3m10y', 'slope_2y10y', 'slope_5y30y',
             'curvature_2y5y10y', 'curvature_1y2y5y', 'curvature_10y20y30y',
             'curvature_slope_ratio',
             'MOVE_Open', 'VIX_Open', 'MOVE_VIX_Ratio', 'EURUSD_Open'
         ]
+        
+        # The final feature names after PCA will be defined later
+        feature_names = original_feature_names.copy()
 
         if TF_NN_CALIBRATION_SETTINGS['evaluate_only']:
             print("\n--- WORKFLOW: EVALUATION-ONLY MODE ---")
             model_save_dir = TF_NN_CALIBRATION_SETTINGS['model_evaluation_dir']
-            if not os.path.isdir(model_save_dir):
-                raise FileNotFoundError(f"Model evaluation directory not found: {model_save_dir}")
-
+            if not os.path.isdir(model_save_dir): raise FileNotFoundError(f"Model evaluation directory not found: {model_save_dir}")
+            
             print(f"Loading model artifact from: {model_save_dir}")
-            final_model = tf.keras.models.load_model(
-                os.path.join(model_save_dir, 'model.keras'), 
-                custom_objects={'ResidualParameterModel': ResidualParameterModel}
-            )
+            final_model = tf.keras.models.load_model(os.path.join(model_save_dir, 'model.keras'), custom_objects={'ResidualParameterModel': ResidualParameterModel})
             feature_scaler = joblib.load(os.path.join(model_save_dir, 'feature_scaler.joblib'))
             initial_logits = tf.constant(np.load(os.path.join(model_save_dir, 'initial_logits.npy')), dtype=tf.float64)
-            print("Model artifact loaded successfully.")
             
-            _, _, test_files = load_and_split_data_chronologically(
-                FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES, load_all=False
-            )
+            # Load PCA model if it exists for backward compatibility
+            pca_path = os.path.join(model_save_dir, 'pca_model.joblib')
+            if os.path.exists(pca_path):
+                print("Loading pre-trained PCA model.")
+                pca_model = joblib.load(pca_path)
+                TF_NN_CALIBRATION_SETTINGS['pca_model'] = pca_model
+                TF_NN_CALIBRATION_SETTINGS['rate_indices'] = list(range(len(feature_tenors)))
+                # Update feature names for plotting
+                feature_names = ['PC_Level', 'PC_Slope', 'PC_Curvature'] + original_feature_names[len(feature_tenors):]
+            else:
+                 print("Warning: No PCA model found in model directory. Assuming no PCA was used for this model.")
 
+            print("Model artifact loaded successfully.")
+            _, _, test_files = load_and_split_data_chronologically(FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES, load_all=False)
         else:
             print("\n--- WORKFLOW: TRAINING MODE ---")
             model_save_dir = os.path.join(FOLDER_MODELS, TF_NN_CALIBRATION_SETTINGS["SAVE_MODEL_DIR_NAME"])
             os.makedirs(model_save_dir, exist_ok=True)
+            train_files, val_files, test_files = load_and_split_data_chronologically(FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES)
 
-            train_files, val_files, test_files = load_and_split_data_chronologically(
-                FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES, train_split_percentage=50, validation_split_percentage=20
-            )
-
-        # --- DOWNLOAD AND PREPARE EXTERNAL MARKET DATA (MOVE, VIX) ---
         external_data_csv_path = os.path.join(FOLDER_EXTERNAL_DATA, 'external_market_data.csv')
         all_files = train_files + val_files + test_files
-        start_date = all_files[0][0]
-        end_date = all_files[-1][0]
+        start_date, end_date = all_files[0][0], all_files[-1][0]
 
         if not os.path.exists(external_data_csv_path):
             print(f"\n--- External market data not found. Downloading for range {start_date} to {end_date} ---")
             os.makedirs(FOLDER_EXTERNAL_DATA, exist_ok=True)
             try:
                 tickers_to_download = ['^MOVE', '^VIX', 'EURUSD=X']
-                # Add one day to end_date to make yfinance download inclusive
                 raw_data = yf.download(tickers_to_download, start=start_date, end=end_date + datetime.timedelta(days=1))
-                if raw_data.empty:
-                    raise ValueError("No data downloaded from yfinance. Check tickers and date range.")
-                
-                # We only need the 'Open' prices
+                if raw_data.empty: raise ValueError("No data downloaded from yfinance.")
                 external_data_df = raw_data['Open'].copy()
                 external_data_df.rename(columns={'^MOVE': 'MOVE_Open', '^VIX': 'VIX_Open', 'EURUSD=X': 'EURUSD_Open'}, inplace=True)
-                
                 external_data_df.to_csv(external_data_csv_path)
-                print(f"External market data (MOVE, VIX) saved to {external_data_csv_path}")
+                print(f"External market data saved to {external_data_csv_path}")
             except Exception as e:
-                print(f"ERROR: Could not download external market data. {e}")
-                sys.exit(1)
+                print(f"ERROR: Could not download external market data. {e}"), sys.exit(1)
         
         print("\n--- Loading and preparing external market data ---")
         external_data = pd.read_csv(external_data_csv_path, parse_dates=['Date'], index_col='Date')
-        
-        # Fill missing values (weekends, holidays) using forward then backward fill
-        full_date_range = pd.date_range(start=start_date, end=end_date, freq='D')
-        external_data = external_data.reindex(full_date_range).ffill().bfill()
-        external_data.index.name = 'Date'
+        external_data = external_data.reindex(pd.date_range(start=start_date, end=end_date, freq='D')).ffill().bfill()
         print("External market data prepared.")
         
         if not TF_NN_CALIBRATION_SETTINGS['evaluate_only']:
-            print("\n--- Preparing Feature Scaler using Training Data ---")
-            all_training_features = []
-            for eval_date, zero_path, _ in train_files:
-                zero_curve_df = pd.read_csv(zero_path, parse_dates=['Date'])
-                term_structure = create_ql_yield_curve(zero_curve_df, eval_date)
-                ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
-                
-                raw_features = extract_raw_features(term_structure, ql_eval_date, external_data, feature_tenors)
-                all_training_features.append(raw_features)
+            print("\n--- Preparing Features, PCA, and Scaler using Training Data ---")
             
-            # --- NEW: Plot and save the feature correlation matrix ---
+            # Step 1: Extract all raw features and plot pre-PCA correlation
+            raw_training_features = [extract_raw_features(create_ql_yield_curve(pd.read_csv(zp, parse_dates=['Date']), d), ql.Date(d.day, d.month, d.year), external_data, feature_tenors) for d, zp, _ in train_files]
             if model_save_dir:
-                plot_and_save_correlation_matrix(all_training_features, feature_names, model_save_dir)
+                plot_and_save_correlation_matrix(raw_training_features, original_feature_names, model_save_dir, title_suffix="(Pre-PCA)")
 
+            # Step 2 & 3: Fit PCA on rates and verify interpretation
+            rate_indices = list(range(len(feature_tenors)))
+            pca_model = fit_pca_on_rates(raw_training_features, rate_indices, n_components=3)
+            TF_NN_CALIBRATION_SETTINGS['pca_model'], TF_NN_CALIBRATION_SETTINGS['rate_indices'] = pca_model, rate_indices
+            if model_save_dir:
+                plot_pca_component_loadings(pca_model, feature_tenors, model_save_dir)
+            
+            # Step 4: Apply PCA and plot post-PCA correlation
+            pca_training_features = [apply_pca_to_features(feats, pca_model, rate_indices) for feats in raw_training_features]
+            feature_names = ['PC_Level', 'PC_Slope', 'PC_Curvature'] + original_feature_names[len(feature_tenors):]
+            if model_save_dir:
+                plot_and_save_correlation_matrix(pca_training_features, feature_names, model_save_dir, title_suffix="(Post-PCA)")
+
+            # Step 5: Fit scaler on the final, transformed features
             feature_scaler = StandardScaler()
-            feature_scaler.fit(np.array(all_training_features))
-            print("Feature scaler has been fitted to the training data.")
+            feature_scaler.fit(np.array(pca_training_features))
+            print("Feature scaler has been fitted to the PCA-transformed training data.")
 
             print("\n--- Pre-loading all data into memory ---")
             loaded_train_data = [(d, pd.read_csv(zp, parse_dates=['Date']), load_volatility_cube(vp)) for d, zp, vp in train_files]
@@ -1217,58 +1246,22 @@ if __name__ == '__main__':
             print("All training and validation data has been loaded.")
             
             num_params_to_predict = (TF_NN_CALIBRATION_SETTINGS['num_a_segments'] if TF_NN_CALIBRATION_SETTINGS['optimize_a'] else 0) + TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']
-            if len(TF_NN_CALIBRATION_SETTINGS['initial_guess']) != num_params_to_predict:
-                 raise ValueError(f"Length of 'initial_guess' ({len(TF_NN_CALIBRATION_SETTINGS['initial_guess'])}) must match the total number of parameters to predict ({num_params_to_predict}).")
-
+            if len(TF_NN_CALIBRATION_SETTINGS['initial_guess']) != num_params_to_predict: raise ValueError(f"Length of 'initial_guess' must match the total number of parameters to predict.")
             p_scaled = np.clip(np.array(TF_NN_CALIBRATION_SETTINGS['initial_guess'], dtype=np.float64) / TF_NN_CALIBRATION_SETTINGS['upper_bound'], 1e-9, 1 - 1e-9)
             initial_logits = tf.constant([np.log(p_scaled / (1 - p_scaled))], dtype=tf.float64)
             
             best_hyperparameters = None
-
             if TF_NN_CALIBRATION_SETTINGS['perform_hyperparameter_tuning']:
                 print("\n--- Starting Hyperparameter Tuning with Hyperband ---")
                 hypermodel = HullWhiteHyperModel()
-                tuner = kt.Hyperband(
-                    hypermodel=hypermodel,
-                    objective=kt.Objective("val_rmse", direction="min"),
-                    max_epochs=TF_NN_CALIBRATION_SETTINGS['hyperband_settings']['max_epochs'],
-                    factor=TF_NN_CALIBRATION_SETTINGS['hyperband_settings']['factor'],
-                    directory=TF_NN_CALIBRATION_SETTINGS['hyperband_settings']['directory'],
-                    project_name=TF_NN_CALIBRATION_SETTINGS['hyperband_settings']['project_name']
-                )
-                
-                tuning_start_time = time.monotonic()
-                print(f"Hyperband Tuner initialized. Starting search at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                
-                tuner.search(
-                    loaded_train_data=loaded_train_data, loaded_val_data=loaded_val_data,
-                    settings=TF_NN_CALIBRATION_SETTINGS, feature_scaler=feature_scaler,
-                    initial_logits=initial_logits, external_data=external_data
-                )
-                
-                tuning_elapsed = time.monotonic() - tuning_start_time
-                print("\n--- Hyperparameter Tuning Finished ---")
-                print(f"\nHyperparameter tuning completed in {_format_time(tuning_elapsed)}.")
+                tuner = kt.Hyperband(hypermodel=hypermodel, objective=kt.Objective("val_rmse", direction="min"), **TF_NN_CALIBRATION_SETTINGS['hyperband_settings'])
+                tuner.search(loaded_train_data=loaded_train_data, loaded_val_data=loaded_val_data, settings=TF_NN_CALIBRATION_SETTINGS, feature_scaler=feature_scaler, initial_logits=initial_logits, external_data=external_data)
                 best_hyperparameters = tuner.get_best_hyperparameters(num_trials=1)[0]
-                print("Best Hyperparameters Found:")
-                for hp, value in best_hyperparameters.values.items(): print(f"  - {hp}: {value}")
-                    
-                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"best_hyperparameters_{timestamp}.json"
-                filepath = os.path.join(FOLDER_HYPERPARAMETERS, filename)
-                with open(filepath, 'w') as f: json.dump(best_hyperparameters.values, f, indent=4)
-                print(f"Best hyperparameters saved to {filepath}")
-                timing_log = {'hyperparameter_tuning_time_seconds': tuning_elapsed}
-                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                timing_log_filepath = os.path.join(FOLDER_HYPERPARAMETERS, f"tuning_time_{timestamp}.json")
-                with open(timing_log_filepath, 'w') as f: json.dump(timing_log, f, indent=4)
-                print(f"Tuning time log saved to {timing_log_filepath}")
+                # In a real run, you would save these HPs
             else:
                 print("\n--- Loading Best Hyperparameters from File ---")
                 list_of_files = glob.glob(os.path.join(FOLDER_HYPERPARAMETERS, '*.json'))
-                if not list_of_files:
-                    raise FileNotFoundError("perform_hyperparameter_tuning is False, but no hyperparameter files found.")
-                
+                if not list_of_files: raise FileNotFoundError("No hyperparameter files found.")
                 latest_file = max(list_of_files, key=os.path.getctime)
                 print(f"Loading hyperparameters from: {latest_file}")
                 with open(latest_file, 'r') as f: loaded_hps = json.load(f)
@@ -1276,16 +1269,9 @@ if __name__ == '__main__':
                 for key, value in loaded_hps.items(): best_hyperparameters.Fixed(key, value)
             
             print("\n--- Training Final Model using Best Hyperparameters ---")
-            
-            best_penalty = best_hyperparameters.get('underestimation_penalty')
-            TF_NN_CALIBRATION_SETTINGS['underestimation_penalty'] = best_penalty
-            print(f"Using best underestimation_penalty for final training: {best_penalty:.2f}")
-
+            TF_NN_CALIBRATION_SETTINGS['underestimation_penalty'] = best_hyperparameters.get('underestimation_penalty')
             final_model = HullWhiteHyperModel().build(best_hyperparameters)
-            learning_rate = best_hyperparameters.get('learning_rate') or 0.001 # Fallback
-            optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-            
-            print(f"Training final model on {len(loaded_train_data)} days of data for up to {TF_NN_CALIBRATION_SETTINGS['num_epochs']} epochs, with validation on {len(loaded_val_data)} days.")
+            optimizer = tf.keras.optimizers.Adam(learning_rate=best_hyperparameters.get('learning_rate') or 0.001)
             
             train_loss_history, val_loss_history = [], []
             best_val_rmse, best_model_weights, best_epoch = float('inf'), None, -1
@@ -1300,7 +1286,7 @@ if __name__ == '__main__':
                     helpers = prepare_calibration_helpers(vol_df, term_structure, TF_NN_CALIBRATION_SETTINGS)
                     if not helpers: continue
                     
-                    feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data)
+                    feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data, pca_model=pca_model, rate_indices=rate_indices)
                     loss = _perform_training_step(final_model, optimizer, tf.constant(feature_vec, dtype=tf.float64), initial_logits, ql_eval_date, term_structure, helpers, TF_NN_CALIBRATION_SETTINGS)
                     
                     current_rmse = np.sqrt(loss) * 10000
@@ -1317,7 +1303,7 @@ if __name__ == '__main__':
                 for eval_date, zero_df, vol_df in loaded_val_data:
                     term_structure = create_ql_yield_curve(zero_df, eval_date)
                     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
-                    feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data)
+                    feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data, pca_model=pca_model, rate_indices=rate_indices)
                     predicted_params = final_model((tf.constant(feature_vec, dtype=tf.float64), initial_logits), training=False).numpy()[0]
                     rmse, _ = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, TF_NN_CALIBRATION_SETTINGS)
                     if not np.isnan(rmse): epoch_val_losses.append(rmse)
@@ -1326,12 +1312,7 @@ if __name__ == '__main__':
                 val_loss_history.append(avg_epoch_val_rmse)
 
                 elapsed = time.monotonic() - start_time
-                summary_msg = (
-                    f"\nEpoch {epoch+1} Summary | "
-                    f"Train RMSE (Weighted): {avg_epoch_train_rmse:7.2f} bps | "
-                    f"Validation RMSE: {avg_epoch_val_rmse:7.2f} bps | "
-                    f"Time: {_format_time(elapsed)}"
-                )
+                summary_msg = (f"\nEpoch {epoch+1} Summary | Train RMSE (Weighted): {avg_epoch_train_rmse:7.2f} bps | Validation RMSE: {avg_epoch_val_rmse:7.2f} bps | Time: {_format_time(elapsed)}")
                 print(summary_msg)
 
                 if avg_epoch_val_rmse < best_val_rmse:
@@ -1344,8 +1325,7 @@ if __name__ == '__main__':
             plt.plot(range(1, len(train_loss_history) + 1), train_loss_history, 'o-', label='Training RMSE (Weighted)')
             plt.plot(range(1, len(val_loss_history) + 1), val_loss_history, 'o-', label='Validation RMSE')
             plt.axvline(x=best_epoch, color='r', linestyle='--', label=f'Best Model (Epoch {best_epoch})')
-            plt.title('Training and Validation Loss History')
-            plt.xlabel('Epoch'), plt.ylabel('RMSE (bps)'), plt.legend(), plt.grid(True), plt.tight_layout()
+            plt.title('Training and Validation Loss History'), plt.xlabel('Epoch'), plt.ylabel('RMSE (bps)'), plt.legend(), plt.grid(True), plt.tight_layout()
             history_plot_path = os.path.join(model_save_dir, 'training_history.png')
             plt.savefig(history_plot_path)
             print(f"\n--- Training history plot saved to {history_plot_path} ---")
@@ -1354,49 +1334,39 @@ if __name__ == '__main__':
             if best_model_weights:
                 print(f"\nRestoring model weights from Epoch {best_epoch} with best validation RMSE: {best_val_rmse:.2f} bps.")
                 final_model.set_weights(best_model_weights)
-            else:
-                print("\nWarning: No best model weights were saved. Saving the model from the final epoch.")
             
             print(f"\n--- Saving best model artifact to {model_save_dir} ---")
             final_model.save(os.path.join(model_save_dir, 'model.keras'))
             joblib.dump(feature_scaler, os.path.join(model_save_dir, 'feature_scaler.joblib'))
+            joblib.dump(pca_model, os.path.join(model_save_dir, 'pca_model.joblib'))
             np.save(os.path.join(model_save_dir, 'initial_logits.npy'), initial_logits.numpy())
             print("--- Model artifact saved successfully ---")
-            
-            timing_log = {'training_time_seconds': time.monotonic() - start_time}
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            timing_log_filepath = os.path.join(model_save_dir, f"training_time_{timestamp}.json")
-            with open(timing_log_filepath, 'w') as f: json.dump(timing_log, f, indent=4)
-            print(f"Training time log saved to {timing_log_filepath}")
 
         if test_files and final_model is not None:
             print("\n--- Evaluating Final Model on Out-of-Sample Test Data ---")
             all_results_dfs = []
+            pca_model = TF_NN_CALIBRATION_SETTINGS.get('pca_model')
+            rate_indices = TF_NN_CALIBRATION_SETTINGS.get('rate_indices')
+
             for eval_date, zero_path, vol_path in test_files:
-                prediction_start_time = time.monotonic()
                 print(f"\n--- Processing test day: {eval_date.strftime('%d-%m-%Y')} ---")
                 zero_df, vol_df = pd.read_csv(zero_path, parse_dates=['Date']), load_volatility_cube(vol_path)
                 term_structure = create_ql_yield_curve(zero_df, eval_date)
-                
                 ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
-                feature_vector = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data)
+                
+                feature_vector = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data, pca_model=pca_model, rate_indices=rate_indices)
                 predicted_params = final_model((tf.constant(feature_vector, dtype=tf.float64), initial_logits), training=False).numpy()[0]
                 
                 rmse_bps, results_df = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, TF_NN_CALIBRATION_SETTINGS)
                 print(f"Test RMSE for {eval_date}: {rmse_bps:.4f} bps")
-                prediction_elapsed = time.monotonic() - prediction_start_time
-                print(f"Time taken for evaluation: {_format_time(prediction_elapsed)}")
 
                 if not results_df.empty:
                     day_results_df = results_df.copy()
                     day_results_df['EvaluationDate'], day_results_df['DailyRMSE_bps'] = eval_date, rmse_bps
-                    day_results_df['PredictionTimeSeconds'] = prediction_elapsed
-                    
                     num_a = TF_NN_CALIBRATION_SETTINGS['num_a_segments'] if TF_NN_CALIBRATION_SETTINGS['optimize_a'] else 0
                     for i in range(num_a): day_results_df[f'a_{i+1}'] = predicted_params[i]
                     for i in range(TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']):
                         day_results_df[f'sigma_{i+1}'] = predicted_params[num_a + i]
-                        
                     all_results_dfs.append(day_results_df)
 
             if all_results_dfs:
@@ -1406,12 +1376,10 @@ if __name__ == '__main__':
                 print(f"\n--- Comprehensive evaluation results saved to: {results_save_path} ---")
 
                 last_test_date = test_files[-1][0]
-                print(f"\n--- Plotting calibration results for last test day: {last_test_date} ---")
                 last_day_df = master_results_df[master_results_df['EvaluationDate'] == last_test_date]
                 if not last_day_df.empty:
                     plot_calibration_results(last_day_df, last_test_date, model_save_dir)
             
-            # --- SHAP ANALYSIS EXECUTION ---
             perform_and_save_shap_analysis(
                 model=final_model,
                 scaler=feature_scaler,
