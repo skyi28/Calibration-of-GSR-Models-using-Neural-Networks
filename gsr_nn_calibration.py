@@ -365,19 +365,23 @@ def prepare_calibration_helpers(
 
 def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date, model_save_dir: str):
     """
-    Shows 3 diagrams as 3D plots in the same figure after the calibration.
+    Shows diagrams as plots in the same figure after the calibration.
 
-    Plots the observed market volatilities, model implied volatilities, and the difference between them.
+    If the data is from a full surface calibration, it plots 3D surfaces of the 
+    observed market volatilities, model implied volatilities, and the difference.
+    If the data is from a co-terminal calibration (i.e., Expiry equals Tenor),
+    it plots 2D line and bar charts which are more appropriate for the data.
 
     Args:
         results_df (pd.DataFrame): The DataFrame with the calibration results.
         eval_date (datetime.date): The evaluation date of the yield curve.
+        model_save_dir (str): The directory where the plot image will be saved.
     """
     plot_data: pd.DataFrame = results_df.dropna(subset=['MarketVol', 'ModelVol', 'Difference_bps']).copy()
     if plot_data.empty:
         print(f"\nCould not generate plots for {eval_date}: No valid data points available.")
         return
-    
+
     # Determine if the data is one-dimensional (co-terminal)
     is_coterminal = np.allclose(plot_data['Expiry'].values, plot_data['Tenor'].values)
 
@@ -410,31 +414,57 @@ def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date,
         ax2.grid(True, which='major', axis='y', linestyle='--', linewidth=0.5)
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+
     else:
-        print(f"Non co-terminal data detected for {eval_date}. Generating 3D plots.")
-        X = plot_data['Expiry'].values; Y = plot_data['Tenor'].values
-        Z_market: ArrayLike = plot_data['MarketVol'].values; Z_model = plot_data['ModelVol'].values
+        # --- 3D PLOTTING FOR FULL SURFACE ---
+        X = plot_data['Expiry'].values
+        Y = plot_data['Tenor'].values
+        Z_market: ArrayLike = plot_data['MarketVol'].values
+        Z_model = plot_data['ModelVol'].values
         Z_diff: ArrayLike = plot_data['Difference_bps'].values
-        fig = plt.figure(figsize=(24, 8)); fig.suptitle(f'Hull-White Calibration Volatility Surfaces for {eval_date}', fontsize=16)
-        ax1 = fig.add_subplot(1, 3, 1, projection='3d'); ax1.set_title('Observed Market Volatilities (bps)')
+        
+        fig = plt.figure(figsize=(24, 8))
+        fig.suptitle(f'Hull-White Calibration Volatility Surfaces for {eval_date}', fontsize=16)
+        
+        # Plot 1: Market Volatilities
+        ax1 = fig.add_subplot(1, 3, 1, projection='3d')
+        ax1.set_title('Observed Market Volatilities (bps)')
         surf1 = ax1.plot_trisurf(X, Y, Z_market, cmap=cm.viridis, antialiased=True, linewidth=0.1)
-        ax1.set_xlabel('Expiry (Years)'); ax1.set_ylabel('Tenor (Years)'); ax1.set_zlabel('Volatility (bps)')
-        fig.colorbar(surf1, ax=ax1, shrink=0.5, aspect=10, pad=0.1); ax1.view_init(elev=30, azim=-120)
-        ax2 = fig.add_subplot(1, 3, 2, projection='3d'); ax2.set_title('Model Implied Volatilities (bps)')
+        ax1.set_xlabel('Expiry (Years)')
+        ax1.set_ylabel('Tenor (Years)')
+        ax1.set_zlabel('Volatility (bps)')
+        fig.colorbar(surf1, ax=ax1, shrink=0.5, aspect=10, pad=0.1)
+        ax1.view_init(elev=30, azim=-120)
+        
+        # Plot 2: Model Volatilities
+        ax2 = fig.add_subplot(1, 3, 2, projection='3d')
+        ax2.set_title('Model Implied Volatilities (bps)')
         surf2 = ax2.plot_trisurf(X, Y, Z_model, cmap=cm.viridis, antialiased=True, linewidth=0.1)
-        ax2.set_xlabel('Expiry (Years)'); ax2.set_ylabel('Tenor (Years)'); ax2.set_zlabel('Volatility (bps)')
+        ax2.set_xlabel('Expiry (Years)')
+        ax2.set_ylabel('Tenor (Years)')
+        ax2.set_zlabel('Volatility (bps)')
         fig.colorbar(surf2, ax=ax2, shrink=0.5, aspect=10, pad=0.1)
         market_min, market_max = np.nanmin(Z_market), np.nanmax(Z_market)
-        ax2.set_zlim(market_min * 0.9, market_max * 1.1); ax2.view_init(elev=30, azim=-120)
-        ax3 = fig.add_subplot(1, 3, 3, projection='3d'); ax3.set_title('Difference (Market - Model) (bps)')
-        surf3 = ax3.plot_trisurf(X, Y, Z_diff, cmap=cm.coolwarm_r, antialiased=True, linewidth=0.1)
-        ax3.set_xlabel('Expiry (Years)'); ax3.set_ylabel('Tenor (Years)'); ax3.set_zlabel('Difference (bps)')
+        ax2.set_zlim(market_min * 0.9, market_max * 1.1)
+        ax2.view_init(elev=30, azim=-120)
+        
+        # Plot 3: Difference
+        ax3 = fig.add_subplot(1, 3, 3, projection='3d')
+        ax3.set_title('Difference (Model - Market) (bps)')
+        surf3 = ax3.plot_trisurf(X, Y, Z_diff, cmap=cm.coolwarm, antialiased=True, linewidth=0.1)
+        ax3.set_xlabel('Expiry (Years)')
+        ax3.set_ylabel('Tenor (Years)')
+        ax3.set_zlabel('Difference (bps)')
         fig.colorbar(surf3, ax=ax3, shrink=0.5, aspect=10, pad=0.1)
-        max_reasonable_diff: float = np.nanmax(np.abs(Z_diff)); ax3.set_zlim(-max_reasonable_diff, max_reasonable_diff)
-        ax3.view_init(elev=30, azim=-120); plt.tight_layout(rect=[0, 0.03, 1, 0.95]); 
-        plt.savefig(os.path.join(model_save_dir, f'CalibrationPlot_{eval_date}.png'))
-    plt.show()
+        max_reasonable_diff: float = np.nanmax(np.abs(Z_diff))
+        ax3.set_zlim(-max_reasonable_diff, max_reasonable_diff)
+        ax3.view_init(elev=30, azim=-120)
+        
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
+    # Save and show the plot for both cases
+    plt.savefig(os.path.join(model_save_dir, f'CalibrationPlot_{eval_date}.png'))
+    plt.show()
 
 #--------------------TENSORFLOW NEURAL NETWORK CALIBRATION HELPERS--------------------
 def _format_time(seconds: float) -> str:
@@ -915,7 +945,7 @@ if __name__ == '__main__':
             "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True, # Increased sigma segments
             "instrument_batch_size_percentage": 100,
             "upper_bound": 0.1, "pricing_engine_integration_points": 32,
-            "num_epochs": 20, "h_relative": 1e-7, # Increased epochs
+            "num_epochs": 10, "h_relative": 1e-7, # Increased epochs
             "initial_guess": [0.02, 0.0002, 0.0002, 0.00017, 0.00017, 0.00017, 0.00017, 0.00017], # Adjusted for more segments
             "gradient_method": "forward", # either "forward" or "central"
             "underestimation_penalty": 1.5, # New parameter to penalize underestimation. Set to 1.0 for standard MSE.
@@ -1076,13 +1106,21 @@ if __name__ == '__main__':
             final_model = HullWhiteHyperModel().build(best_hyperparameters)
             learning_rate = best_hyperparameters.get('learning_rate') or 0.001 # Fallback
             optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-            combined_train_data = loaded_train_data + loaded_val_data
-            print(f"Training final model on {len(combined_train_data)} days of data for {TF_NN_CALIBRATION_SETTINGS['num_epochs']} epochs.")
             
+            print(f"Training final model on {len(loaded_train_data)} days of data for up to {TF_NN_CALIBRATION_SETTINGS['num_epochs']} epochs, with validation on {len(loaded_val_data)} days.")
+            
+            # --- NEW: Variables for tracking best model and loss history ---
+            train_loss_history = []
+            val_loss_history = []
+            best_val_rmse = float('inf')
+            best_model_weights = None
+            best_epoch = -1
+
             start_time = time.monotonic()
             for epoch in range(TF_NN_CALIBRATION_SETTINGS['num_epochs']):
-                epoch_losses = []
-                for day_idx, (eval_date, zero_df, vol_df) in enumerate(combined_train_data):
+                # --- Training Phase for this Epoch ---
+                epoch_train_losses = []
+                for day_idx, (eval_date, zero_df, vol_df) in enumerate(loaded_train_data):
                     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
                     ql.Settings.instance().evaluationDate = ql_eval_date
                     term_structure = create_ql_yield_curve(zero_df, eval_date)
@@ -1093,22 +1131,73 @@ if __name__ == '__main__':
                     loss = _perform_training_step(final_model, optimizer, tf.constant(feature_vec, dtype=tf.float64), initial_logits, ql_eval_date, term_structure, helpers, TF_NN_CALIBRATION_SETTINGS)
                     
                     current_rmse = np.sqrt(loss) * 10000
-                    epoch_losses.append(current_rmse)
-                    progress = (day_idx + 1) / len(combined_train_data)
+                    epoch_train_losses.append(current_rmse)
+                    progress = (day_idx + 1) / len(loaded_train_data)
                     bar = ('=' * int(progress * 20)).ljust(20)
-                    sys.stdout.write(f"\rEpoch {epoch+1:2d}/{TF_NN_CALIBRATION_SETTINGS['num_epochs']} [{bar}] Day {day_idx+1:3d}/{len(combined_train_data)} - Weighted RMSE: {current_rmse:7.2f} bps")
+                    sys.stdout.write(f"\rEpoch {epoch+1:2d}/{TF_NN_CALIBRATION_SETTINGS['num_epochs']} [{bar}] Training Day {day_idx+1:3d}/{len(loaded_train_data)} - Weighted RMSE: {current_rmse:7.2f} bps")
                     sys.stdout.flush()
                 
-                avg_epoch_rmse = np.mean(epoch_losses) if epoch_losses else float('nan')
+                avg_epoch_train_rmse = np.mean(epoch_train_losses) if epoch_train_losses else float('nan')
+                train_loss_history.append(avg_epoch_train_rmse)
+
+                # --- Validation Phase for this Epoch ---
+                epoch_val_losses = []
+                for eval_date, zero_df, vol_df in loaded_val_data:
+                    term_structure = create_ql_yield_curve(zero_df, eval_date)
+                    ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
+                    feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data)
+                    predicted_params = final_model((tf.constant(feature_vec, dtype=tf.float64), initial_logits), training=False).numpy()[0]
+                    rmse, _ = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, TF_NN_CALIBRATION_SETTINGS)
+                    if not np.isnan(rmse): epoch_val_losses.append(rmse)
+                
+                avg_epoch_val_rmse = np.mean(epoch_val_losses) if epoch_val_losses else float('inf')
+                val_loss_history.append(avg_epoch_val_rmse)
+
                 elapsed = time.monotonic() - start_time
-                print(f"\nEpoch {epoch+1} Summary | Avg. Train RMSE (Weighted): {avg_epoch_rmse:7.2f} bps | Time Elapsed: {_format_time( elapsed)}")
-            
+                summary_msg = (
+                    f"\nEpoch {epoch+1} Summary | "
+                    f"Train RMSE (Weighted): {avg_epoch_train_rmse:7.2f} bps | "
+                    f"Validation RMSE: {avg_epoch_val_rmse:7.2f} bps | "
+                    f"Time: {_format_time(elapsed)}"
+                )
+                print(summary_msg)
+
+                # --- NEW: Check for best model and save weights ---
+                if avg_epoch_val_rmse < best_val_rmse:
+                    best_val_rmse = avg_epoch_val_rmse
+                    best_model_weights = final_model.get_weights()
+                    best_epoch = epoch + 1
+                    print(f"  -> New best model found! Validation RMSE: {best_val_rmse:.2f} bps.")
+
             print("\n--- Final Training Finished ---")
             
             model_save_dir = os.path.join(FOLDER_MODELS, TF_NN_CALIBRATION_SETTINGS["SAVE_MODEL_DIR_NAME"])
             os.makedirs(model_save_dir, exist_ok=True)
-            print(f"\n--- Saving model artifact to {model_save_dir} ---")
+
+            # --- NEW: Plot and save training history ---
+            plt.figure(figsize=(12, 6))
+            plt.plot(range(1, len(train_loss_history) + 1), train_loss_history, 'o-', label='Training RMSE (Weighted)')
+            plt.plot(range(1, len(val_loss_history) + 1), val_loss_history, 'o-', label='Validation RMSE')
+            plt.axvline(x=best_epoch, color='r', linestyle='--', label=f'Best Model (Epoch {best_epoch})')
+            plt.title('Training and Validation Loss History')
+            plt.xlabel('Epoch')
+            plt.ylabel('RMSE (bps)')
+            plt.legend()
+            plt.grid(True)
+            plt.tight_layout()
+            history_plot_path = os.path.join(model_save_dir, 'training_history.png')
+            plt.savefig(history_plot_path)
+            print(f"\n--- Training history plot saved to {history_plot_path} ---")
+            plt.show()
+
+            # --- NEW: Restore best model weights before saving ---
+            if best_model_weights:
+                print(f"\nRestoring model weights from Epoch {best_epoch} with best validation RMSE: {best_val_rmse:.2f} bps.")
+                final_model.set_weights(best_model_weights)
+            else:
+                print("\nWarning: No best model weights were saved. Saving the model from the final epoch.")
             
+            print(f"\n--- Saving best model artifact to {model_save_dir} ---")
             final_model.save(os.path.join(model_save_dir, 'model.keras'))
             joblib.dump(feature_scaler, os.path.join(model_save_dir, 'feature_scaler.joblib'))
             np.save(os.path.join(model_save_dir, 'initial_logits.npy'), initial_logits.numpy())
