@@ -1147,7 +1147,9 @@ if __name__ == '__main__':
             "hyperband_settings": {"max_epochs": 1, "factor": 3, "directory": "results/neural_network/hyperband_tuner", "project_name": "hull_white_calibration"},
             "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True,
             "instrument_batch_size_percentage": 100, "upper_bound": 0.1, "pricing_engine_integration_points": 32,
-            "num_epochs": 20, "h_relative": 1e-7,
+            "num_epochs": 20,
+            "early_stopping_patience": 5,
+            "h_relative": 1e-7,
             "initial_guess": [0.02, 0.0002, 0.0002, 0.00017, 0.00017, 0.00017, 0.00017, 0.00017],
             "gradient_method": "forward", "gradient_clip_norm": 2.0, "num_threads": os.cpu_count() or 1,
             "min_expiry_years": 2.0, "min_tenor_years": 2.0, "use_coterminal_only": True,
@@ -1281,6 +1283,7 @@ if __name__ == '__main__':
             
             train_loss_history, val_loss_history = [], []
             best_val_rmse, best_model_weights, best_epoch = float('inf'), None, -1
+            patience_counter = 0
 
             start_time = time.monotonic()
             for epoch in range(TF_NN_CALIBRATION_SETTINGS['num_epochs']):
@@ -1323,8 +1326,14 @@ if __name__ == '__main__':
 
                 if avg_epoch_val_rmse < best_val_rmse:
                     best_val_rmse, best_model_weights, best_epoch = avg_epoch_val_rmse, final_model.get_weights(), epoch + 1
+                    patience_counter = 0
                     print(f"  -> New best model found! Validation RMSE: {best_val_rmse:.2f} bps.")
-
+                else:
+                    patience_counter += 1
+                    print(f"  -> No improvement. Patience counter: {patience_counter}/{TF_NN_CALIBRATION_SETTINGS['early_stopping_patience']}")
+                    if patience_counter >= TF_NN_CALIBRATION_SETTINGS['early_stopping_patience']:
+                        print("Early stopping triggered.")
+                        break
             print("\n--- Final Training Finished ---")
             
             plt.figure(figsize=(12, 6))
