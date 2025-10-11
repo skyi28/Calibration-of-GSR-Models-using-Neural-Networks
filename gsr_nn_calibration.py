@@ -42,6 +42,7 @@ import joblib
 import yfinance as yf
 import random
 import shap
+import seaborn as sns
 
 #--------------------CONFIG--------------------
 # Set to False to skip the initial data preparation steps if they have already been run
@@ -467,6 +468,44 @@ def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date,
     plt.savefig(os.path.join(model_save_dir, f'CalibrationPlot_{eval_date}.png'))
     plt.show()
 
+def plot_and_save_correlation_matrix(
+    raw_features_list: List[List[float]],
+    feature_names: List[str],
+    save_dir: str
+):
+    """
+    Computes, plots, and saves a feature correlation matrix based on the training data.
+
+    Args:
+        raw_features_list (List[List[float]]): A list of lists containing the raw (unscaled) feature data.
+        feature_names (List[str]): The names of the features corresponding to the data.
+        save_dir (str): The directory where the plot image will be saved.
+    """
+    print("\n--- Generating Feature Correlation Matrix ---")
+    if not raw_features_list:
+        print("Warning: Cannot generate correlation matrix. No training data provided.")
+        return
+
+    # Create a DataFrame from the raw features
+    features_df = pd.DataFrame(raw_features_list, columns=feature_names)
+    
+    # Compute the correlation matrix
+    corr_matrix = features_df.corr()
+
+    # Plot the heatmap
+    plt.figure(figsize=(20, 16))
+    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f", annot_kws={"size": 10})
+    plt.title("Feature Correlation Matrix (Training Data)", fontsize=18)
+    plt.xticks(rotation=45, ha="right")
+    plt.yticks(rotation=0)
+    plt.tight_layout()
+    
+    # Save the plot
+    plot_path = os.path.join(save_dir, 'feature_correlation_matrix.png')
+    plt.savefig(plot_path, bbox_inches='tight')
+    print(f"Feature correlation matrix saved to: {plot_path}")
+    plt.show()
+
 #--------------------TENSORFLOW NEURAL NETWORK CALIBRATION HELPERS--------------------
 def _format_time(seconds: float) -> str:
     """
@@ -767,7 +806,8 @@ def perform_and_save_shap_analysis(
     test_files_list: List[Tuple[datetime.date, str, str]],
     external_market_data: pd.DataFrame,
     settings: Dict,
-    output_dir: str
+    output_dir: str,
+    feature_names: List[str]
 ):
     """
     Performs SHAP analysis on the trained model to explain its predictions on the
@@ -781,17 +821,11 @@ def perform_and_save_shap_analysis(
         external_market_data (pd.DataFrame): DataFrame with external market data (MOVE, VIX).
         settings (Dict): The configuration dictionary for the model run.
         output_dir (str): The directory where the SHAP plots will be saved.
+        feature_names (List[str]): The names of the input features.
     """
     print("\n--- Starting SHAP Analysis for Model Interpretability ---")
     
-    # 1. Define Feature and Output Names for clear plot labels
-    feature_tenors = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
-    feature_names = [f'{int(t)}y_rate' for t in feature_tenors] + [
-        'slope_3m10y', 'slope_2y10y', 'slope_5y30y',
-        'curvature_2y5y10y', 'curvature_1y2y5y', 'curvature_10y20y30y',
-        'curvature_slope_ratio',
-        'MOVE_Open', 'VIX_Open', 'MOVE_VIX_Ratio', 'EURUSD_Open'
-    ]
+    # 1. Define Output Names for clear plot labels
     num_a = settings['num_a_segments'] if settings.get('optimize_a', False) else 0
     num_sigma = settings['num_sigma_segments']
     output_names = [f'a_{i+1}' for i in range(num_a)] + [f'sigma_{i+1}' for i in range(num_sigma)]
@@ -803,7 +837,7 @@ def perform_and_save_shap_analysis(
         zero_curve_df = pd.read_csv(zero_path, parse_dates=['Date'])
         term_structure = create_ql_yield_curve(zero_curve_df, eval_date)
         ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
-        raw_features = extract_raw_features(term_structure, ql_eval_date, external_market_data, feature_tenors)
+        raw_features = extract_raw_features(term_structure, ql_eval_date, external_market_data)
         test_features_list.append(raw_features)
     
     if not test_features_list:
@@ -813,28 +847,19 @@ def perform_and_save_shap_analysis(
     scaled_test_features = scaler.transform(np.array(test_features_list))
     test_features_df = pd.DataFrame(scaled_test_features, columns=feature_names)
 
-# 3. Create a wrapper for the model using the Keras Functional API so SHAP can inspect it
+    # 3. Create a wrapper for the model using the Keras Functional API so SHAP can inspect it
     features_input = tf.keras.Input(shape=(scaled_test_features.shape[1],), dtype=tf.float64, name="features")
     
-    # The initial_logits tensor needs to be tiled to match the batch size of the features_input
-    # We use a Lambda layer to perform this dynamic tiling within the model graph
     def tile_logits(features):
         num_samples = tf.shape(features)[0]
         return tf.tile(initial_logits_tensor, [num_samples, 1])
 
     logits_input = tf.keras.layers.Lambda(tile_logits)(features_input)
-    
-    # Call the original model with the two inputs
     outputs = model((features_input, logits_input))
-    
-    # Create the new, inspectable wrapper model
     shap_wrapped_model = tf.keras.Model(inputs=features_input, outputs=outputs)
     
     # 4. Create SHAP DeepExplainer
-    # A subset of the test data is used as the background distribution for the explainer.
-    # This provides a baseline for comparing feature contributions.
     print("Creating SHAP explainer...")
-    # background_data = shap.sample(scaled_test_features, 100)
     background_data = scaled_test_features
     explainer = shap.DeepExplainer(shap_wrapped_model, background_data)
     
@@ -847,7 +872,7 @@ def perform_and_save_shap_analysis(
     for i, param_name in enumerate(output_names):
         print(f"  -> Plotting for parameter: {param_name}")
         
-        # Summary Plot (dot plot): Shows the impact of each feature on the model output.
+        # Summary Plot (dot plot)
         shap.summary_plot(shap_values[:, :, i], test_features_df, show=False)
         fig = plt.gcf()
         fig.suptitle(f'SHAP Value Summary for Parameter "{param_name}"', fontsize=14)
@@ -855,7 +880,7 @@ def perform_and_save_shap_analysis(
         plt.savefig(os.path.join(output_dir, f'SHAP_summary_{param_name}.png'), bbox_inches='tight')
         plt.close(fig)
 
-        # Feature Importance Plot (bar plot): Ranks features by their mean absolute SHAP value.
+        # Feature Importance Plot (bar plot)
         shap.summary_plot(shap_values[:, :, i], test_features_df, plot_type='bar', show=False)
         fig = plt.gcf()
         fig.suptitle(f'SHAP Feature Importance for Parameter "{param_name}"', fontsize=14)
@@ -1095,6 +1120,15 @@ if __name__ == '__main__':
         initial_logits = None
         model_save_dir = None
         
+        # Define feature names centrally
+        feature_tenors = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
+        feature_names = [f'{int(t)}y_rate' for t in feature_tenors] + [
+            'slope_3m10y', 'slope_2y10y', 'slope_5y30y',
+            'curvature_2y5y10y', 'curvature_1y2y5y', 'curvature_10y20y30y',
+            'curvature_slope_ratio',
+            'MOVE_Open', 'VIX_Open', 'MOVE_VIX_Ratio', 'EURUSD_Open'
+        ]
+
         if TF_NN_CALIBRATION_SETTINGS['evaluate_only']:
             print("\n--- WORKFLOW: EVALUATION-ONLY MODE ---")
             model_save_dir = TF_NN_CALIBRATION_SETTINGS['model_evaluation_dir']
@@ -1116,6 +1150,9 @@ if __name__ == '__main__':
 
         else:
             print("\n--- WORKFLOW: TRAINING MODE ---")
+            model_save_dir = os.path.join(FOLDER_MODELS, TF_NN_CALIBRATION_SETTINGS["SAVE_MODEL_DIR_NAME"])
+            os.makedirs(model_save_dir, exist_ok=True)
+
             train_files, val_files, test_files = load_and_split_data_chronologically(
                 FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES, train_split_percentage=50, validation_split_percentage=20
             )
@@ -1163,21 +1200,22 @@ if __name__ == '__main__':
                 term_structure = create_ql_yield_curve(zero_curve_df, eval_date)
                 ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
                 
-                # Extract the new, wider raw feature set
-                raw_features = extract_raw_features(term_structure, ql_eval_date, external_data)
+                raw_features = extract_raw_features(term_structure, ql_eval_date, external_data, feature_tenors)
                 all_training_features.append(raw_features)
             
-            # Fit the scaler on the new, richer feature set
+            # --- NEW: Plot and save the feature correlation matrix ---
+            if model_save_dir:
+                plot_and_save_correlation_matrix(all_training_features, feature_names, model_save_dir)
+
             feature_scaler = StandardScaler()
             feature_scaler.fit(np.array(all_training_features))
-            print("Feature scaler has been fitted to the training data (including all new features).")
+            print("Feature scaler has been fitted to the training data.")
 
             print("\n--- Pre-loading all data into memory ---")
             loaded_train_data = [(d, pd.read_csv(zp, parse_dates=['Date']), load_volatility_cube(vp)) for d, zp, vp in train_files]
             loaded_val_data = [(d, pd.read_csv(zp, parse_dates=['Date']), load_volatility_cube(vp)) for d, zp, vp in val_files]
             print("All training and validation data has been loaded.")
             
-            # Make sure initial guess matches number of parameters
             num_params_to_predict = (TF_NN_CALIBRATION_SETTINGS['num_a_segments'] if TF_NN_CALIBRATION_SETTINGS['optimize_a'] else 0) + TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']
             if len(TF_NN_CALIBRATION_SETTINGS['initial_guess']) != num_params_to_predict:
                  raise ValueError(f"Length of 'initial_guess' ({len(TF_NN_CALIBRATION_SETTINGS['initial_guess'])}) must match the total number of parameters to predict ({num_params_to_predict}).")
@@ -1239,7 +1277,6 @@ if __name__ == '__main__':
             
             print("\n--- Training Final Model using Best Hyperparameters ---")
             
-            # --- NEW: Use the best penalty found by the tuner ---
             best_penalty = best_hyperparameters.get('underestimation_penalty')
             TF_NN_CALIBRATION_SETTINGS['underestimation_penalty'] = best_penalty
             print(f"Using best underestimation_penalty for final training: {best_penalty:.2f}")
@@ -1250,11 +1287,8 @@ if __name__ == '__main__':
             
             print(f"Training final model on {len(loaded_train_data)} days of data for up to {TF_NN_CALIBRATION_SETTINGS['num_epochs']} epochs, with validation on {len(loaded_val_data)} days.")
             
-            train_loss_history = []
-            val_loss_history = []
-            best_val_rmse = float('inf')
-            best_model_weights = None
-            best_epoch = -1
+            train_loss_history, val_loss_history = [], []
+            best_val_rmse, best_model_weights, best_epoch = float('inf'), None, -1
 
             start_time = time.monotonic()
             for epoch in range(TF_NN_CALIBRATION_SETTINGS['num_epochs']):
@@ -1301,26 +1335,17 @@ if __name__ == '__main__':
                 print(summary_msg)
 
                 if avg_epoch_val_rmse < best_val_rmse:
-                    best_val_rmse = avg_epoch_val_rmse
-                    best_model_weights = final_model.get_weights()
-                    best_epoch = epoch + 1
+                    best_val_rmse, best_model_weights, best_epoch = avg_epoch_val_rmse, final_model.get_weights(), epoch + 1
                     print(f"  -> New best model found! Validation RMSE: {best_val_rmse:.2f} bps.")
 
             print("\n--- Final Training Finished ---")
             
-            model_save_dir = os.path.join(FOLDER_MODELS, TF_NN_CALIBRATION_SETTINGS["SAVE_MODEL_DIR_NAME"])
-            os.makedirs(model_save_dir, exist_ok=True)
-
             plt.figure(figsize=(12, 6))
             plt.plot(range(1, len(train_loss_history) + 1), train_loss_history, 'o-', label='Training RMSE (Weighted)')
             plt.plot(range(1, len(val_loss_history) + 1), val_loss_history, 'o-', label='Validation RMSE')
             plt.axvline(x=best_epoch, color='r', linestyle='--', label=f'Best Model (Epoch {best_epoch})')
             plt.title('Training and Validation Loss History')
-            plt.xlabel('Epoch')
-            plt.ylabel('RMSE (bps)')
-            plt.legend()
-            plt.grid(True)
-            plt.tight_layout()
+            plt.xlabel('Epoch'), plt.ylabel('RMSE (bps)'), plt.legend(), plt.grid(True), plt.tight_layout()
             history_plot_path = os.path.join(model_save_dir, 'training_history.png')
             plt.savefig(history_plot_path)
             print(f"\n--- Training history plot saved to {history_plot_path} ---")
@@ -1336,7 +1361,6 @@ if __name__ == '__main__':
             final_model.save(os.path.join(model_save_dir, 'model.keras'))
             joblib.dump(feature_scaler, os.path.join(model_save_dir, 'feature_scaler.joblib'))
             np.save(os.path.join(model_save_dir, 'initial_logits.npy'), initial_logits.numpy())
-            
             print("--- Model artifact saved successfully ---")
             
             timing_log = {'training_time_seconds': time.monotonic() - start_time}
@@ -1351,8 +1375,7 @@ if __name__ == '__main__':
             for eval_date, zero_path, vol_path in test_files:
                 prediction_start_time = time.monotonic()
                 print(f"\n--- Processing test day: {eval_date.strftime('%d-%m-%Y')} ---")
-                zero_df = pd.read_csv(zero_path, parse_dates=['Date'])
-                vol_df = load_volatility_cube(vol_path)
+                zero_df, vol_df = pd.read_csv(zero_path, parse_dates=['Date']), load_volatility_cube(vol_path)
                 term_structure = create_ql_yield_curve(zero_df, eval_date)
                 
                 ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
@@ -1366,13 +1389,11 @@ if __name__ == '__main__':
 
                 if not results_df.empty:
                     day_results_df = results_df.copy()
-                    day_results_df['EvaluationDate'] = eval_date
-                    day_results_df['DailyRMSE_bps'] = rmse_bps
+                    day_results_df['EvaluationDate'], day_results_df['DailyRMSE_bps'] = eval_date, rmse_bps
                     day_results_df['PredictionTimeSeconds'] = prediction_elapsed
                     
                     num_a = TF_NN_CALIBRATION_SETTINGS['num_a_segments'] if TF_NN_CALIBRATION_SETTINGS['optimize_a'] else 0
-                    for i in range(num_a):
-                        day_results_df[f'a_{i+1}'] = predicted_params[i]
+                    for i in range(num_a): day_results_df[f'a_{i+1}'] = predicted_params[i]
                     for i in range(TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']):
                         day_results_df[f'sigma_{i+1}'] = predicted_params[num_a + i]
                         
@@ -1398,7 +1419,8 @@ if __name__ == '__main__':
                 test_files_list=test_files,
                 external_market_data=external_data,
                 settings=TF_NN_CALIBRATION_SETTINGS,
-                output_dir=model_save_dir
+                output_dir=model_save_dir,
+                feature_names=feature_names
             )
         else:
             print("\n--- No test files or model available for final evaluation. ---")
