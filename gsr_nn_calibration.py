@@ -14,6 +14,12 @@ It now includes three distinct workflows controlled by settings:
 Crucially, it now saves a comprehensive CSV file with all evaluation results,
 making it easy to generate plots and tables for academic papers or reports.
 
+<<<<< ADWIN INTEGRATION >>>>>
+This version has been updated to include an automatic retraining trigger using the
+ADWIN (ADaptive WINdowing) concept drift detection algorithm. When a statistically
+significant increase in the test set error is detected, the script automatically
+triggers a full retraining of the model using all data available up to that point.
+
 WARNING: This script is computationally intensive and is intended for long-running
 execution on powerful hardware.
 """
@@ -44,6 +50,7 @@ import yfinance as yf
 import random
 import shap
 import seaborn as sns
+from river import drift # Added for ADWIN drift detection
 
 #--------------------CONFIG--------------------
 # Set to False to skip the initial data preparation steps if they have already been run
@@ -136,7 +143,7 @@ def bootstrap_zero_curve_with_quantlib(
             ql.QuoteHandle(ql.SimpleQuote(rate)),
             tenor_period,
             calendar,
-            ql.Annual,  # Fixed leg frequency for EUR swaps is Annual
+            ql.Semiannual,  # Fixed leg frequency for EUR swaps is Annual
             ql.Unadjusted,
             day_count,
             swap_index
@@ -469,6 +476,7 @@ def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date,
     plt.savefig(os.path.join(model_save_dir, f'CalibrationPlot_{eval_date}.png'))
     if show_plots:
         plt.show()
+    plt.close(plt.gcf())
 
 def plot_and_save_correlation_matrix(
     raw_features_list: List[List[float]],
@@ -507,6 +515,7 @@ def plot_and_save_correlation_matrix(
     print(f"Feature correlation matrix saved to: {plot_path}")
     if show_plots:
         plt.show()
+    plt.close(plt.gcf())
 
 def plot_pca_component_loadings(
     pca_model: PCA, 
@@ -553,6 +562,7 @@ def plot_pca_component_loadings(
     print(f"PCA component loadings plot saved to: {plot_path}")
     if show_plots:
         plt.show()
+    plt.close(fig)
 
 #--------------------PCA HELPER FUNCTIONS--------------------
 def fit_pca_on_rates(
@@ -1128,6 +1138,164 @@ class HullWhiteHyperModel(kt.HyperModel):
             
         return { 'val_rmse': avg_val_rmse }
 
+#--------------------NEW TRAINING FUNCTION FOR RETRAINING LOOP--------------------
+def train_new_model(
+    train_files: List, 
+    val_files: List, 
+    external_data: pd.DataFrame, 
+    settings: Dict, 
+    original_feature_names: List[str], 
+    feature_tenors: List[float]
+) -> Tuple:
+    """
+    Encapsulates the entire model training pipeline, from feature engineering to
+    saving the final model artifact. Designed to be called for both initial
+    training and subsequent retraining triggered by ADWIN.
+    """
+    model_id = f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    model_save_dir = os.path.join(FOLDER_MODELS, model_id)
+    os.makedirs(model_save_dir, exist_ok=True)
+    print(f"\n{'='*25} STARTING NEW TRAINING RUN {'='*25}")
+    print(f"Model artifacts will be saved to: {model_save_dir}")
+    print(f"Training with {len(train_files)} files, validating with {len(val_files)} files.")
+
+    print("\n--- Preparing Features, PCA, and Scaler using Training Data ---")
+    
+    raw_training_features = [extract_raw_features(create_ql_yield_curve(pd.read_csv(zp, parse_dates=['Date']), d), ql.Date(d.day, d.month, d.year), external_data, feature_tenors) for d, zp, _ in train_files]
+    plot_and_save_correlation_matrix(raw_training_features, original_feature_names, model_save_dir, title_suffix="(Pre-PCA)", show_plots=settings['show_plots'])
+
+    rate_indices = list(range(len(feature_tenors)))
+    pca_model = fit_pca_on_rates(raw_training_features, rate_indices, n_components=3)
+    settings['pca_model'], settings['rate_indices'] = pca_model, rate_indices
+    plot_pca_component_loadings(pca_model, feature_tenors, model_save_dir, show_plots=settings['show_plots'])
+    
+    pca_training_features = [apply_pca_to_features(feats, pca_model, rate_indices) for feats in raw_training_features]
+    feature_names = ['PC_Level', 'PC_Slope', 'PC_Curvature'] + original_feature_names[len(feature_tenors):]
+    plot_and_save_correlation_matrix(pca_training_features, feature_names, model_save_dir, title_suffix="(Post-PCA)", show_plots=settings['show_plots'])
+
+    feature_scaler = StandardScaler()
+    feature_scaler.fit(np.array(pca_training_features))
+    print("Feature scaler has been fitted to the PCA-transformed training data.")
+
+    print("\n--- Pre-loading all data into memory ---")
+    loaded_train_data = [(d, pd.read_csv(zp, parse_dates=['Date']), load_volatility_cube(vp)) for d, zp, vp in train_files]
+    loaded_val_data = [(d, pd.read_csv(zp, parse_dates=['Date']), load_volatility_cube(vp)) for d, zp, vp in val_files]
+    print("All training and validation data has been loaded.")
+    
+    num_params_to_predict = (settings['num_a_segments'] if settings['optimize_a'] else 0) + settings['num_sigma_segments']
+    if len(settings['initial_guess']) != num_params_to_predict: raise ValueError(f"Length of 'initial_guess' must match the total number of parameters to predict.")
+    p_scaled = np.clip(np.array(settings['initial_guess'], dtype=np.float64) / settings['upper_bound'], 1e-9, 1 - 1e-9)
+    initial_logits = tf.constant([np.log(p_scaled / (1 - p_scaled))], dtype=tf.float64)
+    
+    best_hyperparameters = None
+    if settings['perform_hyperparameter_tuning']:
+        print("\n--- Starting Hyperparameter Tuning with Hyperband ---")
+        hypermodel = HullWhiteHyperModel()
+        tuner = kt.Hyperband(hypermodel=hypermodel, objective=kt.Objective("val_rmse", direction="min"), **settings['hyperband_settings'])
+        tuner.search(loaded_train_data=loaded_train_data, loaded_val_data=loaded_val_data, settings=settings, feature_scaler=feature_scaler, initial_logits=initial_logits, external_data=external_data)
+        best_hyperparameters = tuner.get_best_hyperparameters(num_trials=1)[0]
+    else:
+        print("\n--- Loading Best Hyperparameters from File ---")
+        list_of_files = glob.glob(os.path.join(FOLDER_HYPERPARAMETERS, '*.json'))
+        if not list_of_files: raise FileNotFoundError("No hyperparameter files found.")
+        latest_file = max(list_of_files, key=os.path.getctime)
+        print(f"Loading hyperparameters from: {latest_file}")
+        with open(latest_file, 'r') as f: loaded_hps = json.load(f)
+        best_hyperparameters = kt.HyperParameters()
+        for key, value in loaded_hps.items(): best_hyperparameters.Fixed(key, value)
+    
+    print("\n--- Training Final Model using Best Hyperparameters ---")
+    settings['underestimation_penalty'] = best_hyperparameters.get('underestimation_penalty')
+    final_model = HullWhiteHyperModel().build(best_hyperparameters)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=best_hyperparameters.get('learning_rate') or 0.001)
+    
+    train_loss_history, val_loss_history = [], []
+    best_val_rmse, best_model_weights, best_epoch = float('inf'), None, -1
+    patience_counter = 0
+
+    start_time = time.monotonic()
+    for epoch in range(settings['num_epochs']):
+        epoch_train_losses = []
+        for day_idx, (eval_date, zero_df, vol_df) in enumerate(loaded_train_data):
+            ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
+            ql.Settings.instance().evaluationDate = ql_eval_date
+            term_structure = create_ql_yield_curve(zero_df, eval_date)
+            helpers = prepare_calibration_helpers(vol_df, term_structure, settings)
+            if not helpers: continue
+            
+            feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data, pca_model=pca_model, rate_indices=rate_indices)
+            loss = _perform_training_step(final_model, optimizer, tf.constant(feature_vec, dtype=tf.float64), initial_logits, ql_eval_date, term_structure, helpers, settings)
+            
+            current_rmse = np.sqrt(loss) * 10000
+            epoch_train_losses.append(current_rmse)
+            progress = (day_idx + 1) / len(loaded_train_data)
+            bar = ('=' * int(progress * 20)).ljust(20)
+            sys.stdout.write(f"\rEpoch {epoch+1:2d}/{settings['num_epochs']} [{bar}] Training Day {day_idx+1:3d}/{len(loaded_train_data)} - Weighted RMSE: {current_rmse:7.2f} bps")
+            sys.stdout.flush()
+        
+        avg_epoch_train_rmse = np.mean(epoch_train_losses) if epoch_train_losses else float('nan')
+        train_loss_history.append(avg_epoch_train_rmse)
+
+        epoch_val_losses = []
+        for eval_date, zero_df, vol_df in loaded_val_data:
+            term_structure = create_ql_yield_curve(zero_df, eval_date)
+            ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
+            feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data, pca_model=pca_model, rate_indices=rate_indices)
+            predicted_params = final_model((tf.constant(feature_vec, dtype=tf.float64), initial_logits), training=False).numpy()[0]
+            rmse, _ = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, settings)
+            if not np.isnan(rmse): epoch_val_losses.append(rmse)
+        
+        avg_epoch_val_rmse = np.mean(epoch_val_losses) if epoch_val_losses else float('inf')
+        val_loss_history.append(avg_epoch_val_rmse)
+
+        elapsed = time.monotonic() - start_time
+        summary_msg = (f"\nEpoch {epoch+1} Summary | Train RMSE (Weighted): {avg_epoch_train_rmse:7.2f} bps | Validation RMSE: {avg_epoch_val_rmse:7.2f} bps | Time: {_format_time(elapsed)}")
+        print(summary_msg)
+
+        if avg_epoch_val_rmse < best_val_rmse:
+            best_val_rmse, best_model_weights, best_epoch = avg_epoch_val_rmse, final_model.get_weights(), epoch + 1
+            patience_counter = 0
+            print(f"  -> New best model found! Validation RMSE: {best_val_rmse:.2f} bps.")
+        else:
+            patience_counter += 1
+            print(f"  -> No improvement. Patience counter: {patience_counter}/{settings['early_stopping_patience']}")
+            if patience_counter >= settings['early_stopping_patience']:
+                print("Early stopping triggered.")
+                break
+    print("\n--- Final Training Finished ---")
+    
+    fig_hist, ax_hist = plt.subplots(figsize=(12, 6))
+    ax_hist.plot(range(1, len(train_loss_history) + 1), train_loss_history, 'o-', label='Training RMSE (Weighted)')
+    ax_hist.plot(range(1, len(val_loss_history) + 1), val_loss_history, 'o-', label='Validation RMSE')
+    ax_hist.axvline(x=best_epoch, color='r', linestyle='--', label=f'Best Model (Epoch {best_epoch})')
+    ax_hist.set_title('Training and Validation Loss History')
+    ax_hist.set_xlabel('Epoch')
+    ax_hist.set_ylabel('RMSE (bps)')
+    ax_hist.legend()
+    ax_hist.grid(True)
+    fig_hist.tight_layout()
+    history_plot_path = os.path.join(model_save_dir, 'training_history.png')
+    fig_hist.savefig(history_plot_path)
+    print(f"\n--- Training history plot saved to {history_plot_path} ---")
+    if settings['show_plots']:
+        plt.show()
+    plt.close(fig_hist)
+
+    if best_model_weights:
+        print(f"\nRestoring model weights from Epoch {best_epoch} with best validation RMSE: {best_val_rmse:.2f} bps.")
+        final_model.set_weights(best_model_weights)
+    
+    print(f"\n--- Saving best model artifact to {model_save_dir} ---")
+    final_model.save(os.path.join(model_save_dir, 'model.keras'))
+    joblib.dump(feature_scaler, os.path.join(model_save_dir, 'feature_scaler.joblib'))
+    joblib.dump(pca_model, os.path.join(model_save_dir, 'pca_model.joblib'))
+    np.save(os.path.join(model_save_dir, 'initial_logits.npy'), initial_logits.numpy())
+    print("--- Model artifact saved successfully ---")
+    print(f"{'='*27} TRAINING RUN ENDED {'='*28}\n")
+
+    return final_model, feature_scaler, pca_model, initial_logits, feature_names, model_save_dir, model_id
+
+
 #--------------------MAIN EXECUTION LOGIC--------------------
 if __name__ == '__main__':
     try:
@@ -1147,15 +1315,22 @@ if __name__ == '__main__':
             "hyperband_settings": {"max_epochs": 1, "factor": 3, "directory": "results/neural_network/hyperband_tuner", "project_name": "hull_white_calibration"},
             "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True,
             "instrument_batch_size_percentage": 100, "upper_bound": 0.1, "pricing_engine_integration_points": 32,
-            "num_epochs": 20,
-            "early_stopping_patience": 5,
+            "num_epochs": 200,
+            "early_stopping_patience": 10,
             "h_relative": 1e-7,
             "initial_guess": [0.02, 0.0002, 0.0002, 0.00017, 0.00017, 0.00017, 0.00017, 0.00017],
             "gradient_method": "forward", "gradient_clip_norm": 2.0, "num_threads": os.cpu_count() or 1,
             "min_expiry_years": 2.0, "min_tenor_years": 2.0, "use_coterminal_only": True,
-            "SAVE_MODEL_DIR_NAME": f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        }
+
+        ADWIN_SETTINGS = {
+            "use_adwin_trigger": True, # Master switch to enable/disable ADWIN retraining
+            "delta": 0.1,             # Confidence value. Lower is less sensitive to change.
+            "use_hardcoded_threshold": False, # If True, uses retrain_threshold_bps in addition to ADWIN
+            "retrain_threshold_bps": 10.0, # RMSE increase (bps) to trigger retraining
         }
         
+        # Initialize variables that will hold model artifacts
         final_model, feature_scaler, initial_logits, model_save_dir = None, None, None, None
         
         feature_tenors = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
@@ -1166,41 +1341,20 @@ if __name__ == '__main__':
             'MOVE_Open', 'VIX_Open', 'MOVE_VIX_Ratio', 'EURUSD_Open'
         ]
         
-        # The final feature names after PCA will be defined later
+        # This will be updated after PCA is applied
         feature_names = original_feature_names.copy()
 
-        if TF_NN_CALIBRATION_SETTINGS['evaluate_only']:
-            print("\n--- WORKFLOW: EVALUATION-ONLY MODE ---")
-            model_save_dir = TF_NN_CALIBRATION_SETTINGS['model_evaluation_dir']
-            if not os.path.isdir(model_save_dir): raise FileNotFoundError(f"Model evaluation directory not found: {model_save_dir}")
-            
-            print(f"Loading model artifact from: {model_save_dir}")
-            final_model = tf.keras.models.load_model(os.path.join(model_save_dir, 'model.keras'), custom_objects={'ResidualParameterModel': ResidualParameterModel})
-            feature_scaler = joblib.load(os.path.join(model_save_dir, 'feature_scaler.joblib'))
-            initial_logits = tf.constant(np.load(os.path.join(model_save_dir, 'initial_logits.npy')), dtype=tf.float64)
-            
-            # Load PCA model if it exists for backward compatibility
-            pca_path = os.path.join(model_save_dir, 'pca_model.joblib')
-            if os.path.exists(pca_path):
-                print("Loading pre-trained PCA model.")
-                pca_model = joblib.load(pca_path)
-                TF_NN_CALIBRATION_SETTINGS['pca_model'] = pca_model
-                TF_NN_CALIBRATION_SETTINGS['rate_indices'] = list(range(len(feature_tenors)))
-                # Update feature names for plotting
-                feature_names = ['PC_Level', 'PC_Slope', 'PC_Curvature'] + original_feature_names[len(feature_tenors):]
-            else:
-                 print("Warning: No PCA model found in model directory. Assuming no PCA was used for this model.")
-
-            print("Model artifact loaded successfully.")
-            _, _, test_files = load_and_split_data_chronologically(FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES, load_all=False)
-        else:
-            print("\n--- WORKFLOW: TRAINING MODE ---")
-            model_save_dir = os.path.join(FOLDER_MODELS, TF_NN_CALIBRATION_SETTINGS["SAVE_MODEL_DIR_NAME"])
-            os.makedirs(model_save_dir, exist_ok=True)
-            train_files, val_files, test_files = load_and_split_data_chronologically(FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES)
-
+        # --- Data Loading and Preparation (Common for all modes) ---
+        # Discover all available files first to define the full date range for external data
+        initial_train_files, initial_val_files, initial_test_files = load_and_split_data_chronologically(
+            FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES
+        )
+        
+        # Now, determine the date range from all the discovered files
+        all_files = initial_train_files + initial_val_files + initial_test_files
+        all_files.sort(key=lambda x: x[0]) # Ensure chronological order
+        
         external_data_csv_path = os.path.join(FOLDER_EXTERNAL_DATA, 'external_market_data.csv')
-        all_files = train_files + val_files + test_files
         start_date, end_date = all_files[0][0], all_files[-1][0]
 
         if not os.path.exists(external_data_csv_path):
@@ -1222,192 +1376,173 @@ if __name__ == '__main__':
         external_data = external_data.reindex(pd.date_range(start=start_date, end=end_date, freq='D')).ffill().bfill()
         print("External market data prepared.")
         
-        if not TF_NN_CALIBRATION_SETTINGS['evaluate_only']:
-            print("\n--- Preparing Features, PCA, and Scaler using Training Data ---")
+        # --- Main Workflow ---
+        if TF_NN_CALIBRATION_SETTINGS['evaluate_only']:
+            # --- WORKFLOW 1: EVALUATION-ONLY MODE ---
+            print("\n--- WORKFLOW: EVALUATION-ONLY MODE ---")
+            model_save_dir = TF_NN_CALIBRATION_SETTINGS['model_evaluation_dir']
+            if not os.path.isdir(model_save_dir): raise FileNotFoundError(f"Model evaluation directory not found: {model_save_dir}")
             
-            # Step 1: Extract all raw features and plot pre-PCA correlation
-            raw_training_features = [extract_raw_features(create_ql_yield_curve(pd.read_csv(zp, parse_dates=['Date']), d), ql.Date(d.day, d.month, d.year), external_data, feature_tenors) for d, zp, _ in train_files]
-            if model_save_dir:
-                plot_and_save_correlation_matrix(raw_training_features, original_feature_names, model_save_dir, title_suffix="(Pre-PCA)", show_plots=TF_NN_CALIBRATION_SETTINGS['show_plots'])
-
-            # Step 2 & 3: Fit PCA on rates and verify interpretation
-            rate_indices = list(range(len(feature_tenors)))
-            pca_model = fit_pca_on_rates(raw_training_features, rate_indices, n_components=3)
-            TF_NN_CALIBRATION_SETTINGS['pca_model'], TF_NN_CALIBRATION_SETTINGS['rate_indices'] = pca_model, rate_indices
-            if model_save_dir:
-                plot_pca_component_loadings(pca_model, feature_tenors, model_save_dir, show_plots=TF_NN_CALIBRATION_SETTINGS['show_plots'])
+            print(f"Loading model artifact from: {model_save_dir}")
+            final_model = tf.keras.models.load_model(os.path.join(model_save_dir, 'model.keras'), custom_objects={'ResidualParameterModel': ResidualParameterModel})
+            feature_scaler = joblib.load(os.path.join(model_save_dir, 'feature_scaler.joblib'))
+            initial_logits = tf.constant(np.load(os.path.join(model_save_dir, 'initial_logits.npy')), dtype=tf.float64)
             
-            # Step 4: Apply PCA and plot post-PCA correlation
-            pca_training_features = [apply_pca_to_features(feats, pca_model, rate_indices) for feats in raw_training_features]
-            feature_names = ['PC_Level', 'PC_Slope', 'PC_Curvature'] + original_feature_names[len(feature_tenors):]
-            if model_save_dir:
-                plot_and_save_correlation_matrix(pca_training_features, feature_names, model_save_dir, title_suffix="(Post-PCA)", show_plots=TF_NN_CALIBRATION_SETTINGS['show_plots'])
-
-            # Step 5: Fit scaler on the final, transformed features
-            feature_scaler = StandardScaler()
-            feature_scaler.fit(np.array(pca_training_features))
-            print("Feature scaler has been fitted to the PCA-transformed training data.")
-
-            print("\n--- Pre-loading all data into memory ---")
-            loaded_train_data = [(d, pd.read_csv(zp, parse_dates=['Date']), load_volatility_cube(vp)) for d, zp, vp in train_files]
-            loaded_val_data = [(d, pd.read_csv(zp, parse_dates=['Date']), load_volatility_cube(vp)) for d, zp, vp in val_files]
-            print("All training and validation data has been loaded.")
-            
-            num_params_to_predict = (TF_NN_CALIBRATION_SETTINGS['num_a_segments'] if TF_NN_CALIBRATION_SETTINGS['optimize_a'] else 0) + TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']
-            if len(TF_NN_CALIBRATION_SETTINGS['initial_guess']) != num_params_to_predict: raise ValueError(f"Length of 'initial_guess' must match the total number of parameters to predict.")
-            p_scaled = np.clip(np.array(TF_NN_CALIBRATION_SETTINGS['initial_guess'], dtype=np.float64) / TF_NN_CALIBRATION_SETTINGS['upper_bound'], 1e-9, 1 - 1e-9)
-            initial_logits = tf.constant([np.log(p_scaled / (1 - p_scaled))], dtype=tf.float64)
-            
-            best_hyperparameters = None
-            if TF_NN_CALIBRATION_SETTINGS['perform_hyperparameter_tuning']:
-                print("\n--- Starting Hyperparameter Tuning with Hyperband ---")
-                hypermodel = HullWhiteHyperModel()
-                tuner = kt.Hyperband(hypermodel=hypermodel, objective=kt.Objective("val_rmse", direction="min"), **TF_NN_CALIBRATION_SETTINGS['hyperband_settings'])
-                tuner.search(loaded_train_data=loaded_train_data, loaded_val_data=loaded_val_data, settings=TF_NN_CALIBRATION_SETTINGS, feature_scaler=feature_scaler, initial_logits=initial_logits, external_data=external_data)
-                best_hyperparameters = tuner.get_best_hyperparameters(num_trials=1)[0]
-                # In a real run, you would save these HPs
+            pca_path = os.path.join(model_save_dir, 'pca_model.joblib')
+            if os.path.exists(pca_path):
+                print("Loading pre-trained PCA model.")
+                pca_model = joblib.load(pca_path)
+                TF_NN_CALIBRATION_SETTINGS['pca_model'] = pca_model
+                TF_NN_CALIBRATION_SETTINGS['rate_indices'] = list(range(len(feature_tenors)))
+                feature_names = ['PC_Level', 'PC_Slope', 'PC_Curvature'] + original_feature_names[len(feature_tenors):]
             else:
-                print("\n--- Loading Best Hyperparameters from File ---")
-                list_of_files = glob.glob(os.path.join(FOLDER_HYPERPARAMETERS, '*.json'))
-                if not list_of_files: raise FileNotFoundError("No hyperparameter files found.")
-                latest_file = max(list_of_files, key=os.path.getctime)
-                print(f"Loading hyperparameters from: {latest_file}")
-                with open(latest_file, 'r') as f: loaded_hps = json.load(f)
-                best_hyperparameters = kt.HyperParameters()
-                for key, value in loaded_hps.items(): best_hyperparameters.Fixed(key, value)
+                 print("Warning: No PCA model found in model directory. Assuming no PCA was used for this model.")
+
+            print("Model artifact loaded successfully.")
+            _, _, test_files = load_and_split_data_chronologically(FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES, load_all=False)
             
-            print("\n--- Training Final Model using Best Hyperparameters ---")
-            TF_NN_CALIBRATION_SETTINGS['underestimation_penalty'] = best_hyperparameters.get('underestimation_penalty')
-            final_model = HullWhiteHyperModel().build(best_hyperparameters)
-            optimizer = tf.keras.optimizers.Adam(learning_rate=best_hyperparameters.get('learning_rate') or 0.001)
-            
-            train_loss_history, val_loss_history = [], []
-            best_val_rmse, best_model_weights, best_epoch = float('inf'), None, -1
-            patience_counter = 0
-
-            start_time = time.monotonic()
-            for epoch in range(TF_NN_CALIBRATION_SETTINGS['num_epochs']):
-                epoch_train_losses = []
-                for day_idx, (eval_date, zero_df, vol_df) in enumerate(loaded_train_data):
-                    ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
-                    ql.Settings.instance().evaluationDate = ql_eval_date
-                    term_structure = create_ql_yield_curve(zero_df, eval_date)
-                    helpers = prepare_calibration_helpers(vol_df, term_structure, TF_NN_CALIBRATION_SETTINGS)
-                    if not helpers: continue
-                    
-                    feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data, pca_model=pca_model, rate_indices=rate_indices)
-                    loss = _perform_training_step(final_model, optimizer, tf.constant(feature_vec, dtype=tf.float64), initial_logits, ql_eval_date, term_structure, helpers, TF_NN_CALIBRATION_SETTINGS)
-                    
-                    current_rmse = np.sqrt(loss) * 10000
-                    epoch_train_losses.append(current_rmse)
-                    progress = (day_idx + 1) / len(loaded_train_data)
-                    bar = ('=' * int(progress * 20)).ljust(20)
-                    sys.stdout.write(f"\rEpoch {epoch+1:2d}/{TF_NN_CALIBRATION_SETTINGS['num_epochs']} [{bar}] Training Day {day_idx+1:3d}/{len(loaded_train_data)} - Weighted RMSE: {current_rmse:7.2f} bps")
-                    sys.stdout.flush()
-                
-                avg_epoch_train_rmse = np.mean(epoch_train_losses) if epoch_train_losses else float('nan')
-                train_loss_history.append(avg_epoch_train_rmse)
-
-                epoch_val_losses = []
-                for eval_date, zero_df, vol_df in loaded_val_data:
-                    term_structure = create_ql_yield_curve(zero_df, eval_date)
-                    ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
-                    feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data, pca_model=pca_model, rate_indices=rate_indices)
-                    predicted_params = final_model((tf.constant(feature_vec, dtype=tf.float64), initial_logits), training=False).numpy()[0]
-                    rmse, _ = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, TF_NN_CALIBRATION_SETTINGS)
-                    if not np.isnan(rmse): epoch_val_losses.append(rmse)
-                
-                avg_epoch_val_rmse = np.mean(epoch_val_losses) if epoch_val_losses else float('inf')
-                val_loss_history.append(avg_epoch_val_rmse)
-
-                elapsed = time.monotonic() - start_time
-                summary_msg = (f"\nEpoch {epoch+1} Summary | Train RMSE (Weighted): {avg_epoch_train_rmse:7.2f} bps | Validation RMSE: {avg_epoch_val_rmse:7.2f} bps | Time: {_format_time(elapsed)}")
-                print(summary_msg)
-
-                if avg_epoch_val_rmse < best_val_rmse:
-                    best_val_rmse, best_model_weights, best_epoch = avg_epoch_val_rmse, final_model.get_weights(), epoch + 1
-                    patience_counter = 0
-                    print(f"  -> New best model found! Validation RMSE: {best_val_rmse:.2f} bps.")
-                else:
-                    patience_counter += 1
-                    print(f"  -> No improvement. Patience counter: {patience_counter}/{TF_NN_CALIBRATION_SETTINGS['early_stopping_patience']}")
-                    if patience_counter >= TF_NN_CALIBRATION_SETTINGS['early_stopping_patience']:
-                        print("Early stopping triggered.")
-                        break
-            print("\n--- Final Training Finished ---")
-            
-            plt.figure(figsize=(12, 6))
-            plt.plot(range(1, len(train_loss_history) + 1), train_loss_history, 'o-', label='Training RMSE (Weighted)')
-            plt.plot(range(1, len(val_loss_history) + 1), val_loss_history, 'o-', label='Validation RMSE')
-            plt.axvline(x=best_epoch, color='r', linestyle='--', label=f'Best Model (Epoch {best_epoch})')
-            plt.title('Training and Validation Loss History'), plt.xlabel('Epoch'), plt.ylabel('RMSE (bps)'), plt.legend(), plt.grid(True), plt.tight_layout()
-            history_plot_path = os.path.join(model_save_dir, 'training_history.png')
-            plt.savefig(history_plot_path)
-            print(f"\n--- Training history plot saved to {history_plot_path} ---")
-            if TF_NN_CALIBRATION_SETTINGS['show_plots']:
-                plt.show()
-
-            if best_model_weights:
-                print(f"\nRestoring model weights from Epoch {best_epoch} with best validation RMSE: {best_val_rmse:.2f} bps.")
-                final_model.set_weights(best_model_weights)
-            
-            print(f"\n--- Saving best model artifact to {model_save_dir} ---")
-            final_model.save(os.path.join(model_save_dir, 'model.keras'))
-            joblib.dump(feature_scaler, os.path.join(model_save_dir, 'feature_scaler.joblib'))
-            joblib.dump(pca_model, os.path.join(model_save_dir, 'pca_model.joblib'))
-            np.save(os.path.join(model_save_dir, 'initial_logits.npy'), initial_logits.numpy())
-            print("--- Model artifact saved successfully ---")
-
-        if test_files and final_model is not None:
-            print("\n--- Evaluating Final Model on Out-of-Sample Test Data ---")
+            # Since this is eval-only, run evaluation without the retraining loop
             all_results_dfs = []
-            pca_model = TF_NN_CALIBRATION_SETTINGS.get('pca_model')
-            rate_indices = TF_NN_CALIBRATION_SETTINGS.get('rate_indices')
-
             for eval_date, zero_path, vol_path in test_files:
                 print(f"\n--- Processing test day: {eval_date.strftime('%d-%m-%Y')} ---")
                 zero_df, vol_df = pd.read_csv(zero_path, parse_dates=['Date']), load_volatility_cube(vol_path)
                 term_structure = create_ql_yield_curve(zero_df, eval_date)
                 ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
                 
-                feature_vector = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data, pca_model=pca_model, rate_indices=rate_indices)
+                feature_vector = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data, pca_model=pca_model, rate_indices=TF_NN_CALIBRATION_SETTINGS.get('rate_indices'))
                 predicted_params = final_model((tf.constant(feature_vector, dtype=tf.float64), initial_logits), training=False).numpy()[0]
                 
                 rmse_bps, results_df = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, TF_NN_CALIBRATION_SETTINGS)
                 print(f"Test RMSE for {eval_date}: {rmse_bps:.4f} bps")
-
                 if not results_df.empty:
+                    # Append results to the list for final saving
                     day_results_df = results_df.copy()
                     day_results_df['EvaluationDate'], day_results_df['DailyRMSE_bps'] = eval_date, rmse_bps
-                    num_a = TF_NN_CALIBRATION_SETTINGS['num_a_segments'] if TF_NN_CALIBRATION_SETTINGS['optimize_a'] else 0
-                    for i in range(num_a): day_results_df[f'a_{i+1}'] = predicted_params[i]
-                    for i in range(TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']):
-                        day_results_df[f'sigma_{i+1}'] = predicted_params[num_a + i]
                     all_results_dfs.append(day_results_df)
-
-            if all_results_dfs:
-                master_results_df = pd.concat(all_results_dfs, ignore_index=True)
-                results_save_path = os.path.join(model_save_dir, 'evaluation_results.csv')
-                master_results_df.to_csv(results_save_path, index=False)
-                print(f"\n--- Comprehensive evaluation results saved to: {results_save_path} ---")
-
-                last_test_date = test_files[-1][0]
-                last_day_df = master_results_df[master_results_df['EvaluationDate'] == last_test_date]
-                if not last_day_df.empty:
-                    plot_calibration_results(last_day_df, last_test_date, model_save_dir, TF_NN_CALIBRATION_SETTINGS['show_plots'])
-            
-            perform_and_save_shap_analysis(
-                model=final_model,
-                scaler=feature_scaler,
-                initial_logits_tensor=initial_logits,
-                test_files_list=test_files,
-                external_market_data=external_data,
-                settings=TF_NN_CALIBRATION_SETTINGS,
-                output_dir=model_save_dir,
-                feature_names=feature_names
-            )
         else:
-            print("\n--- No test files or model available for final evaluation. ---")
+            # --- WORKFLOW 2: TRAINING MODE (WITH ADAPTIVE RETRAINING) ---
+            print("\n--- WORKFLOW: TRAINING MODE ---")
+
+            # Perform the first training run
+            final_model, feature_scaler, pca_model, initial_logits, feature_names, model_save_dir, current_model_id = train_new_model(
+                train_files=initial_train_files,
+                val_files=initial_val_files,
+                external_data=external_data,
+                settings=TF_NN_CALIBRATION_SETTINGS,
+                original_feature_names=original_feature_names,
+                feature_tenors=feature_tenors
+            )
+            
+            # --- Start of the Evaluation and Retraining Loop ---
+            if initial_test_files:
+                master_results_list = []
+                files_to_process = initial_test_files.copy()
+                processed_files_in_current_cycle = []
+
+                if ADWIN_SETTINGS['use_adwin_trigger']:
+                    adwin = drift.ADWIN(delta=ADWIN_SETTINGS['delta'])
+                    print(f"\n--- ADWIN Drift Detection Enabled (delta={ADWIN_SETTINGS['delta']}) ---")
+
+                while files_to_process:
+                    current_test_run_files = files_to_process.copy()
+                    files_to_process = [] # Assume we process all unless a drift occurs
+                    
+                    for i, (eval_date, zero_path, vol_path) in enumerate(current_test_run_files):
+                        print(f"\n--- Processing test day: {eval_date.strftime('%d-%m-%Y')} ---")
+                        zero_df, vol_df = pd.read_csv(zero_path, parse_dates=['Date']), load_volatility_cube(vol_path)
+                        term_structure = create_ql_yield_curve(zero_df, eval_date)
+                        ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
+                        
+                        feature_vector = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data, pca_model=pca_model, rate_indices=TF_NN_CALIBRATION_SETTINGS.get('rate_indices'))
+                        predicted_params = final_model((tf.constant(feature_vector, dtype=tf.float64), initial_logits), training=False).numpy()[0]
+                        
+                        rmse_bps, results_df = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, TF_NN_CALIBRATION_SETTINGS)
+                        print(f"Test RMSE for {eval_date}: {rmse_bps:.4f} bps")
+
+                        if not results_df.empty:
+                            day_results_df = results_df.copy()
+                            day_results_df['EvaluationDate'], day_results_df['DailyRMSE_bps'] = eval_date, rmse_bps
+                            day_results_df['ModelID'] = current_model_id
+                            num_a = TF_NN_CALIBRATION_SETTINGS['num_a_segments'] if TF_NN_CALIBRATION_SETTINGS['optimize_a'] else 0
+                            for p_idx in range(num_a): day_results_df[f'a_{p_idx+1}'] = predicted_params[p_idx]
+                            for p_idx in range(TF_NN_CALIBRATION_SETTINGS['num_sigma_segments']): day_results_df[f'sigma_{p_idx+1}'] = predicted_params[num_a + p_idx]
+                            master_results_list.append(day_results_df)
+
+                        processed_files_in_current_cycle.append(current_test_run_files[i])
+
+                        # ADWIN Drift Detection Logic
+                        if ADWIN_SETTINGS['use_adwin_trigger'] and not np.isnan(rmse_bps):
+                            drift_detected = False
+                            trigger_reason = ""
+                            if ADWIN_SETTINGS['use_hardcoded_threshold']:
+                                if rmse_bps > ADWIN_SETTINGS['retrain_threshold_bps']:
+                                    trigger_reason = f"RMSE {rmse_bps:.2f} bps exceeded hardcoded threshold of {ADWIN_SETTINGS['retrain_threshold_bps']} bps"
+                                    drift_detected = True
+                                else:
+                                    adwin.update(rmse_bps)
+                                    if adwin.drift_detected:
+                                        trigger_reason = f"ADWIN detected drift (RMSE={rmse_bps:.2f} bps)"
+                                        drift_detected = True
+
+                                if drift_detected:
+                                    print("\n" + "!"*80)
+                                    print(f" DRIFT DETECTED ON {eval_date}! ".center(80, "!"))
+                                    print(f" REASON: {trigger_reason} ".center(80, "!"))
+                                    print("!"*80)
+                                    print("Triggering model retraining...")
+                                    # Define new data splits
+                                    new_train_files = initial_train_files + initial_val_files + processed_files_in_current_cycle
+                                    # We create a smaller, more recent validation set from the end of the new training data
+                                    num_new_val_files = len(initial_val_files)
+                                    new_val_files = new_train_files[-num_new_val_files:]
+                                    new_train_files = new_train_files[:-num_new_val_files]
+
+                                    # Retrain the model
+                                    final_model, feature_scaler, pca_model, initial_logits, feature_names, model_save_dir, current_model_id = train_new_model(
+                                        train_files=new_train_files,
+                                        val_files=new_val_files,
+                                        external_data=external_data,
+                                        settings=TF_NN_CALIBRATION_SETTINGS,
+                                        original_feature_names=original_feature_names,
+                                        feature_tenors=feature_tenors
+                                    )
+
+                                    # Reset ADWIN for the new model
+                                    adwin = drift.ADWIN(delta=ADWIN_SETTINGS['delta'])
+                                    print("\n--- ADWIN Detector has been reset for the new model ---")
+                                    
+                                    # Set up the loop to continue with the remaining files
+                                    files_to_process = current_test_run_files[i+1:]
+                                    processed_files_in_current_cycle = [] # Reset for the new model
+                                    break # Exit inner for-loop to restart evaluation with new model
+                
+                # --- Post-Evaluation Analysis ---
+                if master_results_list:
+                    master_results_df = pd.concat(master_results_list, ignore_index=True)
+                    # Save results in the *last* model's directory
+                    results_save_path = os.path.join(model_save_dir, 'evaluation_results_MASTER.csv')
+                    master_results_df.to_csv(results_save_path, index=False)
+                    print(f"\n--- Comprehensive evaluation results saved to: {results_save_path} ---")
+
+                    # Plot results for the last day of the entire test period
+                    last_test_date = initial_test_files[-1][0]
+                    last_day_df = master_results_df[master_results_df['EvaluationDate'] == last_test_date]
+                    if not last_day_df.empty:
+                        plot_calibration_results(last_day_df, last_test_date, model_save_dir, TF_NN_CALIBRATION_SETTINGS['show_plots'])
+                
+                # Perform SHAP analysis on the final model using the test files it was evaluated on
+                perform_and_save_shap_analysis(
+                    model=final_model,
+                    scaler=feature_scaler,
+                    initial_logits_tensor=initial_logits,
+                    test_files_list=processed_files_in_current_cycle, # Use files from the last successful cycle
+                    external_market_data=external_data,
+                    settings=TF_NN_CALIBRATION_SETTINGS,
+                    output_dir=model_save_dir,
+                    feature_names=feature_names
+                )
+
+        print("\n--- SCRIPT FINISHED ---")
 
     except (FileNotFoundError, ValueError) as e: print(f"\nERROR: {e}")
     except Exception as e: print(f"\nAn unexpected error occurred: {e}"); traceback.print_exc()
