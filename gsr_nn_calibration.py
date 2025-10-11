@@ -41,6 +41,7 @@ import keras_tuner as kt
 import joblib
 import yfinance as yf
 import random
+import shap
 
 #--------------------CONFIG--------------------
 # Set to False to skip the initial data preparation steps if they have already been run
@@ -736,6 +737,111 @@ def evaluate_model_on_day(
     return final_rmse_bps, results_df
 
 
+# ------------------- SHAP ANALYSIS FUNCTION -------------------
+def perform_and_save_shap_analysis(
+    model: tf.keras.Model,
+    scaler: StandardScaler,
+    initial_logits_tensor: tf.Tensor,
+    test_files_list: List[Tuple[datetime.date, str, str]],
+    external_market_data: pd.DataFrame,
+    settings: Dict,
+    output_dir: str
+):
+    """
+    Performs SHAP analysis on the trained model to explain its predictions on the
+    test set and saves the resulting plots to the model's output directory.
+
+    Args:
+        model (tf.keras.Model): The trained Keras model to be explained.
+        scaler (StandardScaler): The fitted scaler used for feature transformation.
+        initial_logits_tensor (tf.Tensor): The fixed initial logits tensor used by the model.
+        test_files_list (List[Tuple[datetime.date, str, str]]): List of test data file paths.
+        external_market_data (pd.DataFrame): DataFrame with external market data (MOVE, VIX).
+        settings (Dict): The configuration dictionary for the model run.
+        output_dir (str): The directory where the SHAP plots will be saved.
+    """
+    print("\n--- Starting SHAP Analysis for Model Interpretability ---")
+    
+    # 1. Define Feature and Output Names for clear plot labels
+    feature_tenors = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
+    feature_names = [f'{int(t)}y_rate' for t in feature_tenors] + [
+        'slope_3m10y', 'slope_2y10y', 'slope_5y30y', 'curvature_2y5y10y',
+        'MOVE_Open', 'VIX_Open', 'MOVE_VIX_Ratio'
+    ]
+    num_a = settings['num_a_segments'] if settings.get('optimize_a', False) else 0
+    num_sigma = settings['num_sigma_segments']
+    output_names = [f'a_{i+1}' for i in range(num_a)] + [f'sigma_{i+1}' for i in range(num_sigma)]
+
+    # 2. Prepare the test data features for SHAP analysis
+    test_features_list = []
+    print("Preparing test data for SHAP explanation...")
+    for eval_date, zero_path, _ in test_files_list:
+        zero_curve_df = pd.read_csv(zero_path, parse_dates=['Date'])
+        term_structure = create_ql_yield_curve(zero_curve_df, eval_date)
+        ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
+        raw_features = extract_raw_features(term_structure, ql_eval_date, external_market_data, feature_tenors)
+        test_features_list.append(raw_features)
+    
+    if not test_features_list:
+        print("Warning: No test data found to perform SHAP analysis.")
+        return
+        
+    scaled_test_features = scaler.transform(np.array(test_features_list))
+    test_features_df = pd.DataFrame(scaled_test_features, columns=feature_names)
+
+# 3. Create a wrapper for the model using the Keras Functional API so SHAP can inspect it
+    features_input = tf.keras.Input(shape=(scaled_test_features.shape[1],), dtype=tf.float64, name="features")
+    
+    # The initial_logits tensor needs to be tiled to match the batch size of the features_input
+    # We use a Lambda layer to perform this dynamic tiling within the model graph
+    def tile_logits(features):
+        num_samples = tf.shape(features)[0]
+        return tf.tile(initial_logits_tensor, [num_samples, 1])
+
+    logits_input = tf.keras.layers.Lambda(tile_logits)(features_input)
+    
+    # Call the original model with the two inputs
+    outputs = model((features_input, logits_input))
+    
+    # Create the new, inspectable wrapper model
+    shap_wrapped_model = tf.keras.Model(inputs=features_input, outputs=outputs)
+    
+    # 4. Create SHAP DeepExplainer
+    # A subset of the test data is used as the background distribution for the explainer.
+    # This provides a baseline for comparing feature contributions.
+    print("Creating SHAP explainer...")
+    # background_data = shap.sample(scaled_test_features, 100)
+    background_data = scaled_test_features
+    explainer = shap.DeepExplainer(shap_wrapped_model, background_data)
+    
+    # 5. Calculate SHAP values for all instances in the test set
+    print("Calculating SHAP values... (This may take a while)")
+    shap_values = explainer.shap_values(scaled_test_features)
+    
+    # 6. Generate and save plots for each of the model's output parameters
+    print(f"Generating and saving {len(output_names) * 2} SHAP plots...")
+    for i, param_name in enumerate(output_names):
+        print(f"  -> Plotting for parameter: {param_name}")
+        
+        # Summary Plot (dot plot): Shows the impact of each feature on the model output.
+        shap.summary_plot(shap_values[:, :, i], test_features_df, show=False)
+        fig = plt.gcf()
+        fig.suptitle(f'SHAP Value Summary for Parameter "{param_name}"', fontsize=14)
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.savefig(os.path.join(output_dir, f'SHAP_summary_{param_name}.png'), bbox_inches='tight')
+        plt.close(fig)
+
+        # Feature Importance Plot (bar plot): Ranks features by their mean absolute SHAP value.
+        shap.summary_plot(shap_values[:, :, i], test_features_df, plot_type='bar', show=False)
+        fig = plt.gcf()
+        fig.suptitle(f'SHAP Feature Importance for Parameter "{param_name}"', fontsize=14)
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.savefig(os.path.join(output_dir, f'SHAP_importance_{param_name}.png'), bbox_inches='tight')
+        plt.close(fig)
+        
+    print("--- SHAP Analysis Completed ---")
+
+
 # ------------------- HYPERPARAMETER TUNING AND TRAINING COMPONENTS -------------------
 def _calculate_loss_for_day(params: np.ndarray, ql_eval_date, term_structure_handle, helpers_with_info, settings) -> float:
     """
@@ -951,7 +1057,7 @@ if __name__ == '__main__':
             "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True, # Increased sigma segments
             "instrument_batch_size_percentage": 100,
             "upper_bound": 0.1, "pricing_engine_integration_points": 32,
-            "num_epochs": 20, "h_relative": 1e-7, # Increased epochs
+            "num_epochs": 2, "h_relative": 1e-7, # Increased epochs
             "initial_guess": [0.02, 0.0002, 0.0002, 0.00017, 0.00017, 0.00017, 0.00017, 0.00017], # Adjusted for more segments
             "gradient_method": "forward", # either "forward" or "central"
             "gradient_clip_norm": 2.0, "num_threads": os.cpu_count() or 1,
@@ -1259,6 +1365,17 @@ if __name__ == '__main__':
                 last_day_df = master_results_df[master_results_df['EvaluationDate'] == last_test_date]
                 if not last_day_df.empty:
                     plot_calibration_results(last_day_df, last_test_date, model_save_dir)
+            
+            # --- SHAP ANALYSIS EXECUTION ---
+            perform_and_save_shap_analysis(
+                model=final_model,
+                scaler=feature_scaler,
+                initial_logits_tensor=initial_logits,
+                test_files_list=test_files,
+                external_market_data=external_data,
+                settings=TF_NN_CALIBRATION_SETTINGS,
+                output_dir=model_save_dir
+            )
         else:
             print("\n--- No test files or model available for final evaluation. ---")
 
