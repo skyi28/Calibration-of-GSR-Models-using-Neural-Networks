@@ -870,6 +870,12 @@ class HullWhiteHyperModel(kt.HyperModel):
         learning_rate = hp.Float("learning_rate", 1e-4, 1e-2, sampling="log")
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
+        # --- NEW: Define underestimation_penalty as a hyperparameter ---
+        penalty = hp.Float("underestimation_penalty", 1.0, 4.0, step=0.5)
+        # Create a trial-specific settings copy to inject the penalty
+        trial_settings = settings.copy()
+        trial_settings['underestimation_penalty'] = penalty
+
         epochs = kwargs.get('epochs', 1)
         trial = None
         for callback in kwargs.get('callbacks', []):
@@ -879,7 +885,7 @@ class HullWhiteHyperModel(kt.HyperModel):
         trial_id = trial.trial_id if trial else "unknown"
         
         for epoch in range(epochs):
-            print(f"\nTrial {trial_id} | Starting Epoch {epoch + 1}/{epochs}")
+            print(f"\nTrial {trial_id} | Starting Epoch {epoch + 1}/{epochs} | Penalty: {penalty:.2f}")
             epoch_losses = []
             total_days: int = len(loaded_train_data)
             for day_idx, (eval_date, zero_df, vol_df) in enumerate(loaded_train_data):
@@ -887,13 +893,13 @@ class HullWhiteHyperModel(kt.HyperModel):
                 ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
                 ql.Settings.instance().evaluationDate = ql_eval_date
                 term_structure = create_ql_yield_curve(zero_df, eval_date)
-                helpers = prepare_calibration_helpers(vol_df, term_structure, settings)
+                helpers = prepare_calibration_helpers(vol_df, term_structure, trial_settings)
                 if not helpers: continue
                 
                 feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data)
-                loss = _perform_training_step(model, optimizer, tf.constant(feature_vec, dtype=tf.float64), initial_logits, ql_eval_date, term_structure, helpers, settings)
+                # Pass the trial-specific settings to the training step
+                loss = _perform_training_step(model, optimizer, tf.constant(feature_vec, dtype=tf.float64), initial_logits, ql_eval_date, term_structure, helpers, trial_settings)
                 if not np.isnan(loss):
-                    # Note: This RMSE is now based on the *weighted* errors
                     epoch_losses.append(np.sqrt(loss) * 10000)
             
             avg_epoch_rmse = np.mean(epoch_losses) if epoch_losses else float('inf')
@@ -905,8 +911,8 @@ class HullWhiteHyperModel(kt.HyperModel):
                 ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
                 feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data)
                 predicted_params = model((tf.constant(feature_vec, dtype=tf.float64), initial_logits), training=False).numpy()[0]
-                # Evaluation uses the standard (unweighted) RMSE
-                rmse, _ = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, settings)
+                # Pass trial_settings here as well for consistency, although it doesn't use the penalty
+                rmse, _ = evaluate_model_on_day(eval_date, zero_df, vol_df, predicted_params, trial_settings)
                 if not np.isnan(rmse): val_losses.append(rmse)
             
             avg_val_rmse = np.mean(val_losses) if val_losses else float('inf')
@@ -945,10 +951,9 @@ if __name__ == '__main__':
             "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True, # Increased sigma segments
             "instrument_batch_size_percentage": 100,
             "upper_bound": 0.1, "pricing_engine_integration_points": 32,
-            "num_epochs": 10, "h_relative": 1e-7, # Increased epochs
+            "num_epochs": 20, "h_relative": 1e-7, # Increased epochs
             "initial_guess": [0.02, 0.0002, 0.0002, 0.00017, 0.00017, 0.00017, 0.00017, 0.00017], # Adjusted for more segments
             "gradient_method": "forward", # either "forward" or "central"
-            "underestimation_penalty": 1.5, # New parameter to penalize underestimation. Set to 1.0 for standard MSE.
             "gradient_clip_norm": 2.0, "num_threads": os.cpu_count() or 1,
             "min_expiry_years": 2.0, "min_tenor_years": 2.0,
             "use_coterminal_only": True, # If True, only uses swaptions where expiry equals tenor.
@@ -1103,13 +1108,18 @@ if __name__ == '__main__':
                 for key, value in loaded_hps.items(): best_hyperparameters.Fixed(key, value)
             
             print("\n--- Training Final Model using Best Hyperparameters ---")
+            
+            # --- NEW: Use the best penalty found by the tuner ---
+            best_penalty = best_hyperparameters.get('underestimation_penalty')
+            TF_NN_CALIBRATION_SETTINGS['underestimation_penalty'] = best_penalty
+            print(f"Using best underestimation_penalty for final training: {best_penalty:.2f}")
+
             final_model = HullWhiteHyperModel().build(best_hyperparameters)
             learning_rate = best_hyperparameters.get('learning_rate') or 0.001 # Fallback
             optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
             
             print(f"Training final model on {len(loaded_train_data)} days of data for up to {TF_NN_CALIBRATION_SETTINGS['num_epochs']} epochs, with validation on {len(loaded_val_data)} days.")
             
-            # --- NEW: Variables for tracking best model and loss history ---
             train_loss_history = []
             val_loss_history = []
             best_val_rmse = float('inf')
@@ -1118,7 +1128,6 @@ if __name__ == '__main__':
 
             start_time = time.monotonic()
             for epoch in range(TF_NN_CALIBRATION_SETTINGS['num_epochs']):
-                # --- Training Phase for this Epoch ---
                 epoch_train_losses = []
                 for day_idx, (eval_date, zero_df, vol_df) in enumerate(loaded_train_data):
                     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
@@ -1140,7 +1149,6 @@ if __name__ == '__main__':
                 avg_epoch_train_rmse = np.mean(epoch_train_losses) if epoch_train_losses else float('nan')
                 train_loss_history.append(avg_epoch_train_rmse)
 
-                # --- Validation Phase for this Epoch ---
                 epoch_val_losses = []
                 for eval_date, zero_df, vol_df in loaded_val_data:
                     term_structure = create_ql_yield_curve(zero_df, eval_date)
@@ -1162,7 +1170,6 @@ if __name__ == '__main__':
                 )
                 print(summary_msg)
 
-                # --- NEW: Check for best model and save weights ---
                 if avg_epoch_val_rmse < best_val_rmse:
                     best_val_rmse = avg_epoch_val_rmse
                     best_model_weights = final_model.get_weights()
@@ -1174,7 +1181,6 @@ if __name__ == '__main__':
             model_save_dir = os.path.join(FOLDER_MODELS, TF_NN_CALIBRATION_SETTINGS["SAVE_MODEL_DIR_NAME"])
             os.makedirs(model_save_dir, exist_ok=True)
 
-            # --- NEW: Plot and save training history ---
             plt.figure(figsize=(12, 6))
             plt.plot(range(1, len(train_loss_history) + 1), train_loss_history, 'o-', label='Training RMSE (Weighted)')
             plt.plot(range(1, len(val_loss_history) + 1), val_loss_history, 'o-', label='Validation RMSE')
@@ -1190,7 +1196,6 @@ if __name__ == '__main__':
             print(f"\n--- Training history plot saved to {history_plot_path} ---")
             plt.show()
 
-            # --- NEW: Restore best model weights before saving ---
             if best_model_weights:
                 print(f"\nRestoring model weights from Epoch {best_epoch} with best validation RMSE: {best_val_rmse:.2f} bps.")
                 final_model.set_weights(best_model_weights)
