@@ -366,7 +366,7 @@ def prepare_calibration_helpers(
             
     return helpers_with_info
 
-def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date, model_save_dir: str):
+def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date, model_save_dir: str, show_plots: bool):
     """
     Shows diagrams as plots in the same figure after the calibration.
 
@@ -467,13 +467,15 @@ def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date,
 
     # Save and show the plot for both cases
     plt.savefig(os.path.join(model_save_dir, f'CalibrationPlot_{eval_date}.png'))
-    plt.show()
+    if show_plots:
+        plt.show()
 
 def plot_and_save_correlation_matrix(
     raw_features_list: List[List[float]],
     feature_names: List[str],
     save_dir: str,
-    title_suffix: str = ""
+    title_suffix: str = "",
+    show_plots: bool = False
 ):
     """
     Computes, plots, and saves a feature correlation matrix.
@@ -503,12 +505,14 @@ def plot_and_save_correlation_matrix(
     plot_path = os.path.join(save_dir, filename)
     plt.savefig(plot_path, bbox_inches='tight')
     print(f"Feature correlation matrix saved to: {plot_path}")
-    plt.show()
+    if show_plots:
+        plt.show()
 
 def plot_pca_component_loadings(
     pca_model: PCA, 
     rate_tenors_in_years: List[float], 
-    save_dir: str
+    save_dir: str,
+    show_plots: bool = False
 ):
     """
     Visualizes the loadings of the first three principal components to verify their
@@ -547,7 +551,8 @@ def plot_pca_component_loadings(
     plot_path = os.path.join(save_dir, 'pca_component_loadings.png')
     plt.savefig(plot_path, bbox_inches='tight')
     print(f"PCA component loadings plot saved to: {plot_path}")
-    plt.show()
+    if show_plots:
+        plt.show()
 
 #--------------------PCA HELPER FUNCTIONS--------------------
 def fit_pca_on_rates(
@@ -1137,6 +1142,7 @@ if __name__ == '__main__':
         TF_NN_CALIBRATION_SETTINGS = {
             "evaluate_only": False,
             "perform_hyperparameter_tuning": False,
+            "show_plots": False,
             "model_evaluation_dir": r"results\neural_network\models\model_20251008_110404",
             "hyperband_settings": {"max_epochs": 1, "factor": 3, "directory": "results/neural_network/hyperband_tuner", "project_name": "hull_white_calibration"},
             "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True,
@@ -1220,20 +1226,20 @@ if __name__ == '__main__':
             # Step 1: Extract all raw features and plot pre-PCA correlation
             raw_training_features = [extract_raw_features(create_ql_yield_curve(pd.read_csv(zp, parse_dates=['Date']), d), ql.Date(d.day, d.month, d.year), external_data, feature_tenors) for d, zp, _ in train_files]
             if model_save_dir:
-                plot_and_save_correlation_matrix(raw_training_features, original_feature_names, model_save_dir, title_suffix="(Pre-PCA)")
+                plot_and_save_correlation_matrix(raw_training_features, original_feature_names, model_save_dir, title_suffix="(Pre-PCA)", show_plots=TF_NN_CALIBRATION_SETTINGS['show_plots'])
 
             # Step 2 & 3: Fit PCA on rates and verify interpretation
             rate_indices = list(range(len(feature_tenors)))
             pca_model = fit_pca_on_rates(raw_training_features, rate_indices, n_components=3)
             TF_NN_CALIBRATION_SETTINGS['pca_model'], TF_NN_CALIBRATION_SETTINGS['rate_indices'] = pca_model, rate_indices
             if model_save_dir:
-                plot_pca_component_loadings(pca_model, feature_tenors, model_save_dir)
+                plot_pca_component_loadings(pca_model, feature_tenors, model_save_dir, show_plots=TF_NN_CALIBRATION_SETTINGS['show_plots'])
             
             # Step 4: Apply PCA and plot post-PCA correlation
             pca_training_features = [apply_pca_to_features(feats, pca_model, rate_indices) for feats in raw_training_features]
             feature_names = ['PC_Level', 'PC_Slope', 'PC_Curvature'] + original_feature_names[len(feature_tenors):]
             if model_save_dir:
-                plot_and_save_correlation_matrix(pca_training_features, feature_names, model_save_dir, title_suffix="(Post-PCA)")
+                plot_and_save_correlation_matrix(pca_training_features, feature_names, model_save_dir, title_suffix="(Post-PCA)", show_plots=TF_NN_CALIBRATION_SETTINGS['show_plots'])
 
             # Step 5: Fit scaler on the final, transformed features
             feature_scaler = StandardScaler()
@@ -1329,7 +1335,8 @@ if __name__ == '__main__':
             history_plot_path = os.path.join(model_save_dir, 'training_history.png')
             plt.savefig(history_plot_path)
             print(f"\n--- Training history plot saved to {history_plot_path} ---")
-            plt.show()
+            if TF_NN_CALIBRATION_SETTINGS['show_plots']:
+                plt.show()
 
             if best_model_weights:
                 print(f"\nRestoring model weights from Epoch {best_epoch} with best validation RMSE: {best_val_rmse:.2f} bps.")
@@ -1378,7 +1385,7 @@ if __name__ == '__main__':
                 last_test_date = test_files[-1][0]
                 last_day_df = master_results_df[master_results_df['EvaluationDate'] == last_test_date]
                 if not last_day_df.empty:
-                    plot_calibration_results(last_day_df, last_test_date, model_save_dir)
+                    plot_calibration_results(last_day_df, last_test_date, model_save_dir, TF_NN_CALIBRATION_SETTINGS['show_plots'])
             
             perform_and_save_shap_analysis(
                 model=final_model,
