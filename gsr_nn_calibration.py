@@ -952,7 +952,7 @@ def perform_and_save_shap_analysis(
     for i, param_name in enumerate(output_names):
         print(f"  -> Plotting for parameter: {param_name}")
         
-        shap.summary_plot(shap_values[:, :, i], test_features_df, show=False)
+        shap.summary_plot(shap_values[:, :, i], test_features_df, plot_type='layered_violin', show=False)
         fig = plt.gcf()
         fig.suptitle(f'SHAP Value Summary for Parameter "{param_name}"', fontsize=14)
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
