@@ -1,0 +1,56 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {1}Introduction}{6}{section.1}%
+\contentsline {section}{\numberline {2}Background}{7}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Swaptions: Definition, Characteristics, and Financial Relevance}{7}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Bootstrapping the Zero-Coupon Yield Curve from Swap Rates}{10}{subsection.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.1}Preliminaries and Definitions}{10}{subsubsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2}Valuation of a Par Swap}{10}{subsubsection.2.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.3}Recursive Bootstrapping Procedure}{11}{subsubsection.2.2.3}%
+\contentsline {subsubsection}{\numberline {2.2.4}Interpolation and Continuity of the Term Structure}{11}{subsubsection.2.2.4}%
+\contentsline {subsection}{\numberline {2.3}Short Rate Models}{12}{subsection.2.3}%
+\contentsline {subsubsection}{\numberline {2.3.1}Equilibrium Models}{12}{subsubsection.2.3.1}%
+\contentsline {subsubsection}{\numberline {2.3.2}No Arbitrage Models}{13}{subsubsection.2.3.2}%
+\contentsline {subsubsection}{\numberline {2.3.3}Gaussian Short Rate Models}{13}{subsubsection.2.3.3}%
+\contentsline {subsection}{\numberline {2.4}The One-Factor Hull-White Model}{14}{subsection.2.4}%
+\contentsline {subsubsection}{\numberline {2.4.1}Mathematical Specification}{15}{subsubsection.2.4.1}%
+\contentsline {subsubsection}{\numberline {2.4.2}Bond Pricing and Functional Solutions}{16}{subsubsection.2.4.2}%
+\contentsline {subsubsection}{\numberline {2.4.3}Option Pricing}{16}{subsubsection.2.4.3}%
+\contentsline {subsubsection}{\numberline {2.4.4}Swaption Pricing}{16}{subsubsection.2.4.4}%
+\contentsline {subsubsection}{\numberline {2.4.5}Calibration of the Hull-White Model}{19}{subsubsection.2.4.5}%
+\contentsline {subsubsection}{\numberline {2.4.6}Levenberg-Marquardt Algorithm}{21}{subsubsection.2.4.6}%
+\contentsline {subsection}{\numberline {2.5}Neural Networks}{22}{subsection.2.5}%
+\contentsline {subsubsection}{\numberline {2.5.1}Types of Problems Solved by Neural Networks}{22}{subsubsection.2.5.1}%
+\contentsline {subsubsection}{\numberline {2.5.2}Architecture}{23}{subsubsection.2.5.2}%
+\contentsline {subsubsection}{\numberline {2.5.3}Learning in Neural Networks: The Back-Propagation Algorithm}{24}{subsubsection.2.5.3}%
+\contentsline {subsubsection}{\numberline {2.5.4}The Hyperband Algorithm for Hyperparameter Optimization}{26}{subsubsection.2.5.4}%
+\contentsline {subsection}{\numberline {2.6}Related Work}{28}{subsection.2.6}%
+\contentsline {section}{\numberline {3}Methodology}{29}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Dataset}{30}{subsection.3.1}%
+\contentsline {subsubsection}{\numberline {3.1.1}Time Period}{30}{subsubsection.3.1.1}%
+\contentsline {subsubsection}{\numberline {3.1.2}Swaptions}{30}{subsubsection.3.1.2}%
+\contentsline {subsubsection}{\numberline {3.1.3}Swap Curves}{30}{subsubsection.3.1.3}%
+\contentsline {subsubsection}{\numberline {3.1.4}MOVE Index}{31}{subsubsection.3.1.4}%
+\contentsline {subsubsection}{\numberline {3.1.5}VIX Index}{31}{subsubsection.3.1.5}%
+\contentsline {subsubsection}{\numberline {3.1.6}EUR/USD Exchange Rate}{32}{subsubsection.3.1.6}%
+\contentsline {subsection}{\numberline {3.2}Descriptive Analysis of Market and Model Inputs}{32}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Data Preprocessing}{40}{subsection.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.1}Bootstrapping Zero-Curves}{40}{subsubsection.3.3.1}%
+\contentsline {subsubsection}{\numberline {3.3.2}Handling Non-Trading Days in External Data}{41}{subsubsection.3.3.2}%
+\contentsline {subsubsection}{\numberline {3.3.3}Feature Engineering for the Neural Network}{41}{subsubsection.3.3.3}%
+\contentsline {paragraph}{Features Engineered from the Yield Curve}{41}{subsubsection.3.3.3}%
+\contentsline {paragraph}{Features Engineered from External Market Data}{42}{equation.59}%
+\contentsline {paragraph}{Features Engineered via Dimensionality Reduction}{42}{equation.61}%
+\contentsline {subsubsection}{\numberline {3.3.4}Feature Scaling}{45}{subsubsection.3.3.4}%
+\contentsline {subsection}{\numberline {3.4}Hyperparameter Optimization}{46}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Methodology Workflow}{47}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Used Model Architecture \& Setup}{49}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.7}Technical Setup and Computational Optimization}{49}{subsection.3.7}%
+\contentsline {subsubsection}{\numberline {3.7.1}Integration of TensorFlow and QuantLib}{50}{subsubsection.3.7.1}%
+\contentsline {subsubsection}{\numberline {3.7.2}Parallelization and Hardware Considerations}{50}{subsubsection.3.7.2}%
+\contentsline {subsubsection}{\numberline {3.7.3}Algorithmic and Numerical Efficiency}{51}{subsubsection.3.7.3}%
+\contentsline {subsubsection}{\numberline {3.7.4}Optimization of the Training Process}{51}{subsubsection.3.7.4}%
+\contentsline {subsubsection}{\numberline {3.7.5}Workflow-Level Enhancements and Model Design}{51}{subsubsection.3.7.5}%
+\contentsline {subsection}{\numberline {3.8}Use of AI}{52}{subsection.3.8}%
+\contentsline {section}{\numberline {4}Results}{52}{section.4}%
+\contentsline {section}{\numberline {5}Conclusion}{53}{section.5}%
+\contentsline {section}{\numberline {A}Appendix}{55}{appendix.A}%

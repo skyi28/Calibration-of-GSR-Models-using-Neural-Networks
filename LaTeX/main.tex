@@ -1,0 +1,89 @@
+\documentclass[12pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[english]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{threeparttable}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{csquotes}
+\usepackage[style=apa,backend=biber]{biblatex}
+\addbibresource{references.bib}
+
+% Page layout
+\geometry{margin=1in}
+\setlength{\parskip}{1em}
+\setlength{\parindent}{0em}
+
+% Header & Footer
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\thepage}
+\lhead{A Comparison Between Traditional and ML Based Calibration of the 1FHW Model}
+
+% Listings settings
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{gray!10},
+  frame=single,
+  breaklines=true,
+  captionpos=b,
+  language=Python
+}
+
+% Title
+\title{A Comparison Between Traditional and Machine Learning Based Calibration of the One Factor Hull-White Model}
+\author{Benedikt Grimus \\
+\small Master’s Program in Banking and Finance \\
+\small ZHAW School of Management and Law}
+\date{\today}
+
+\begin{document}
+\maketitle
+\clearpage
+
+\clearpage
+\section*{Abstract}
+\input{chapters/0_abstract}
+\clearpage
+
+\tableofcontents
+\clearpage
+
+\section{Introduction}
+\label{introduction}
+\input{chapters/1_introduction}
+
+\section{Background}
+\label{background}
+\input{chapters/2_background}
+
+\section{Methodology}
+\label{methodology}
+\input{chapters/3_methodology}
+
+\section{Results}
+\label{results}
+\input{chapters/4_results}
+
+\section{Conclusion}
+\label{conclusion}
+\input{chapters/5_conclusion}
+
+\printbibliography
+% Appendices
+\appendix
+\section{Appendix}
+\input{chapters/appendix_code}
+
+\end{document}

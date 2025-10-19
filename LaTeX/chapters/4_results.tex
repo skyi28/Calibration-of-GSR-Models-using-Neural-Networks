@@ -1,0 +1,28 @@
+Following the methodology outlined in the previous chapter, this section presents the empirical findings of the comparative analysis. The results are structured around the core evaluation criteria: calibration accuracy, computational speed, and the robustness of the derived Hull-White parameters. Through a series of tables, figures, and quantitative metrics, this chapter provides an objective assessment of how well each method replicates observed market prices and how they perform under different conditions. The aim is to deliver a clear, evidence-based comparison that highlights the respective strengths and weaknesses of the traditional and machine learning-based approaches.
+
+\begin{itemize}
+    \item \textbf{Calibration Performance Metrics:} Define and present the metrics used to quantify the "goodness of fit" for both traditional and ML-based calibration methods.
+    \begin{itemize}
+        \item Common metrics include Mean Squared Error (MSE), Root Mean Squared Error (RMSE), or Mean Absolute Error (MAE) between model-implied and market-observed swaption prices or implied volatilities.
+        \item Discuss any percentage errors or relative errors used.
+    \end{itemize}
+    \item \textbf{Comparison of Calibration Speed:} Quantitatively compare the computational efficiency of each method.
+    \begin{itemize}
+        \item Provide average calibration times for the traditional algorithms (e.g., Levenberg-Marquardt) per market snapshot.
+        \item Detail the training time required for the neural network model.
+        \item Report the inference or prediction time for the neural network once trained, when applied to new market data.
+        \item Discuss the trade-offs, such as the initial higher computational cost of training the NN versus its potentially faster inference speed for subsequent calibrations.
+    \end{itemize}
+    \item \textbf{Comparison of Accuracy and Robustness:} Analyze how accurately each method calibrated the Hull-White parameters and replicated observed market prices/volatilities.
+    \begin{itemize}
+        \item Present tables and graphs comparing model-implied swaption volatilities/prices against market values.
+        \item Discuss how well each method captures the various features of the volatility surface (e.g., skew, smile, term structure).
+        \item Evaluate the robustness of each method to noisy or incomplete market data, as well as its stability under different market regimes (e.g., high vs. low volatility periods).
+    \end{itemize}
+    \item \textbf{Analysis of Hull-White Parameters:} Examine the derived mean reversion `a(t)` and volatility `$\sigma(t)$` parameters from both approaches.
+    \begin{itemize}
+        \item Use visualizations (e.g., time series plots or surface plots) to show how these parameters vary across time, option maturities, or swap tenors for each method.
+        \item Offer an interpretation of these differences, linking them to the underlying assumptions and characteristics of each calibration technique and their financial implications.
+    \end{itemize}
+    \item \textbf{Sensitivity Analysis (Optional):} Investigate how sensitive each model's calibration results are to changes in input data, initial parameter guesses, or hyperparameter choices.
+\end{itemize}
