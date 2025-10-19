@@ -3128,6 +3128,22 @@
     <bcf:citekey order="55" intorder="1">goodfellow2016deeplearning</bcf:citekey>
     <bcf:citekey order="56" intorder="1">aljalbout2018clustering</bcf:citekey>
     <bcf:citekey order="57" intorder="1">hinton2006dimensionalityreduction</bcf:citekey>
+    <bcf:citekey order="58" intorder="1">sutton2015reinforcement</bcf:citekey>
+    <bcf:citekey order="59" intorder="1">mienye2024nncomprehensivereview</bcf:citekey>
+    <bcf:citekey order="60" intorder="1">mienye2024nncomprehensivereview</bcf:citekey>
+    <bcf:citekey order="61" intorder="1">mienye2024nncomprehensivereview</bcf:citekey>
+    <bcf:citekey order="62" intorder="1">sazli2006feedforwardnn</bcf:citekey>
+    <bcf:citekey order="63" intorder="1">sazli2006feedforwardnn</bcf:citekey>
+    <bcf:citekey order="64" intorder="1">li2017hyperband</bcf:citekey>
+    <bcf:citekey order="65" intorder="1">li2017hyperband</bcf:citekey>
+    <bcf:citekey order="66" intorder="1">alvarez2022hullwhite</bcf:citekey>
+    <bcf:citekey order="67" intorder="1">alvarez2022hullwhite</bcf:citekey>
+    <bcf:citekey order="68" intorder="1">hernandez2016model</bcf:citekey>
+    <bcf:citekey order="69" intorder="1">hernandez2016model</bcf:citekey>
+    <bcf:citekey order="70" intorder="1">alaya2021deep</bcf:citekey>
+    <bcf:citekey order="71" intorder="1">alaya2021deep</bcf:citekey>
+    <bcf:citekey order="72" intorder="1">moysiadis2019calibrating</bcf:citekey>
+    <bcf:citekey order="73" intorder="1">moysiadis2019calibrating</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="apa">

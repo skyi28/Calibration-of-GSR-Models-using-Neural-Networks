@@ -38,58 +38,58 @@ Swaptions represent highly versatile derivatives within interest rate markets, s
 The construction of a zero-coupon yield curve from market swap rates is an essential step in interest rate modeling. Since swap contracts are among the most liquid instruments across maturities, they serve as primary inputs for determining the risk-free term structure. The goal of the bootstrapping process is to derive discount factors $\{P(t_0, T_i)\}_{i=1}^N$ or equivalently continuously compounded zero rates $\{z(T_i)\}_{i=1}^N$ that are consistent with observed market swap rates $\{R_i\}_{i=1}^N$ \parencite[pp.~84--86]{hull2015optionsfutures}.
 
 \subsubsection{Preliminaries and Definitions}
-Let $t_0$ denote the valuation date and $\{T_i\}_{i=1}^N$ the maturities of the quoted par swap rates. Each swap with maturity $T_i$ exchanges a fixed rate $R_i$ for a floating rate indexed to a short-term reference rate (e.g., EURIBOR 6M) at payment dates $\{t_{i,k}\}_{k=1}^{n_i}$ on the fixed leg.  
+Let $t_0$ denote the valuation date and $\{T_i\}_{i=1}^N$ the maturities of the quoted par swap rates. Each swap with maturity $T_i$ exchanges a fixed rate $R_i$ for a floating rate indexed to a short-term reference rate (e.g., EURIBOR 6M) at payment dates $\{t_{i,k}\}_{k=1}^{n_i}$ on the fixed leg.
 
 The discount factor $P(t_0, t)$ represents the present value at time $t_0$ of one unit of currency to be received at time $t$. The continuously compounded zero rate $z(t)$ is defined by
 \begin{equation}
-    P(t_0, t) = e^{-z(t)(t - t_0)},
-    \label{eq:discount_zero_relation}
+	P(t_0, t) = e^{-z(t)(t - t_0)},
+	\label{eq:discount_zero_relation}
 \end{equation}
 which implies
 \begin{equation}
-    z(t) = -\frac{1}{t - t_0} \ln P(t_0, t).
-    \label{eq:zero_rate_definition}
+	z(t) = -\frac{1}{t - t_0} \ln P(t_0, t).
+	\label{eq:zero_rate_definition}
 \end{equation}
 
 \subsubsection{Valuation of a Par Swap}
 A standard fixed-for-floating interest rate swap can be interpreted as the difference between a fixed-rate bond and a floating-rate note. The present value of the fixed leg at inception is given by
 \begin{equation}
-    PV_{\text{fixed}}(t_0) = R_i \sum_{k=1}^{n_i} \alpha_{i,k} P(t_0, t_{i,k}),
-    \label{eq:fixed_leg_pv}
+	PV_{\text{fixed}}(t_0) = R_i \sum_{k=1}^{n_i} \alpha_{i,k} P(t_0, t_{i,k}),
+	\label{eq:fixed_leg_pv}
 \end{equation}
 where $\alpha_{i,k}$ denotes the accrual factor for the period $[t_{i,k-1}, t_{i,k}]$ under the fixed-leg day count convention.
 
 The present value of the floating leg for a par swap (i.e., at inception) equals
 \begin{equation}
-    PV_{\text{float}}(t_0) = 1 - P(t_0, T_i),
-    \label{eq:float_leg_pv}
+	PV_{\text{float}}(t_0) = 1 - P(t_0, T_i),
+	\label{eq:float_leg_pv}
 \end{equation}
 under the assumption that the first floating coupon is set at par.
 
 At inception, the par swap has zero net present value, so that
 \begin{equation}
-    PV_{\text{fixed}}(t_0) = PV_{\text{float}}(t_0),
-    \label{eq:par_swap_condition}
+	PV_{\text{fixed}}(t_0) = PV_{\text{float}}(t_0),
+	\label{eq:par_swap_condition}
 \end{equation}
 which yields the par swap relation
 \begin{equation}
-    R_i \sum_{k=1}^{n_i} \alpha_{i,k} P(t_0, t_{i,k}) = 1 - P(t_0, T_i).
-    \label{eq:par_swap_equation}
+	R_i \sum_{k=1}^{n_i} \alpha_{i,k} P(t_0, t_{i,k}) = 1 - P(t_0, T_i).
+	\label{eq:par_swap_equation}
 \end{equation}
 
 \subsubsection{Recursive Bootstrapping Procedure}
 Equation~\eqref{eq:par_swap_equation} establishes a nonlinear relationship between the par swap rate $R_i$ and the discount factors $\{P(t_0, t_{i,k})\}$. If discount factors up to $T_{i-1}$ are already known from previously bootstrapped maturities, one can rearrange \eqref{eq:par_swap_equation} to isolate the unknown discount factor $P(t_0, T_i)$ as
 \begin{equation}
-    P(t_0, T_i) = \frac{1 - R_i \sum_{k=1}^{n_i - 1} \alpha_{i,k} P(t_0, t_{i,k})}
-    {1 + R_i \alpha_{i,n_i}}.
-    \label{eq:bootstrap_equation}
+	P(t_0, T_i) = \frac{1 - R_i \sum_{k=1}^{n_i - 1} \alpha_{i,k} P(t_0, t_{i,k})}
+	{1 + R_i \alpha_{i,n_i}}.
+	\label{eq:bootstrap_equation}
 \end{equation}
 
 The procedure thus proceeds recursively:
 \begin{enumerate}
-    \item Initialize the curve with known short-term instruments (e.g., deposits or short-dated FRAs) to obtain discount factors for the first maturities.
-    \item For each subsequent maturity $T_i$, solve \eqref{eq:bootstrap_equation} for $P(t_0, T_i)$ using previously determined discount factors.
-    \item Continue until the entire maturity spectrum $\{T_i\}_{i=1}^N$ is covered.
+	\item Initialize the curve with known short-term instruments (e.g., deposits or short-dated FRAs) to obtain discount factors for the first maturities.
+	\item For each subsequent maturity $T_i$, solve \eqref{eq:bootstrap_equation} for $P(t_0, T_i)$ using previously determined discount factors.
+	\item Continue until the entire maturity spectrum $\{T_i\}_{i=1}^N$ is covered.
 \end{enumerate}
 
 Once the discount factors are determined, the continuously compounded zero rates follow from \eqref{eq:zero_rate_definition}.
@@ -97,25 +97,25 @@ Once the discount factors are determined, the continuously compounded zero rates
 \subsubsection{Interpolation and Continuity of the Term Structure}
 The market provides only a discrete set of maturities $\{T_i\}$. To obtain a continuous term structure, the discount factors between quoted maturities are interpolated. A common and arbitrage-free choice is to interpolate linearly in log-discount space, i.e.,
 \begin{equation}
-    \ln P(t_0, t) = (1 - \lambda) \ln P(t_0, T_j) + \lambda \ln P(t_0, T_{j+1}),
-    \quad t \in [T_j, T_{j+1}],
-    \label{eq:log_linear_interpolation}
+	\ln P(t_0, t) = (1 - \lambda) \ln P(t_0, T_j) + \lambda \ln P(t_0, T_{j+1}),
+	\quad t \in [T_j, T_{j+1}],
+	\label{eq:log_linear_interpolation}
 \end{equation}
 where
 \begin{equation}
-    \lambda = \frac{t - T_j}{T_{j+1} - T_j}.
+	\lambda = \frac{t - T_j}{T_{j+1} - T_j}.
 \end{equation}
 This ensures that the discount function $P(t_0, t)$ is continuous, positive, and monotonically decreasing, thereby avoiding arbitrage opportunities.
 
 The bootstrapping method yields a set of discount factors $\{P(t_0, T_i)\}$ that are internally consistent with observed swap rates $\{R_i\}$. The corresponding zero-coupon yield curve $\{z(T_i)\}$ satisfies:
 \begin{equation}
-    z(T_i) = -\frac{1}{T_i - t_0} \ln P(t_0, T_i),
+	z(T_i) = -\frac{1}{T_i - t_0} \ln P(t_0, T_i),
 \end{equation}
 providing a continuous, arbitrage-free representation of the term structure of interest rates suitable for valuation, risk management, and model calibration.
 
 
 \subsection{Short Rate Models} \label{short_rate_models}
-Short-rate models are a class of term structure models that describe the evolution of interest rates by modeling the dynamics of the instantaneous short-term interest rate, denoted by $r_{t}$. These models serve as the foundational framework for pricing interest rate derivatives, particularly those with path-dependent features or early exercise options such as American-style options where traditional models like Black's formula fall short due to their static assumptions. The short rate $r_{t}$ represents the risk-free rate applicable over an infinitesimally short time interval and evolves according to a stochastic differential equation (SDE), typically under the risk-neutral measure. Under this framework, the present value of future cash flows is derived by discounting at the short-rate path, allowing for a consistent valuation across a variety of financial instruments \parencite[pp.~706--735]{hull2015optionsfutures}. 
+Short-rate models are a class of term structure models that describe the evolution of interest rates by modeling the dynamics of the instantaneous short-term interest rate, denoted by $r_{t}$. These models serve as the foundational framework for pricing interest rate derivatives, particularly those with path-dependent features or early exercise options such as American-style options where traditional models like Black's formula fall short due to their static assumptions. The short rate $r_{t}$ represents the risk-free rate applicable over an infinitesimally short time interval and evolves according to a stochastic differential equation (SDE), typically under the risk-neutral measure. Under this framework, the present value of future cash flows is derived by discounting at the short-rate path, allowing for a consistent valuation across a variety of financial instruments \parencite[pp.~706--735]{hull2015optionsfutures}.
 
 Short-rate models are flexible in that they can be constructed either to derive the term structure as a model outcome (as in equilibrium models) or to fit the observed term structure exactly (as in no-arbitrage models). Regardless of the approach, these models typically require numerical methods for implementation, including lattice-based techniques (e.g., trinomial trees) or Monte Carlo simulation, especially in the case of American or exotic derivatives. A key aspect of the usability of the model is its calibration to market data, which involves estimating parameters - such as mean reversion speed ($a$) and volatility ($\sigma$)—from prices of liquid instruments such as caps and swaps. In the post-2008 financial environment, the shift towards OIS discounting has led to the need for multiple-curve modeling frameworks, often requiring the simultaneous calibration of separate short-rate processes for both the discounting curve (e.g., OIS) and the forwarding curve (e.g., LIBOR) \parencite[pp.~706--735]{hull2015optionsfutures}.
 
@@ -139,7 +139,7 @@ Gaussian short rate models form a specific subclass within the broader family of
 Formally, a Gaussian short rate model is characterized by a stochastic differential equation (SDE) of the general form:
 
 \begin{equation}
-dr_t = \mu(t, r_t) dt + \sigma(t) dz_t,
+	dr_t = \mu(t, r_t) dt + \sigma(t) dz_t,
 \end{equation}
 
 
@@ -160,24 +160,24 @@ The Hull-White model offers a favorable balance between model realism and comput
 The Hull-White model is often referred to as the \textit{extended Vasicek model}, formalized as follows under the risk-neutral measure \( \mathbb{Q} \):
 
 \begin{equation}
-dr_t = \left[ \theta(t) - a r_t \right] dt + \sigma(t) dz_t,
+	dr_t = \left[ \theta(t) - a r_t \right] dt + \sigma(t) dz_t,
 \end{equation}
 
 where:
 \begin{table}[H]
-\centering
-\caption{Notation for the Hull--White Short Rate Model}
-\begin{tabular}{ll}
-\toprule
-\textbf{Symbol} & \textbf{Meaning} \\
-\midrule
-$r_t$ & Instantaneous short rate at time $t$ \\
-$\theta(t)$ & Deterministic function fitted to match the initial term structure \\
-$a$ & Constant mean reversion speed ($a > 0$) \\
-$\sigma(t)$ & Time-dependent volatility function \\
-$dz_t$ & Standard Brownian motion under the risk-neutral measure $\mathbb{Q}$ \\
-\bottomrule
-\end{tabular}
+	\centering
+	\caption{Notation for the Hull--White Short Rate Model}
+	\begin{tabular}{ll}
+		\toprule
+		\textbf{Symbol} & \textbf{Meaning}                                                     \\
+		\midrule
+		$r_t$           & Instantaneous short rate at time $t$                                 \\
+		$\theta(t)$     & Deterministic function fitted to match the initial term structure    \\
+		$a$             & Constant mean reversion speed ($a > 0$)                              \\
+		$\sigma(t)$     & Time-dependent volatility function                                   \\
+		$dz_t$          & Standard Brownian motion under the risk-neutral measure $\mathbb{Q}$ \\
+		\bottomrule
+	\end{tabular}
 \end{table}
 
 This formulation allows the short rate to mean-revert toward a time-varying level \( \theta(t)/a \), ensuring flexibility in capturing the shape of the initial yield curve while retaining a parsimonious structure. The presence of \( \sigma(t) \) permits the model to reflect changes in the term structure of interest rate volatilities, which is crucial for accurately pricing interest rate derivatives.
@@ -186,15 +186,15 @@ This formulation allows the short rate to mean-revert toward a time-varying leve
 One of the key strengths of the Hull-White model is its closed-form solution for zero-coupon bond prices. The price \( P(r_t, t, T) \) of a zero-coupon bond maturing at time \( T \), given the short rate at time \( t \), is given by:
 
 \begin{equation}
-P(r_t, t, T) = \exp\left[ A(t, T) - B(t, T) r_t \right],
+	P(r_t, t, T) = \exp\left[ A(t, T) - B(t, T) r_t \right],
 \end{equation}
 
 where the deterministic functions \( A(t, T) \) and \( B(t, T) \) are defined as:
 \begin{equation}
-B(t, T) = \frac{1}{a} \left(1 - e^{-a(T - t)}\right),
+	B(t, T) = \frac{1}{a} \left(1 - e^{-a(T - t)}\right),
 \end{equation}
 \begin{equation}
-A(t, T) = \int_t^T \left[ \theta(s) B(s, T) - \frac{1}{2} \sigma(s)^2 B(s, T)^2 \right] ds.
+	A(t, T) = \int_t^T \left[ \theta(s) B(s, T) - \frac{1}{2} \sigma(s)^2 B(s, T)^2 \right] ds.
 \end{equation}
 
 These solutions emerge from solving the associated partial differential equation for contingent claim prices, under the assumption of a risk-neutral market and bounded market price of risk. The functional form of \( A(t, T) \) links directly to the model's ability to replicate the observed yield curve.
@@ -203,7 +203,7 @@ These solutions emerge from solving the associated partial differential equation
 A notable advantage of the Hull-White model is its analytic tractability for European-style options on bonds, which makes it especially valuable for practical implementation. The lognormality of bond prices under the model’s Gaussian short rate dynamics allows for closed-form expressions for European bond option prices. For instance, a European call option on a discount bond with maturity \( T \) and exercise at \( t_1 < T \) has a pricing formula structurally analogous to the Black formula, with a volatility term given by:
 
 \begin{equation}
-\sigma_P = \sigma(t_1) B(t_1, T),
+	\sigma_P = \sigma(t_1) B(t_1, T),
 \end{equation}
 
 where the bond price volatility is independent of \( r_t \), enabling straightforward evaluation of the option price. Options on coupon-bearing instruments can be priced via decomposition into portfolios of zero-coupon bond options.
@@ -218,13 +218,13 @@ The fundamental insight of Jamshidian’s approach is that a payer (or receiver)
 A European payer swaption gives the holder the right, but not the obligation, to enter at maturity \( T \) into a fixed-for-floating interest rate swap where fixed payments of \( K \) occur at payment dates \( T_1, T_2, \dots, T_n \). Let \( P(t, T_i) \) denote the price at time \( t \) of a zero-coupon bond maturing at \( T_i \), and let \( \alpha_i \) denote the accrual factors (e.g., 0.5 for semiannual payments). The value at time \( t \) of the fixed leg of the swap is:
 
 \begin{equation}
-\text{FixedLeg}(t) = K \sum_{i=1}^n \alpha_i P(t, T_i).    
+	\text{FixedLeg}(t) = K \sum_{i=1}^n \alpha_i P(t, T_i).
 \end{equation}
 
 The value of the floating leg at time \( t \) equals one minus the price of a discount bond maturing at the swap start date \( T_0 \), assuming the swap is par at initiation. The swaption payoff at expiry \( T \) is therefore:
 
 \begin{equation}
-\max\left( \sum_{i=1}^n \alpha_i P(T, T_i) (K - S(T)), 0 \right),
+	\max\left( \sum_{i=1}^n \alpha_i P(T, T_i) (K - S(T)), 0 \right),
 \end{equation}
 
 where \( S(T) \) is the par swap rate at time \( T \).
@@ -232,13 +232,13 @@ where \( S(T) \) is the par swap rate at time \( T \).
 Jamshidian's decomposition allows this multi-cash-flow option to be re-expressed as a portfolio of individual bond options. Specifically, there exists a unique short rate \( r^* \) such that the present value of the fixed leg equals the strike value \( K \sum_{i=1}^n \alpha_i P(T, T_i) \). Formally, we define \( r^* \) as the root of the equation:
 
 \begin{equation}
-\sum_{i=1}^n \alpha_i P(r^*, T, T_i) = \sum_{i=1}^n \alpha_i P(T, T_i),
+	\sum_{i=1}^n \alpha_i P(r^*, T, T_i) = \sum_{i=1}^n \alpha_i P(T, T_i),
 \end{equation}
 
 where \( P(r^*, T, T_i) \) is the model-implied bond price expressed as a function of the short rate. Once \( r^* \) is found, the swaption payoff can be decomposed into a sum of bond option payoffs with the same exercise date \( T \):
 
 \begin{equation}
-\text{Swaption}(t) = \sum_{i=1}^n \alpha_i \cdot \text{Option}(P(t, T_i), K_i),
+	\text{Swaption}(t) = \sum_{i=1}^n \alpha_i \cdot \text{Option}(P(t, T_i), K_i),
 \end{equation}
 
 where each \( K_i = P(r^*, T, T_i) \) acts as the strike price for the bond option maturing at \( T_i \).
@@ -246,59 +246,59 @@ where each \( K_i = P(r^*, T, T_i) \) acts as the strike price for the bond opti
 In the Hull-White model, the price of a European call option on a zero-coupon bond with maturity \( T_i \), strike \( K_i \), and exercise at \( T \) is given by the closed-form formula:
 
 \begin{equation}
-C(t) = P(t, T_i) N(d_1) - K_i P(t, T) N(d_2),
+	C(t) = P(t, T_i) N(d_1) - K_i P(t, T) N(d_2),
 \end{equation}
 
 with
 \begin{equation}
-d_1 = \frac{\ln\left( \frac{P(t, T_i)}{K_i P(t, T)} \right)}{\sigma_P} + \frac{1}{2} \sigma_P, \quad
-d_2 = d_1 - \sigma_P,
+	d_1 = \frac{\ln\left( \frac{P(t, T_i)}{K_i P(t, T)} \right)}{\sigma_P} + \frac{1}{2} \sigma_P, \quad
+	d_2 = d_1 - \sigma_P,
 \end{equation}
 
 and \( \sigma_P \) being the bond price volatility given by:
 
 \begin{equation}
-\sigma_P^2 = \int_t^T \left( \sigma(s) B(s, T_i) - \sigma(s) B(s, T) \right)^2 ds.
+	\sigma_P^2 = \int_t^T \left( \sigma(s) B(s, T_i) - \sigma(s) B(s, T) \right)^2 ds.
 \end{equation}
 
 The full swaption price is obtained by summing the individual bond option prices across all cash flow dates.
 
 \begin{equation}
-\text{Swaption}(t) = \sum_{i=1}^n \alpha_i \left[ P(t, T_i) N(d_1^{(i)}) - K_i P(t, T) N(d_2^{(i)}) \right],
+	\text{Swaption}(t) = \sum_{i=1}^n \alpha_i \left[ P(t, T_i) N(d_1^{(i)}) - K_i P(t, T) N(d_2^{(i)}) \right],
 \end{equation}
 
 \begin{equation}
-\text{with} \quad d_1^{(i)} = \frac{\ln\left( \frac{P(t, T_i)}{K_i P(t, T)} \right)}{\sigma_P^{(i)}} + \frac{1}{2} \sigma_P^{(i)}, \quad d_2^{(i)} = d_1^{(i)} - \sigma_P^{(i)},
+	\text{with} \quad d_1^{(i)} = \frac{\ln\left( \frac{P(t, T_i)}{K_i P(t, T)} \right)}{\sigma_P^{(i)}} + \frac{1}{2} \sigma_P^{(i)}, \quad d_2^{(i)} = d_1^{(i)} - \sigma_P^{(i)},
 \end{equation}
 
 \begin{equation}
-\text{and} \quad \left( \sigma_P^{(i)} \right)^2 = \int_t^T \left[ \sigma(s) B(s, T_i) - \sigma(s) B(s, T) \right]^2 ds,
+	\text{and} \quad \left( \sigma_P^{(i)} \right)^2 = \int_t^T \left[ \sigma(s) B(s, T_i) - \sigma(s) B(s, T) \right]^2 ds,
 \end{equation}
 
 \begin{equation}
-\text{where} \quad K_i = P(r^*, T, T_i),
+	\text{where} \quad K_i = P(r^*, T, T_i),
 \end{equation}
 
 \begin{table}[H]
-\centering
-\caption{Notation for Swaption Pricing via Jamshidian's Decomposition}
-\begin{tabular}{ll}
-\toprule
-\textbf{Symbol} & \textbf{Meaning} \\
-\midrule
-$P(t, T)$ & Price at time $t$ of a zero-coupon bond maturing at $T$ \\
-$T$ & Expiry of the swaption \\
-$T_i$ & Payment date of the $i$-th swap cash flow ($i = 1, \dots, n$) \\
-$\alpha_i$ & Year fraction (accrual factor) between $T_{i-1}$ and $T_i$ \\
-$r^*$ & Unique short rate at expiry $T$ solving the bond portfolio equation \\
-$K_i$ & Strike price of the bond option for maturity $T_i$, i.e., $P(r^*, T, T_i)$ \\
-$\sigma(s)$ & Instantaneous volatility function of the Hull–White model \\
-$B(s, T)$ & Sensitivity function: $B(s, T) = \frac{1 - e^{-a(T - s)}}{a}$ \\
-$\sigma_P^{(i)}$ & Volatility of the bond price ratio $P(t, T_i)/P(t, T)$ \\
-$d_1^{(i)}, d_2^{(i)}$ & Black-type variables for bond option $i$ \\
-$N(\cdot)$ & Standard normal cumulative distribution function \\
-\bottomrule
-\end{tabular}
+	\centering
+	\caption{Notation for Swaption Pricing via Jamshidian's Decomposition}
+	\begin{tabular}{ll}
+		\toprule
+		\textbf{Symbol}        & \textbf{Meaning}                                                           \\
+		\midrule
+		$P(t, T)$              & Price at time $t$ of a zero-coupon bond maturing at $T$                    \\
+		$T$                    & Expiry of the swaption                                                     \\
+		$T_i$                  & Payment date of the $i$-th swap cash flow ($i = 1, \dots, n$)              \\
+		$\alpha_i$             & Year fraction (accrual factor) between $T_{i-1}$ and $T_i$                 \\
+		$r^*$                  & Unique short rate at expiry $T$ solving the bond portfolio equation        \\
+		$K_i$                  & Strike price of the bond option for maturity $T_i$, i.e., $P(r^*, T, T_i)$ \\
+		$\sigma(s)$            & Instantaneous volatility function of the Hull–White model                  \\
+		$B(s, T)$              & Sensitivity function: $B(s, T) = \frac{1 - e^{-a(T - s)}}{a}$              \\
+		$\sigma_P^{(i)}$       & Volatility of the bond price ratio $P(t, T_i)/P(t, T)$                     \\
+		$d_1^{(i)}, d_2^{(i)}$ & Black-type variables for bond option $i$                                   \\
+		$N(\cdot)$             & Standard normal cumulative distribution function                           \\
+		\bottomrule
+	\end{tabular}
 \end{table}
 
 Jamshidian’s decomposition offers significant computational efficiency for one-factor models by reducing a complex multidimensional option pricing problem to a sequence of univariate bond option valuations. Moreover, this approach retains full analytical tractability under the Hull-White framework, allowing for fast and accurate pricing of European swaptions, a critical requirement in both risk management and market calibration contexts.
@@ -308,7 +308,7 @@ The calibration of the one-factor Hull-White model plays a central role in ensur
 
 In practical applications, $a(t)$ and $\sigma(t)$ are commonly assumed to be piecewise constant to simplify the numerical implementation \parencite[p.~7]{gurrieri2009calibration}. However, unconstrained piecewise constant forms can lead to overfitting and parameter instability \parencite[p.~2]{gurrieri2009calibration}. To overcome this, the model is typically calibrated using functional parameterizations, such as logistic forms for $a(t)$ and cubic splines for $\sigma(t)$, to ensure smoothness and stability \parencite[p.~8]{gurrieri2009calibration}.
 
-The calibration process relies on three key inputs: the initial yield curve, which determines $\theta(t)$, market-observed prices or implied volatilities of caplets and swaptions, and a well-defined objective function, often the sum of squared differences between model and market prices or implied volatilities. In particular, European swaptions serve as the primary calibration instruments. These are priced analytically via Jamshidian’s decomposition (see Section~\ref{swaption_pricing}), allowing the decomposition of the swaption payoff into a sum of bond options. The analytical tractability of this decomposition facilitates efficient model evaluation during optimization. 
+The calibration process relies on three key inputs: the initial yield curve, which determines $\theta(t)$, market-observed prices or implied volatilities of caplets and swaptions, and a well-defined objective function, often the sum of squared differences between model and market prices or implied volatilities. In particular, European swaptions serve as the primary calibration instruments. These are priced analytically via Jamshidian’s decomposition (see Section~\ref{swaption_pricing}), allowing the decomposition of the swaption payoff into a sum of bond options. The analytical tractability of this decomposition facilitates efficient model evaluation during optimization.
 
 Three main strategies are typically employed to calibrate the Hull-White model parameters:
 
@@ -321,13 +321,13 @@ Three main strategies are typically employed to calibrate the Hull-White model p
 The choice of calibration instruments significantly impacts the stability and accuracy of the resulting parameters. Two principal approaches are distinguished \parencite[p.~16]{gurrieri2009calibration}:
 
 1. Local (Subset) Calibration: Calibration is restricted to a limited set of co-terminal swaptions (e.g., those maturing at 10Y or 20Y). This reduces the dimension of the optimization problem and allows for good fits on selected instruments, but can result in instability and poor performance on non-calibrated instruments, especially if time-dependent mean reversion is used \parencite[pp.~16--24]{gurrieri2009calibration}.
-    
+
 2. Global (Full Matrix) Calibration: The entire swaption matrix is used in the calibration procedure. This approach provides superior fitting quality across the full market surface and stabilizes the estimation of time-dependent parameters. When functional forms for $a(t)$ and $\sigma(t)$ are used in combination with global calibration, the model can achieve robust and accurate fits without evidence of overfitting. This thesis employs this global strategy for empirical analyses \parencite[pp.~24--29]{gurrieri2009calibration}.
 
 The actual calibration of the Hull-White model is performed by minimizing the discrepancy between observed market data and model-implied quantities \parencite[p.~2]{alaya2021deep}. In practice, this is typically achieved by minimizing the squared differences between market-observed implied volatilities $\hat{\sigma}^{\text{market}}_{i,j}$ and the model-implied volatilities $\hat{\sigma}^{\text{model}}_{i,j}(\boldsymbol{\theta})$, where $(i,j)$ index the swaption expiry and tenor combinations, and $\boldsymbol{\theta}$ denotes the vector of model parameters (e.g., the values of $a(t)$ and $\sigma(t)$). The optimization problem can be formulated as
 
 \begin{equation}
-\min_{\boldsymbol{\theta}} \; \sum_{(i,j) \in \mathcal{I}} w_{i,j} \left( \hat{\sigma}^{\text{model}}_{i,j}(\boldsymbol{\theta}) - \hat{\sigma}^{\text{market}}_{i,j} \right)^2,
+	\min_{\boldsymbol{\theta}} \; \sum_{(i,j) \in \mathcal{I}} w_{i,j} \left( \hat{\sigma}^{\text{model}}_{i,j}(\boldsymbol{\theta}) - \hat{\sigma}^{\text{market}}_{i,j} \right)^2,
 \end{equation}
 
 where $\mathcal{I}$ denotes the set of index pairs corresponding to available market swaptions and $w_{i,j} \geq 0$ are weighting factors that may be used to emphasize certain instruments (e.g., highly liquid swaptions or those near the money)  Alternatively, this objective can be defined in terms of option prices instead of implied volatilities, depending on the availability of reliable market data and numerical stability considerations. The choice of objective function should reflect both the intended use of the model and the data quality. This minimization problem can be solved by algorithms suitable for solving nonlinear least-squares problems such as the Levenberg-Marquardt algorithm (see Section~\ref{lm_algorithm}).
@@ -340,7 +340,7 @@ The Levenberg-Marquardt algorithm is a widely used method for solving nonlinear 
 Given a nonlinear model $f(x; \beta)$ with parameters $\beta = (\beta_1, \dots, \beta_k)$, and observations $\mathbf{y} = (y_1, \dots, y_n)$, the objective is to minimize the cost function
 
 \begin{equation}
-\Phi(\beta) = \sum_{i=1}^{n} \left( y_i - f(x_i; \beta) \right)^2 = \| y - \hat{y}(\beta) \|^2.
+	\Phi(\beta) = \sum_{i=1}^{n} \left( y_i - f(x_i; \beta) \right)^2 = \| y - \hat{y}(\beta) \|^2.
 \end{equation}
 
 The algorithm interpolates between two classical optimization strategies:
@@ -352,13 +352,13 @@ The algorithm interpolates between two classical optimization strategies:
 The Levenberg-Marquardt method combines these approaches by updating the parameter vector $\beta$ iteratively. In each iteration, the nonlinear model is linearized via a first-order Taylor expansion:
 
 \begin{equation}
-\hat{y}(\beta + \delta) \approx \hat{y}(\beta) + J \delta,
+	\hat{y}(\beta + \delta) \approx \hat{y}(\beta) + J \delta,
 \end{equation}
 
 where $J$ is the Jacobian matrix of partial derivatives with elements $J_{ij} = \frac{\partial f(x_i; \beta)}{\partial \beta_j}$ evaluated at the current parameter vector. The correction vector $\delta$ is then determined by solving the following regularized normal equation:
 
 \begin{equation}
-(J^\top J + \lambda I)\delta = J^\top (y - \hat{y}(\beta)),
+	(J^\top J + \lambda I)\delta = J^\top (y - \hat{y}(\beta)),
 \end{equation}
 
 where $\lambda$ is a damping parameter, and $I$ is the identity matrix.
@@ -378,7 +378,7 @@ Neural networks are computational models inspired by the structure and function 
 \subsubsection{Types of Problems Solved by Neural Networks}
 Neural networks have proven to be powerful and versatile tools for solving a wide variety of computational problems. While they are traditionally associated with regression and classification tasks, modern neural architectures are capable of addressing a broader spectrum of problems across supervised, unsupervised, and reinforcement learning paradigms. This section provides an overview of the principal problem types solvable by neural networks.
 
-Regression Problems: In regression tasks, the goal is to predict continuous numerical values based on input features. Neural networks learn a mapping from input vectors to a real-valued output, typically by minimizing a loss function such as the mean squared error \parencite[p.~99]{goodfellow2016deeplearning}. Applications include time series forecasting, energy demand prediction, and asset price estimation. 
+Regression Problems: In regression tasks, the goal is to predict continuous numerical values based on input features. Neural networks learn a mapping from input vectors to a real-valued output, typically by minimizing a loss function such as the mean squared error \parencite[p.~99]{goodfellow2016deeplearning}. Applications include time series forecasting, energy demand prediction, and asset price estimation.
 
 Classification Problems: Classification involves assigning input data to one or more discrete categories \parencite[p.~98]{goodfellow2016deeplearning}. Neural networks trained for classification tasks typically use softmax activation in the output layer and categorical cross-entropy as a loss function. Common applications include image recognition, sentiment analysis, fraud detection, and medical diagnosis.
 
@@ -386,24 +386,20 @@ Clustering: Clustering is an unsupervised learning problem where the aim is to g
 
 Dimensionality Reduction: Dimensionality reduction seeks to project high-dimensional data into a lower-dimensional space while preserving meaningful structure. Neural networks can perform this task using autoencoders, which compress the data into a latent representation and then reconstruct it \parencite{hinton2006dimensionalityreduction}. Such techniques are widely used in data visualization, noise reduction, and feature extraction.
 
-Generative Modeling: Generative models aim to learn the underlying distribution of the training data in order to generate new, synthetic instances that resemble the original data. Examples of neural generative models include Variational Autoencoders (VAEs), Generative Adversarial Networks (GANs), and autoregressive models. These models are applied in image synthesis, data augmentation, and natural language generation.
-
-Reinforcement Learning: In reinforcement learning (RL), agents learn to take actions in an environment to maximize a long-term reward signal. Neural networks serve as function approximators for value functions or policies in deep reinforcement learning frameworks such as Deep Q-Networks (DQNs) and Actor-Critic methods. RL applications include robotics control, autonomous driving, game-playing agents, and resource optimization.
-
-Sequence Modeling and Time Series Forecasting: Sequence modeling involves learning dependencies across ordered data, such as text, audio, or financial time series. Recurrent Neural Networks (RNNs), Long Short-Term Memory (LSTM) networks, and Transformer-based architectures are well-suited to these tasks. Applications include machine translation, speech recognition, and predictive maintenance (Goodfellow-et-al-2016).
+Reinforcement Learning: In reinforcement learning (RL), agents learn to take actions in an environment to maximize a long-term reward signal \parencite[pp.~2--3]{sutton2015reinforcement}. Neural networks serve as function approximators for value functions or policies in deep reinforcement learning frameworks such as Deep Q-Networks (DQNs) and Actor-Critic methods. RL applications include robotics control, autonomous driving, game-playing agents, and resource optimization.
 
 \subsubsection{Architecture}
-At the fundamental level, the basic unit of a neural network is referred to as a \textit{neuron} or \textit{node}. Each neuron receives one or more input signals, which are combined using a set of learnable parameters called \textit{weights}. These weighted inputs are summed and passed through a non-linear transformation known as an \textit{activation function}, which determines the neuron's output. The activation function introduces non-linearity into the model, enabling the network to learn complex patterns in the data. Commonly used activation functions in neural networks include the sigmoid function, the hyperbolic tangent (\textit{tanh}), and the Rectified Linear Unit (ReLU). Each of these functions introduces non-linearity into the model, enabling the network to capture complex patterns in the input data. The sigmoid and \textit{tanh} functions are smooth, bounded, and differentiable, making them suitable for problems requiring normalized outputs. In contrast, the ReLU function, defined as $f(x) = \max(0, x)$, is computationally efficient and mitigates the vanishing gradient problem, thereby facilitating the training of deep neural networks.
+At the fundamental level, the basic unit of a neural network is referred to as a \textit{neuron} or \textit{node}. Each neuron receives one or more input signals, which are combined using a set of learnable parameters called \textit{weights} \parencite[p.~4]{mienye2024nncomprehensivereview}. These weighted inputs are summed and passed through a non-linear transformation known as an \textit{activation function}, which determines the neuron's output \parencite[pp.~4--5]{mienye2024nncomprehensivereview}. The activation function introduces non-linearity into the model, enabling the network to learn complex patterns in the data. Commonly used activation functions in neural networks include the sigmoid function, the hyperbolic tangent (\textit{tanh}), and the Rectified Linear Unit (ReLU). Each of these functions introduces non-linearity into the model, enabling the network to capture complex patterns in the input data. The sigmoid and \textit{tanh} functions are smooth, bounded, and differentiable, making them suitable for problems requiring normalized outputs. In contrast, the ReLU function, defined as $f(x) = \max(0, x)$, is computationally efficient and mitigates the vanishing gradient problem, thereby facilitating the training of deep neural networks.
 
-Neural networks are typically organized into a series of layers:
+Neural networks are typically organized into a series of layers \parencite[p.~4]{mienye2024nncomprehensivereview}:
 
 Input Layer: The input layer is the first layer of the neural network and serves solely as the interface for receiving external data. Each neuron in this layer corresponds to a single feature or variable in the input vector. Importantly, neurons in the input layer do not perform any computation; instead, they transmit the raw input signals to the subsequent layer in the network.
-    
+
 Hidden Layer(s): Hidden layers are situated between the input and output layers and consist of neurons that perform intermediate computations. These layers are termed "hidden" because they are not directly observable from the input or output. The primary function of hidden layers is to transform the input data into more abstract representations through successive linear and non-linear operations. Networks with more than one hidden layer are referred to as deep neural networks, which can model highly intricate data relationships. Each neuron in a hidden layer is typically fully connected to all neurons in the preceding and succeeding layers, although sparse (partially connected) architectures are also used.
-    
+
 Output Layer: The output layer is the final layer in the network and produces the model's predictions. The structure and activation function of this layer are typically chosen based on the nature of the problem—for example, a softmax activation function is used for multi-class classification, while a linear activation may be used for regression tasks.
 
-The design of a neural network—such as the number of hidden layers, the number of neurons per layer, and the choice of activation functions—determines its capacity to learn and generalize from data. Proper configuration and training of these networks are essential to achieving optimal performance on a given task (Sazli, 2006).
+The design of a neural network—such as the number of hidden layers, the number of neurons per layer, and the choice of activation functions—determines its capacity to learn and generalize from data. Proper configuration and training of these networks are essential to achieving optimal performance on a given task \parencite{sazli2006feedforwardnn}.
 
 \subsubsection{Learning in Neural Networks: The Back-Propagation Algorithm}
 
@@ -413,84 +409,84 @@ Among the various learning algorithms, the \textit{back-propagation algorithm} i
 
 Let $y_j(n)$ denote the actual output of neuron $j$ at iteration $n$, and let $d_j$ be the corresponding desired output. The difference between the desired and actual output is quantified using a measure known as the \textit{error energy}. For each neuron \( j \) in the output layer, the error signal \( e_j(n) \) is defined as:
 \begin{equation}
-    e_j(n) = d_j - y_j(n)
+	e_j(n) = d_j - y_j(n)
 \end{equation}
 
 The \textit{instantaneous error energy} for neuron \( j \) at iteration \( n \), denoted by \( \epsilon_j(n) \), is calculated as half the square of the error signal:
 \begin{equation}
-    \epsilon_j(n) = \frac{1}{2} e_j^2(n)
+	\epsilon_j(n) = \frac{1}{2} e_j^2(n)
 \end{equation}
 
 This squared formulation ensures that the error energy is always non-negative and penalizes larger deviations more strongly. To evaluate the total discrepancy for the entire output layer \( Q \), the \textit{total error energy} \( \epsilon(n) \) is computed as the sum of the individual error energies:
 \begin{equation}
-    \epsilon(n) = \sum_{j \in Q} \epsilon_j(n)
+	\epsilon(n) = \sum_{j \in Q} \epsilon_j(n)
 \end{equation}
 
 Minimizing this total error energy is the central objective of the back-propagation learning algorithm, which iteratively adjusts the network’s synaptic weights to reduce the mismatch between predicted and target outputs. The error signal $e_j(n)$ for neuron $j$ is defined as:
 \begin{equation}
-    e_j(n) = d_j - y_j(n)
+	e_j(n) = d_j - y_j(n)
 \end{equation}
 
 The instantaneous error energy $\epsilon_j(n)$ associated with neuron $j$ is then given by:
 \begin{equation}
-    \epsilon_j(n) = \frac{1}{2} e_j^2(n)
+	\epsilon_j(n) = \frac{1}{2} e_j^2(n)
 \end{equation}
 
 The total instantaneous error energy $\epsilon(n)$ over all neurons $j \in Q$ in the output layer $Q$ is computed as:
 \begin{equation}
-    \epsilon(n) = \sum_{j \in Q} \epsilon_j(n)
+	\epsilon(n) = \sum_{j \in Q} \epsilon_j(n)
 \end{equation}
 
 To reduce the total error energy $\epsilon(n)$, the synaptic weights $w_{ji}(n)$ are updated using the gradient descent method. The weight update rule is expressed as:
 \begin{equation} \label{weight_update_equation}
-    \Delta w_{ji}(n) = -\eta \frac{\partial \epsilon(n)}{\partial w_{ji}(n)}
+	\Delta w_{ji}(n) = -\eta \frac{\partial \epsilon(n)}{\partial w_{ji}(n)}
 \end{equation}
 where $\eta$ is the learning rate, a small positive constant controlling the step size.
 
 To compute the partial derivative $\frac{\partial \epsilon(n)}{\partial w_{ji}(n)}$, the chain rule is applied:
 \begin{equation} \label{nn_partial_derivative}
-    \frac{\partial \epsilon(n)}{\partial w_{ji}(n)} = 
-    \frac{\partial \epsilon(n)}{\partial e_j(n)} \cdot 
-    \frac{\partial e_j(n)}{\partial y_j(n)} \cdot 
-    \frac{\partial y_j(n)}{\partial w_{ji}(n)}
+	\frac{\partial \epsilon(n)}{\partial w_{ji}(n)} =
+	\frac{\partial \epsilon(n)}{\partial e_j(n)} \cdot
+	\frac{\partial e_j(n)}{\partial y_j(n)} \cdot
+	\frac{\partial y_j(n)}{\partial w_{ji}(n)}
 \end{equation}
 
 Each term in this product is derived as follows:
 
 \begin{equation} \label{nn_partial_derivative_term1}
-    \frac{\partial \epsilon(n)}{\partial e_j(n)} = e_j(n)
+	\frac{\partial \epsilon(n)}{\partial e_j(n)} = e_j(n)
 \end{equation}
 \begin{equation} \label{nn_partial_derivative_term2}
-    \frac{\partial e_j(n)}{\partial y_j(n)} = -1
+	\frac{\partial e_j(n)}{\partial y_j(n)} = -1
 \end{equation}
 \begin{equation} \label{nn_partial_derivative_term3}
-    \frac{\partial y_j(n)}{\partial w_{ji}(n)} = 
-    f'\left(\sum_{i=0}^{m} w_{ji}(n) y_i(n)\right) \cdot y_i(n)
+	\frac{\partial y_j(n)}{\partial w_{ji}(n)} =
+	f'\left(\sum_{i=0}^{m} w_{ji}(n) y_i(n)\right) \cdot y_i(n)
 \end{equation}
 where $f'(\cdot)$ is the derivative of the activation function of neuron $j$, and $y_i(n)$ is the output of neuron $i$ in the preceding layer.
 
 Substituting Equations~\ref{nn_partial_derivative_term1},~\ref{nn_partial_derivative_term2}, and~\ref{nn_partial_derivative_term3} into Equation~\ref{nn_partial_derivative} yields:
 \begin{equation}
-    \frac{\partial \epsilon(n)}{\partial w_{ji}(n)} = 
-    -e_j(n) \cdot f'\left(\sum_{i=0}^{m} w_{ji}(n) y_i(n)\right) \cdot y_i(n)
+	\frac{\partial \epsilon(n)}{\partial w_{ji}(n)} =
+	-e_j(n) \cdot f'\left(\sum_{i=0}^{m} w_{ji}(n) y_i(n)\right) \cdot y_i(n)
 \end{equation}
 
 Inserting this result into the weight update rule (Equation~\ref{weight_update_equation}) gives the final expression for the synaptic weight adjustment:
 \begin{equation}
-    \Delta w_{ji}(n) = \eta \cdot e_j(n) \cdot f'\left(\sum_{i=0}^{m} w_{ji}(n) y_i(n)\right) \cdot y_i(n)
+	\Delta w_{ji}(n) = \eta \cdot e_j(n) \cdot f'\left(\sum_{i=0}^{m} w_{ji}(n) y_i(n)\right) \cdot y_i(n)
 \end{equation}
 
-This process of computing the output error, back-propagating it through the network, and updating the weights is performed iteratively for each training sample. Over time, the network's parameters converge such that the output increasingly approximates the desired targets, thereby enabling the network to generalize and make accurate predictions on unseen data. This iterative optimization process is typically continued until the total error $\epsilon(n)$ reaches an acceptably low threshold or a maximum number of training epochs is completed (Sazli 2006).
+This process of computing the output error, back-propagating it through the network, and updating the weights is performed iteratively for each training sample. Over time, the network's parameters converge such that the output increasingly approximates the desired targets, thereby enabling the network to generalize and make accurate predictions on unseen data. This iterative optimization process is typically continued until the total error $\epsilon(n)$ reaches an acceptably low threshold or a maximum number of training epochs is completed \parencite{sazli2006feedforwardnn}.
 
 \subsubsection{The Hyperband Algorithm for Hyperparameter Optimization}
 \label{subsec:hyperband_algorithm}
 
-The performance of neural networks depends critically on the choice of hyperparameters, such as learning rate, batch size, number of layers, or regularization strength. Since these hyperparameters are not learned from data, their optimal configuration must be determined externally through hyperparameter optimization. Traditional methods such as grid search or random search are computationally inefficient, particularly when training deep neural networks. The \textit{Hyperband} algorithm, introduced by Li et al.\ (2018), provides an efficient, theoretically grounded framework for hyperparameter selection based on the principle of adaptive resource allocation and early stopping.
+The performance of neural networks depends critically on the choice of hyperparameters, such as learning rate, batch size, number of layers, or regularization strength. Since these hyperparameters are not learned from data, their optimal configuration must be determined externally through hyperparameter optimization. Traditional methods such as grid search or random search are computationally inefficient, particularly when training deep neural networks. The \textit{Hyperband} algorithm, introduced by \textcite{li2017hyperband}, provides an efficient, theoretically grounded framework for hyperparameter selection based on the principle of adaptive resource allocation and early stopping.
 
 Let $\mathcal{H}$ denote the hyperparameter space, and let $f : \mathcal{H} \rightarrow \mathbb{R}$ be a performance function (e.g., validation loss or error) that maps a hyperparameter configuration $h \in \mathcal{H}$ to its corresponding validation loss after training with a finite computational budget. The goal is to find
 \begin{equation}
-    h^* = \arg\min_{h \in \mathcal{H}} f(h),
-    \label{eq:hyperband_objective}
+	h^* = \arg\min_{h \in \mathcal{H}} f(h),
+	\label{eq:hyperband_objective}
 \end{equation}
 subject to a total computational budget $B_{\text{total}}$.
 
@@ -498,9 +494,9 @@ Hyperband frames this optimization as a \emph{multi-armed bandit} problem, in wh
 
 The core component of Hyperband is the \textit{Successive Halving} (SH) procedure. Suppose $n$ configurations are sampled uniformly at random from $\mathcal{H}$ and each is trained for an initial budget $r$ (e.g., number of epochs or training samples). Their performances $\{f_i\}_{i=1}^{n}$ are evaluated, and only the top fraction $\frac{1}{\eta}$ is retained, where $\eta > 1$ is the \textit{reduction factor}. The surviving configurations are then trained for $\eta$ times the previous budget, and the process repeats. Formally, the iterative process for SH can be summarized as:
 \begin{align}
-    n_j &= \left\lfloor n \cdot \eta^{-j} \right\rfloor, \\
-    r_j &= r \cdot \eta^{j},
-    \label{eq:successive_halving}
+	n_j & = \left\lfloor n \cdot \eta^{-j} \right\rfloor, \\
+	r_j & = r \cdot \eta^{j},
+	\label{eq:successive_halving}
 \end{align}
 for stages $j = 0, 1, \ldots, s_{\max}$, where $n_j$ is the number of configurations and $r_j$ is the resource budget per configuration at stage $j$. At each stage, the best $\lfloor n_j / \eta \rfloor$ configurations are promoted.
 
@@ -508,42 +504,42 @@ While Successive Halving requires a predefined $(n, r)$ pair, Hyperband systemat
 
 For each bracket $s$, Hyperband computes:
 \begin{align}
-    s_{\max} &= \left\lfloor \log_{\eta} R \right\rfloor, \\
-    n_s &= \left\lceil \frac{s_{\max} + 1}{s + 1} \eta^s \right\rceil, \\
-    r_s &= \frac{R}{\eta^s},
-    \label{eq:hyperband_parameters}
+	s_{\max} & = \left\lfloor \log_{\eta} R \right\rfloor,                   \\
+	n_s      & = \left\lceil \frac{s_{\max} + 1}{s + 1} \eta^s \right\rceil, \\
+	r_s      & = \frac{R}{\eta^s},
+	\label{eq:hyperband_parameters}
 \end{align}
 where $R$ denotes the maximum allowable resource per configuration (e.g., maximum number of training epochs).
 
 Each bracket executes a full Successive Halving run with its respective $(n_s, r_s)$ values. This design enables Hyperband to balance between two extremes:
 \begin{itemize}
-    \item \textbf{Wide exploration} (large $n_s$, small $r_s$): testing many configurations briefly.
-    \item \textbf{Deep exploitation} (small $n_s$, large $r_s$): fully training fewer configurations.
+	\item Wide exploration (large $n_s$, small $r_s$): testing many configurations briefly.
+	\item Deep exploitation (small $n_s$, large $r_s$): fully training fewer configurations.
 \end{itemize}
 
 The total computational cost per bracket is approximately constant, ensuring that the overall budget $B_{\text{total}}$ is respected:
 \begin{equation}
-    B_{\text{total}} \approx (s_{\max} + 1) R.
+	B_{\text{total}} \approx (s_{\max} + 1) R.
 \end{equation}
 
 The Hyperband procedure can be summarized as follows:
 \begin{enumerate}
-    \item For each bracket $s = s_{\max}, s_{\max}-1, \ldots, 0$:
-    \begin{enumerate}
-        \item Sample $n_s$ configurations $\{h_{s,i}\}_{i=1}^{n_s}$ uniformly from $\mathcal{H}$.
-        \item Run Successive Halving with initial resource $r_s$ and reduction factor $\eta$.
-        \item Record the best-performing configuration $h_s^*$ in each bracket.
-    \end{enumerate}
-    \item Select the globally best configuration
-    \begin{equation}
-        h^* = \arg\min_{s} f(h_s^*).
-    \end{equation}
+	\item For each bracket $s = s_{\max}, s_{\max}-1, \ldots, 0$:
+	      \begin{enumerate}
+		      \item Sample $n_s$ configurations $\{h_{s,i}\}_{i=1}^{n_s}$ uniformly from $\mathcal{H}$.
+		      \item Run Successive Halving with initial resource $r_s$ and reduction factor $\eta$.
+		      \item Record the best-performing configuration $h_s^*$ in each bracket.
+	      \end{enumerate}
+	\item Select the globally best configuration
+	      \begin{equation}
+		      h^* = \arg\min_{s} f(h_s^*).
+	      \end{equation}
 \end{enumerate}
 
 The Hyperband algorithm enjoys strong theoretical guarantees under mild regularity assumptions. Li et al.\ (2018) show that it achieves an asymptotically optimal trade-off between the number of configurations and resources allocated, with expected simple regret bounded by
 \begin{equation}
-    \mathbb{E}\left[f(h^*) - f^*\right] = \mathcal{O}\left(\sqrt{\frac{\log n}{B_{\text{total}}}}\right),
-    \label{eq:hyperband_regret}
+	\mathbb{E}\left[f(h^*) - f^*\right] = \mathcal{O}\left(\sqrt{\frac{\log n}{B_{\text{total}}}}\right),
+	\label{eq:hyperband_regret}
 \end{equation}
 where $f^* = \min_{h \in \mathcal{H}} f(h)$ denotes the true optimal performance. This result demonstrates that Hyperband is provably more efficient than random search and grid search in expectation.
 
@@ -560,10 +556,10 @@ Kernel
 
 
 \subsection{Related Work}
-Alvarez et al. (2022) demonstrated that the prices generated by a one-factor Hull-White model which uses parameters calibrated by a NN which was trained to learn the inverse relationship between swaption prices and the model parameters $\alpha$ and $\sigma$ were close to the observed market prices, suggesting that the NN is an effective method for accurately calibrating the model parameters.
+\textcite{alvarez2022hullwhite} demonstrated that the prices generated by a one-factor Hull-White model which uses parameters calibrated by a NN which was trained to learn the inverse relationship between swaption prices and the model parameters $\alpha$ and $\sigma$ were close to the observed market prices, suggesting that the NN is an effective method for accurately calibrating the model parameters.
 
-Hernandez (2016) examines the use of artificial NNs to replace traditional global optimization methods in the calibration of the two-factor Hull-White model. While global optimization methods are better at avoiding local minima, they are slower than local optimizers. The proposed approach uses a NN to approximate the calibration function, shifting the computational effort to an offline training phase. This enables the actual calibration process to be performed in a fraction of the time compared to global optimizers. The results show that using NNs for calibration offers significant time savings, with the process being much faster and more consistent than traditional methods. However, the performance of the NN degrades over time, though this can be mitigated by periodically retraining the model.
+\textcite{hernandez2016model} examines the use of artificial NNs to replace traditional global optimization methods in the calibration of the two-factor Hull-White model. While global optimization methods are better at avoiding local minima, they are slower than local optimizers. The proposed approach uses a NN to approximate the calibration function, shifting the computational effort to an offline training phase. This enables the actual calibration process to be performed in a fraction of the time compared to global optimizers. The results show that using NNs for calibration offers significant time savings, with the process being much faster and more consistent than traditional methods. However, the performance of the NN degrades over time, though this can be mitigated by periodically retraining the model.
 
-Alaya et al. (2021) also investigate the use of NNs for the calibration of interest rate models, focusing on the G2++ model and the CIR intensity model. The paper proposes using Deep Calibration (DC) to improve this process, making calibration faster, more accurate, and easier to handle. Two main approaches for DC are presented: Indirect Deep Calibration (Indirect DC), which uses intermediate quantities like covariance matrices derived from market data, and Direct Deep Calibration (Direct DC), which uses market-observable zero-coupon (ZC) rate curves directly. Both methods demonstrate significant time savings, with Direct DC being particularly efficient due to its simplicity and lower computational costs. The paper also highlights the advantages of training on synthetic data, which allows for large datasets, stress-testing scenarios, and direct error measurement. The results show that DC significantly reduces calibration time compared to classical methods, with Direct DC being up to 7,600 times faster. Moreover, DC achieves good accuracy and is more resilient to noise in the data, outperforming traditional calibration methods in terms of global error across all parameters. The approaches also work well when applied to other models, such as the CIR intensity model. Overall, the study demonstrates that DL-based DC methods offer a practical, efficient alternative for calibrating financial models, with potential applications in various financial contexts.
+\textcite{alaya2021deep} also investigate the use of NNs for the calibration of interest rate models, focusing on the G2++ model and the CIR intensity model. The paper proposes using Deep Calibration (DC) to improve this process, making calibration faster, more accurate, and easier to handle. Two main approaches for DC are presented: Indirect Deep Calibration (Indirect DC), which uses intermediate quantities like covariance matrices derived from market data, and Direct Deep Calibration (Direct DC), which uses market-observable zero-coupon (ZC) rate curves directly. Both methods demonstrate significant time savings, with Direct DC being particularly efficient due to its simplicity and lower computational costs. The paper also highlights the advantages of training on synthetic data, which allows for large datasets, stress-testing scenarios, and direct error measurement. The results show that DC significantly reduces calibration time compared to classical methods, with Direct DC being up to 7,600 times faster. Moreover, DC achieves good accuracy and is more resilient to noise in the data, outperforming traditional calibration methods in terms of global error across all parameters. The approaches also work well when applied to other models, such as the CIR intensity model. Overall, the study demonstrates that DL-based DC methods offer a practical, efficient alternative for calibrating financial models, with potential applications in various financial contexts.
 
-Moysiadis et al. (2019) focussed on the calibration of the mean reversion speed parameter in the one-factor Hull-White model and proposed a method in which a NN is utilized to learn the future movement of interest rates based on historical data. The primary aim was to extract the mean reversion parameter from the derivative of the function learned by the NN which approximates the future rate. The approach emphasizes the robustness of the model, particularly its ability to handle market turbulence. The results demonstrate that the NN-based method delivers mean reversion values comparable to those obtained using a rolling linear regression, a standard method.
+\textcite{moysiadis2019calibrating} focussed on the calibration of the mean reversion speed parameter in the one-factor Hull-White model and proposed a method in which a NN is utilized to learn the future movement of interest rates based on historical data. The primary aim was to extract the mean reversion parameter from the derivative of the function learned by the NN which approximates the future rate. The approach emphasizes the robustness of the model, particularly its ability to handle market turbulence. The results demonstrate that the NN-based method delivers mean reversion values comparable to those obtained using a rolling linear regression, a standard method.

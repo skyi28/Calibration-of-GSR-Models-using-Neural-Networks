@@ -122,6 +122,55 @@
       \verb https://doi.org/10.48550/arxiv.1801.07648
       \endverb
     \endentry
+    \entry{alvarez2022hullwhite}{report}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=4b0d42072e18732befd82cb17593996f}{%
+           family={Alvarez},
+           familyi={A\bibinitperiod},
+           given={Hernan},
+           giveni={H\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=cb717f84396b203a6d9f2923cdb7488e}{%
+           family={Sacchi},
+           familyi={S\bibinitperiod},
+           given={Riccardo},
+           giveni={R\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=7359d498bf4af73cd3a7a37ed1a7b032}{%
+           family={Señaris},
+           familyi={S\bibinitperiod},
+           given={Tomás},
+           giveni={T\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{institution}{1}{%
+        {Barcelona School of Economics}%
+      }
+      \strng{namehash}{5324298ed082550a0983ab47460b4060}
+      \strng{fullhash}{917b54f6da6d506abebb7931fa765a3f}
+      \strng{fullhashraw}{917b54f6da6d506abebb7931fa765a3f}
+      \strng{bibnamehash}{917b54f6da6d506abebb7931fa765a3f}
+      \strng{authorbibnamehash}{917b54f6da6d506abebb7931fa765a3f}
+      \strng{authornamehash}{5324298ed082550a0983ab47460b4060}
+      \strng{authorfullhash}{917b54f6da6d506abebb7931fa765a3f}
+      \strng{authorfullhashraw}{917b54f6da6d506abebb7931fa765a3f}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Hull-White Calibration for Swaptions Using NNs}
+      \field{type}{techreport}
+      \field{year}{2022}
+      \verb{urlraw}
+      \verb https://repositori-api.upf.edu/api/core/bitstreams/8bae6b11-7b9e-44a8-8b8e-6ac7ec51c920/content
+      \endverb
+      \verb{url}
+      \verb https://repositori-api.upf.edu/api/core/bitstreams/8bae6b11-7b9e-44a8-8b8e-6ac7ec51c920/content
+      \endverb
+    \endentry
     \entry{baaquie2010asianswaptions}{article}{}{}
       \name{author}{1}{}{%
         {{un=0,uniquepart=base,hash=0c2871bd9fa536b453647c79b16eff09}{%
@@ -336,6 +385,43 @@
       \endverb
       \verb{url}
       \verb https://doi.org/10.2139/ssrn.1514192
+      \endverb
+    \endentry
+    \entry{hernandez2016model}{article}{}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=2b6f434529ec9cb0b33d2b3746bc5125}{%
+           family={Hernandez},
+           familyi={H\bibinitperiod},
+           given={Alejandro},
+           giveni={A\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{fullhash}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{fullhashraw}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{bibnamehash}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{authorbibnamehash}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{authornamehash}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{authorfullhash}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{authorfullhashraw}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{SSRN Electronic Journal}
+      \field{title}{Model Calibration with NNs}
+      \field{year}{2016}
+      \verb{doi}
+      \verb 10.2139/ssrn.2812140
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.2139/ssrn.2812140
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.2139/ssrn.2812140
       \endverb
     \endentry
     \entry{hinton2006dimensionalityreduction}{article}{}{}
@@ -649,6 +735,68 @@
       \endverb
       \keyw{Hull–White model,Maximum likelihood,Joint measure modelling,Risk and portfolio management,Derivatives pricing on illiquid markets}
     \endentry
+    \entry{li2017hyperband}{article}{}{}
+      \name{author}{5}{}{%
+        {{un=0,uniquepart=base,hash=1f8dc2db3fb2bdd7a51ade713872affb}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Lisha},
+           giveni={L\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=240fa0e010cb30dc1e40c10157f58276}{%
+           family={Jamieson},
+           familyi={J\bibinitperiod},
+           given={Kevin},
+           giveni={K\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=c8aac6375fc368da68554e7a98cc4ae9}{%
+           family={DeSalvo},
+           familyi={D\bibinitperiod},
+           given={Giulia},
+           giveni={G\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=7aef26bccf2dba53f4b3c49adfb2983e}{%
+           family={Rostamizadeh},
+           familyi={R\bibinitperiod},
+           given={Afshin},
+           giveni={A\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=70e0fe957473b80f1b1b5dcb8e99d31e}{%
+           family={Talwalkar},
+           familyi={T\bibinitperiod},
+           given={Ameet},
+           giveni={A\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{60c45ec23c5a0d5531344a38753d8d90}
+      \strng{fullhash}{5cff1402032f5d8014288fda8317ceda}
+      \strng{fullhashraw}{5cff1402032f5d8014288fda8317ceda}
+      \strng{bibnamehash}{5cff1402032f5d8014288fda8317ceda}
+      \strng{authorbibnamehash}{5cff1402032f5d8014288fda8317ceda}
+      \strng{authornamehash}{60c45ec23c5a0d5531344a38753d8d90}
+      \strng{authorfullhash}{5cff1402032f5d8014288fda8317ceda}
+      \strng{authorfullhashraw}{5cff1402032f5d8014288fda8317ceda}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Machine Learning Research}
+      \field{number}{1}
+      \field{title}{Hyperband: A Novel Bandit-Based Approach to Hyperparameter Optimization}
+      \field{volume}{18}
+      \field{year}{2017}
+      \field{pages}{6765\bibrangedash 6816}
+      \range{pages}{52}
+      \verb{urlraw}
+      \verb https://jmlr.org/papers/volume18/16-558/16-558.pdf
+      \endverb
+      \verb{url}
+      \verb https://jmlr.org/papers/volume18/16-558/16-558.pdf
+      \endverb
+    \endentry
     \entry{longstaff2001valuingamericanoptions}{article}{}{}
       \name{author}{2}{}{%
         {{un=0,uniquepart=base,hash=e71b38b1dda4825d90c876ccee823376}{%
@@ -740,6 +888,103 @@
       \verb https://doi.org/10.1137/0111030
       \endverb
     \endentry
+    \entry{mienye2024nncomprehensivereview}{article}{}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=4d37bfd99fc41542a709007a534d2a4b}{%
+           family={Mienye},
+           familyi={M\bibinitperiod},
+           given={Ibomoiye\bibnamedelima Domor},
+           giveni={I\bibinitperiod\bibinitdelim D\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=7dfecb58f5b9402ef9303cb0d215c506}{%
+           family={Swart},
+           familyi={S\bibinitperiod},
+           given={Theo\bibnamedelima G.},
+           giveni={T\bibinitperiod\bibinitdelim G\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{fullhash}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{fullhashraw}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{bibnamehash}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{authorbibnamehash}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{authornamehash}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{authorfullhash}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{authorfullhashraw}{01a5490c5ca76e753d596b0b3f1f7837}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{2078-2489}
+      \field{journaltitle}{Information}
+      \field{number}{12}
+      \field{title}{A Comprehensive Review of Deep Learning: Architectures, Recent Advances, and Applications}
+      \field{volume}{15}
+      \field{year}{2024}
+      \verb{doi}
+      \verb 10.3390/info15120755
+      \endverb
+      \verb{urlraw}
+      \verb https://www.mdpi.com/2078-2489/15/12/755
+      \endverb
+      \verb{url}
+      \verb https://www.mdpi.com/2078-2489/15/12/755
+      \endverb
+    \endentry
+    \entry{moysiadis2019calibrating}{inbook}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=faaabbb9ce023c0fe9196cfb545e4cda}{%
+           family={Moysiadis},
+           familyi={M\bibinitperiod},
+           given={Georgios},
+           giveni={G\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=f298b8338dc7ae5bf171791f91008703}{%
+           family={Anagnostou},
+           familyi={A\bibinitperiod},
+           given={Ioannis},
+           giveni={I\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=48dfd41f481311b294ec3ee437ee96b2}{%
+           family={Kandhai},
+           familyi={K\bibinitperiod},
+           given={Drona},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{7cf8000f0834d1191d950709ec125560}
+      \strng{fullhash}{1cb78107a303d2e0c0eff09616334d0d}
+      \strng{fullhashraw}{1cb78107a303d2e0c0eff09616334d0d}
+      \strng{bibnamehash}{1cb78107a303d2e0c0eff09616334d0d}
+      \strng{authorbibnamehash}{1cb78107a303d2e0c0eff09616334d0d}
+      \strng{authornamehash}{7cf8000f0834d1191d950709ec125560}
+      \strng{authorfullhash}{1cb78107a303d2e0c0eff09616334d0d}
+      \strng{authorfullhashraw}{1cb78107a303d2e0c0eff09616334d0d}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Lecture Notes in Computer Science}
+      \field{title}{Calibrating the Mean-Reversion Parameter in the Hull-White Model Using NNs}
+      \field{year}{2019}
+      \field{pages}{23\bibrangedash 36}
+      \range{pages}{14}
+      \verb{doi}
+      \verb 10.1007/978-3-030-13463-1_2
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1007/978-3-030-13463-1_2
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1007/978-3-030-13463-1_2
+      \endverb
+    \endentry
     \entry{rebonato2004interest}{book}{}{}
       \name{author}{1}{}{%
         {{un=0,uniquepart=base,hash=97ac04c59cb2232ff66b5c201b536369}{%
@@ -780,6 +1025,43 @@
       \verb{url}
       \verb https://doi.org/10.1002/9781118673539
       \endverb
+    \endentry
+    \entry{sazli2006feedforwardnn}{article}{}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=f1181eb14fc7b417612829efbe39ca07}{%
+           family={Sazli},
+           familyi={S\bibinitperiod},
+           given={Murat\bibnamedelima H.},
+           giveni={M\bibinitperiod\bibinitdelim H\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{publisher}{1}{%
+        {Ankara University}%
+      }
+      \strng{namehash}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{fullhash}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{fullhashraw}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{bibnamehash}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{authorbibnamehash}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{authornamehash}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{authorfullhash}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{authorfullhashraw}{f1181eb14fc7b417612829efbe39ca07}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Communications Faculty of Sciences University of Ankara Series A2-A3 Physical Sciences and Engineering}
+      \field{number}{01}
+      \field{title}{A brief review of feed-forward neural networks}
+      \field{volume}{50}
+      \field{year}{2006}
+      \verb{doi}
+      \verb 10.1501/commua1-2_0000000026
+      \endverb
+      \keyw{Artificial neural networks,feed-forward neural networks,back-propagation algorithm}
     \endentry
     \entry{suo2009volatility}{misc}{}{}
       \name{author}{3}{}{%
@@ -830,6 +1112,46 @@
       \verb{url}
       \verb https://ssrn.com/abstract=1521882
       \endverb
+    \endentry
+    \entry{sutton2015reinforcement}{book}{}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=eb920e5277d3d5fd0903f3cd41e11871}{%
+           family={Sutton},
+           familyi={S\bibinitperiod},
+           given={Richard\bibnamedelima S.},
+           giveni={R\bibinitperiod\bibinitdelim S\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=32a0a208f8bcf56a13b0a8e618aa806a}{%
+           family={Barto},
+           familyi={B\bibinitperiod},
+           given={Andrew\bibnamedelima G.},
+           giveni={A\bibinitperiod\bibinitdelim G\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{location}{1}{%
+        {Cambridge, MA}%
+      }
+      \list{publisher}{1}{%
+        {MIT Press}%
+      }
+      \strng{namehash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{fullhash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{fullhashraw}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{bibnamehash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{authorbibnamehash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{authornamehash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{authorfullhash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{authorfullhashraw}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{edition}{2nd}
+      \field{title}{Reinforcement Learning: An Introduction}
+      \field{year}{2015}
     \endentry
   \enddatalist
   \datalist[entry]{apa/global//global/global/global}
@@ -936,6 +1258,55 @@
       \verb https://doi.org/10.48550/arxiv.1801.07648
       \endverb
     \endentry
+    \entry{alvarez2022hullwhite}{report}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=4b0d42072e18732befd82cb17593996f}{%
+           family={Alvarez},
+           familyi={A\bibinitperiod},
+           given={Hernan},
+           giveni={H\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=cb717f84396b203a6d9f2923cdb7488e}{%
+           family={Sacchi},
+           familyi={S\bibinitperiod},
+           given={Riccardo},
+           giveni={R\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=7359d498bf4af73cd3a7a37ed1a7b032}{%
+           family={Señaris},
+           familyi={S\bibinitperiod},
+           given={Tomás},
+           giveni={T\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{institution}{1}{%
+        {Barcelona School of Economics}%
+      }
+      \strng{namehash}{5324298ed082550a0983ab47460b4060}
+      \strng{fullhash}{917b54f6da6d506abebb7931fa765a3f}
+      \strng{fullhashraw}{917b54f6da6d506abebb7931fa765a3f}
+      \strng{bibnamehash}{917b54f6da6d506abebb7931fa765a3f}
+      \strng{authorbibnamehash}{917b54f6da6d506abebb7931fa765a3f}
+      \strng{authornamehash}{5324298ed082550a0983ab47460b4060}
+      \strng{authorfullhash}{917b54f6da6d506abebb7931fa765a3f}
+      \strng{authorfullhashraw}{917b54f6da6d506abebb7931fa765a3f}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Hull-White Calibration for Swaptions Using NNs}
+      \field{type}{techreport}
+      \field{year}{2022}
+      \verb{urlraw}
+      \verb https://repositori-api.upf.edu/api/core/bitstreams/8bae6b11-7b9e-44a8-8b8e-6ac7ec51c920/content
+      \endverb
+      \verb{url}
+      \verb https://repositori-api.upf.edu/api/core/bitstreams/8bae6b11-7b9e-44a8-8b8e-6ac7ec51c920/content
+      \endverb
+    \endentry
     \entry{baaquie2010asianswaptions}{article}{}{}
       \name{author}{1}{}{%
         {{un=0,uniquepart=base,hash=0c2871bd9fa536b453647c79b16eff09}{%
@@ -1150,6 +1521,43 @@
       \endverb
       \verb{url}
       \verb https://doi.org/10.2139/ssrn.1514192
+      \endverb
+    \endentry
+    \entry{hernandez2016model}{article}{}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=2b6f434529ec9cb0b33d2b3746bc5125}{%
+           family={Hernandez},
+           familyi={H\bibinitperiod},
+           given={Alejandro},
+           giveni={A\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{fullhash}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{fullhashraw}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{bibnamehash}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{authorbibnamehash}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{authornamehash}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{authorfullhash}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \strng{authorfullhashraw}{2b6f434529ec9cb0b33d2b3746bc5125}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{SSRN Electronic Journal}
+      \field{title}{Model Calibration with NNs}
+      \field{year}{2016}
+      \verb{doi}
+      \verb 10.2139/ssrn.2812140
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.2139/ssrn.2812140
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.2139/ssrn.2812140
       \endverb
     \endentry
     \entry{hinton2006dimensionalityreduction}{article}{}{}
@@ -1463,6 +1871,68 @@
       \endverb
       \keyw{Hull–White model,Maximum likelihood,Joint measure modelling,Risk and portfolio management,Derivatives pricing on illiquid markets}
     \endentry
+    \entry{li2017hyperband}{article}{}{}
+      \name{author}{5}{}{%
+        {{un=0,uniquepart=base,hash=1f8dc2db3fb2bdd7a51ade713872affb}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Lisha},
+           giveni={L\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=240fa0e010cb30dc1e40c10157f58276}{%
+           family={Jamieson},
+           familyi={J\bibinitperiod},
+           given={Kevin},
+           giveni={K\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=c8aac6375fc368da68554e7a98cc4ae9}{%
+           family={DeSalvo},
+           familyi={D\bibinitperiod},
+           given={Giulia},
+           giveni={G\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=7aef26bccf2dba53f4b3c49adfb2983e}{%
+           family={Rostamizadeh},
+           familyi={R\bibinitperiod},
+           given={Afshin},
+           giveni={A\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=70e0fe957473b80f1b1b5dcb8e99d31e}{%
+           family={Talwalkar},
+           familyi={T\bibinitperiod},
+           given={Ameet},
+           giveni={A\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{60c45ec23c5a0d5531344a38753d8d90}
+      \strng{fullhash}{5cff1402032f5d8014288fda8317ceda}
+      \strng{fullhashraw}{5cff1402032f5d8014288fda8317ceda}
+      \strng{bibnamehash}{5cff1402032f5d8014288fda8317ceda}
+      \strng{authorbibnamehash}{5cff1402032f5d8014288fda8317ceda}
+      \strng{authornamehash}{60c45ec23c5a0d5531344a38753d8d90}
+      \strng{authorfullhash}{5cff1402032f5d8014288fda8317ceda}
+      \strng{authorfullhashraw}{5cff1402032f5d8014288fda8317ceda}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Machine Learning Research}
+      \field{number}{1}
+      \field{title}{Hyperband: A Novel Bandit-Based Approach to Hyperparameter Optimization}
+      \field{volume}{18}
+      \field{year}{2017}
+      \field{pages}{6765\bibrangedash 6816}
+      \range{pages}{52}
+      \verb{urlraw}
+      \verb https://jmlr.org/papers/volume18/16-558/16-558.pdf
+      \endverb
+      \verb{url}
+      \verb https://jmlr.org/papers/volume18/16-558/16-558.pdf
+      \endverb
+    \endentry
     \entry{longstaff2001valuingamericanoptions}{article}{}{}
       \name{author}{2}{}{%
         {{un=0,uniquepart=base,hash=e71b38b1dda4825d90c876ccee823376}{%
@@ -1554,6 +2024,103 @@
       \verb https://doi.org/10.1137/0111030
       \endverb
     \endentry
+    \entry{mienye2024nncomprehensivereview}{article}{}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=4d37bfd99fc41542a709007a534d2a4b}{%
+           family={Mienye},
+           familyi={M\bibinitperiod},
+           given={Ibomoiye\bibnamedelima Domor},
+           giveni={I\bibinitperiod\bibinitdelim D\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=7dfecb58f5b9402ef9303cb0d215c506}{%
+           family={Swart},
+           familyi={S\bibinitperiod},
+           given={Theo\bibnamedelima G.},
+           giveni={T\bibinitperiod\bibinitdelim G\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{fullhash}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{fullhashraw}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{bibnamehash}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{authorbibnamehash}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{authornamehash}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{authorfullhash}{01a5490c5ca76e753d596b0b3f1f7837}
+      \strng{authorfullhashraw}{01a5490c5ca76e753d596b0b3f1f7837}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{2078-2489}
+      \field{journaltitle}{Information}
+      \field{number}{12}
+      \field{title}{A Comprehensive Review of Deep Learning: Architectures, Recent Advances, and Applications}
+      \field{volume}{15}
+      \field{year}{2024}
+      \verb{doi}
+      \verb 10.3390/info15120755
+      \endverb
+      \verb{urlraw}
+      \verb https://www.mdpi.com/2078-2489/15/12/755
+      \endverb
+      \verb{url}
+      \verb https://www.mdpi.com/2078-2489/15/12/755
+      \endverb
+    \endentry
+    \entry{moysiadis2019calibrating}{inbook}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=faaabbb9ce023c0fe9196cfb545e4cda}{%
+           family={Moysiadis},
+           familyi={M\bibinitperiod},
+           given={Georgios},
+           giveni={G\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=f298b8338dc7ae5bf171791f91008703}{%
+           family={Anagnostou},
+           familyi={A\bibinitperiod},
+           given={Ioannis},
+           giveni={I\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=48dfd41f481311b294ec3ee437ee96b2}{%
+           family={Kandhai},
+           familyi={K\bibinitperiod},
+           given={Drona},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{7cf8000f0834d1191d950709ec125560}
+      \strng{fullhash}{1cb78107a303d2e0c0eff09616334d0d}
+      \strng{fullhashraw}{1cb78107a303d2e0c0eff09616334d0d}
+      \strng{bibnamehash}{1cb78107a303d2e0c0eff09616334d0d}
+      \strng{authorbibnamehash}{1cb78107a303d2e0c0eff09616334d0d}
+      \strng{authornamehash}{7cf8000f0834d1191d950709ec125560}
+      \strng{authorfullhash}{1cb78107a303d2e0c0eff09616334d0d}
+      \strng{authorfullhashraw}{1cb78107a303d2e0c0eff09616334d0d}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Lecture Notes in Computer Science}
+      \field{title}{Calibrating the Mean-Reversion Parameter in the Hull-White Model Using NNs}
+      \field{year}{2019}
+      \field{pages}{23\bibrangedash 36}
+      \range{pages}{14}
+      \verb{doi}
+      \verb 10.1007/978-3-030-13463-1_2
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1007/978-3-030-13463-1_2
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1007/978-3-030-13463-1_2
+      \endverb
+    \endentry
     \entry{rebonato2004interest}{book}{}{}
       \name{author}{1}{}{%
         {{un=0,uniquepart=base,hash=97ac04c59cb2232ff66b5c201b536369}{%
@@ -1594,6 +2161,43 @@
       \verb{url}
       \verb https://doi.org/10.1002/9781118673539
       \endverb
+    \endentry
+    \entry{sazli2006feedforwardnn}{article}{}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=f1181eb14fc7b417612829efbe39ca07}{%
+           family={Sazli},
+           familyi={S\bibinitperiod},
+           given={Murat\bibnamedelima H.},
+           giveni={M\bibinitperiod\bibinitdelim H\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{publisher}{1}{%
+        {Ankara University}%
+      }
+      \strng{namehash}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{fullhash}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{fullhashraw}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{bibnamehash}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{authorbibnamehash}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{authornamehash}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{authorfullhash}{f1181eb14fc7b417612829efbe39ca07}
+      \strng{authorfullhashraw}{f1181eb14fc7b417612829efbe39ca07}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Communications Faculty of Sciences University of Ankara Series A2-A3 Physical Sciences and Engineering}
+      \field{number}{01}
+      \field{title}{A brief review of feed-forward neural networks}
+      \field{volume}{50}
+      \field{year}{2006}
+      \verb{doi}
+      \verb 10.1501/commua1-2_0000000026
+      \endverb
+      \keyw{Artificial neural networks,feed-forward neural networks,back-propagation algorithm}
     \endentry
     \entry{suo2009volatility}{misc}{}{}
       \name{author}{3}{}{%
@@ -1644,6 +2248,46 @@
       \verb{url}
       \verb https://ssrn.com/abstract=1521882
       \endverb
+    \endentry
+    \entry{sutton2015reinforcement}{book}{}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=eb920e5277d3d5fd0903f3cd41e11871}{%
+           family={Sutton},
+           familyi={S\bibinitperiod},
+           given={Richard\bibnamedelima S.},
+           giveni={R\bibinitperiod\bibinitdelim S\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=32a0a208f8bcf56a13b0a8e618aa806a}{%
+           family={Barto},
+           familyi={B\bibinitperiod},
+           given={Andrew\bibnamedelima G.},
+           giveni={A\bibinitperiod\bibinitdelim G\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{location}{1}{%
+        {Cambridge, MA}%
+      }
+      \list{publisher}{1}{%
+        {MIT Press}%
+      }
+      \strng{namehash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{fullhash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{fullhashraw}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{bibnamehash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{authorbibnamehash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{authornamehash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{authorfullhash}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \strng{authorfullhashraw}{c6212f1a1407d96a3d9f4fefbb07eade}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{edition}{2nd}
+      \field{title}{Reinforcement Learning: An Introduction}
+      \field{year}{2015}
     \endentry
   \enddatalist
 \endrefsection

@@ -25,32 +25,32 @@
 \contentsline {subsubsection}{\numberline {2.5.4}The Hyperband Algorithm for Hyperparameter Optimization}{26}{subsubsection.2.5.4}%
 \contentsline {subsection}{\numberline {2.6}Related Work}{28}{subsection.2.6}%
 \contentsline {section}{\numberline {3}Methodology}{29}{section.3}%
-\contentsline {subsection}{\numberline {3.1}Dataset}{30}{subsection.3.1}%
-\contentsline {subsubsection}{\numberline {3.1.1}Time Period}{30}{subsubsection.3.1.1}%
-\contentsline {subsubsection}{\numberline {3.1.2}Swaptions}{30}{subsubsection.3.1.2}%
+\contentsline {subsection}{\numberline {3.1}Dataset}{29}{subsection.3.1}%
+\contentsline {subsubsection}{\numberline {3.1.1}Time Period}{29}{subsubsection.3.1.1}%
+\contentsline {subsubsection}{\numberline {3.1.2}Swaptions}{29}{subsubsection.3.1.2}%
 \contentsline {subsubsection}{\numberline {3.1.3}Swap Curves}{30}{subsubsection.3.1.3}%
 \contentsline {subsubsection}{\numberline {3.1.4}MOVE Index}{31}{subsubsection.3.1.4}%
 \contentsline {subsubsection}{\numberline {3.1.5}VIX Index}{31}{subsubsection.3.1.5}%
-\contentsline {subsubsection}{\numberline {3.1.6}EUR/USD Exchange Rate}{32}{subsubsection.3.1.6}%
-\contentsline {subsection}{\numberline {3.2}Descriptive Analysis of Market and Model Inputs}{32}{subsection.3.2}%
-\contentsline {subsection}{\numberline {3.3}Data Preprocessing}{40}{subsection.3.3}%
-\contentsline {subsubsection}{\numberline {3.3.1}Bootstrapping Zero-Curves}{40}{subsubsection.3.3.1}%
-\contentsline {subsubsection}{\numberline {3.3.2}Handling Non-Trading Days in External Data}{41}{subsubsection.3.3.2}%
-\contentsline {subsubsection}{\numberline {3.3.3}Feature Engineering for the Neural Network}{41}{subsubsection.3.3.3}%
-\contentsline {paragraph}{Features Engineered from the Yield Curve}{41}{subsubsection.3.3.3}%
-\contentsline {paragraph}{Features Engineered from External Market Data}{42}{equation.59}%
-\contentsline {paragraph}{Features Engineered via Dimensionality Reduction}{42}{equation.61}%
-\contentsline {subsubsection}{\numberline {3.3.4}Feature Scaling}{45}{subsubsection.3.3.4}%
-\contentsline {subsection}{\numberline {3.4}Hyperparameter Optimization}{46}{subsection.3.4}%
-\contentsline {subsection}{\numberline {3.5}Methodology Workflow}{47}{subsection.3.5}%
-\contentsline {subsection}{\numberline {3.6}Used Model Architecture \& Setup}{49}{subsection.3.6}%
-\contentsline {subsection}{\numberline {3.7}Technical Setup and Computational Optimization}{49}{subsection.3.7}%
-\contentsline {subsubsection}{\numberline {3.7.1}Integration of TensorFlow and QuantLib}{50}{subsubsection.3.7.1}%
-\contentsline {subsubsection}{\numberline {3.7.2}Parallelization and Hardware Considerations}{50}{subsubsection.3.7.2}%
-\contentsline {subsubsection}{\numberline {3.7.3}Algorithmic and Numerical Efficiency}{51}{subsubsection.3.7.3}%
-\contentsline {subsubsection}{\numberline {3.7.4}Optimization of the Training Process}{51}{subsubsection.3.7.4}%
-\contentsline {subsubsection}{\numberline {3.7.5}Workflow-Level Enhancements and Model Design}{51}{subsubsection.3.7.5}%
-\contentsline {subsection}{\numberline {3.8}Use of AI}{52}{subsection.3.8}%
-\contentsline {section}{\numberline {4}Results}{52}{section.4}%
-\contentsline {section}{\numberline {5}Conclusion}{53}{section.5}%
+\contentsline {subsubsection}{\numberline {3.1.6}EUR/USD Exchange Rate}{31}{subsubsection.3.1.6}%
+\contentsline {subsection}{\numberline {3.2}Descriptive Analysis of Market and Model Inputs}{31}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Data Preprocessing}{39}{subsection.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.1}Bootstrapping Zero-Curves}{39}{subsubsection.3.3.1}%
+\contentsline {subsubsection}{\numberline {3.3.2}Handling Non-Trading Days in External Data}{40}{subsubsection.3.3.2}%
+\contentsline {subsubsection}{\numberline {3.3.3}Feature Engineering for the Neural Network}{40}{subsubsection.3.3.3}%
+\contentsline {paragraph}{Features Engineered from the Yield Curve}{40}{subsubsection.3.3.3}%
+\contentsline {paragraph}{Features Engineered from External Market Data}{41}{equation.59}%
+\contentsline {paragraph}{Features Engineered via Dimensionality Reduction}{41}{equation.61}%
+\contentsline {subsubsection}{\numberline {3.3.4}Feature Scaling}{44}{subsubsection.3.3.4}%
+\contentsline {subsection}{\numberline {3.4}Hyperparameter Optimization}{45}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Methodology Workflow}{46}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Used Model Architecture \& Setup}{48}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.7}Technical Setup and Computational Optimization}{48}{subsection.3.7}%
+\contentsline {subsubsection}{\numberline {3.7.1}Integration of TensorFlow and QuantLib}{49}{subsubsection.3.7.1}%
+\contentsline {subsubsection}{\numberline {3.7.2}Parallelization and Hardware Considerations}{49}{subsubsection.3.7.2}%
+\contentsline {subsubsection}{\numberline {3.7.3}Algorithmic and Numerical Efficiency}{50}{subsubsection.3.7.3}%
+\contentsline {subsubsection}{\numberline {3.7.4}Optimization of the Training Process}{50}{subsubsection.3.7.4}%
+\contentsline {subsubsection}{\numberline {3.7.5}Workflow-Level Enhancements and Model Design}{50}{subsubsection.3.7.5}%
+\contentsline {subsection}{\numberline {3.8}Use of AI}{51}{subsection.3.8}%
+\contentsline {section}{\numberline {4}Results}{51}{section.4}%
+\contentsline {section}{\numberline {5}Conclusion}{52}{section.5}%
 \contentsline {section}{\numberline {A}Appendix}{55}{appendix.A}%
