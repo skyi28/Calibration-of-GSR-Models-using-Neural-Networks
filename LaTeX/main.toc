@@ -44,13 +44,14 @@
 \contentsline {subsection}{\numberline {3.4}Hyperparameter Optimization}{45}{subsection.3.4}%
 \contentsline {subsection}{\numberline {3.5}Methodology Workflow}{46}{subsection.3.5}%
 \contentsline {subsection}{\numberline {3.6}Used Model Architecture \& Setup}{48}{subsection.3.6}%
-\contentsline {subsection}{\numberline {3.7}Technical Setup and Computational Optimization}{48}{subsection.3.7}%
-\contentsline {subsubsection}{\numberline {3.7.1}Integration of TensorFlow and QuantLib}{49}{subsubsection.3.7.1}%
-\contentsline {subsubsection}{\numberline {3.7.2}Parallelization and Hardware Considerations}{49}{subsubsection.3.7.2}%
-\contentsline {subsubsection}{\numberline {3.7.3}Algorithmic and Numerical Efficiency}{50}{subsubsection.3.7.3}%
-\contentsline {subsubsection}{\numberline {3.7.4}Optimization of the Training Process}{50}{subsubsection.3.7.4}%
-\contentsline {subsubsection}{\numberline {3.7.5}Workflow-Level Enhancements and Model Design}{50}{subsubsection.3.7.5}%
-\contentsline {subsection}{\numberline {3.8}Use of AI}{51}{subsection.3.8}%
-\contentsline {section}{\numberline {4}Results}{51}{section.4}%
-\contentsline {section}{\numberline {5}Conclusion}{52}{section.5}%
+\contentsline {subsection}{\numberline {3.7}Calibration Strategy}{48}{subsection.3.7}%
+\contentsline {subsection}{\numberline {3.8}Technical Setup and Computational Optimization}{49}{subsection.3.8}%
+\contentsline {subsubsection}{\numberline {3.8.1}Integration of TensorFlow and QuantLib}{49}{subsubsection.3.8.1}%
+\contentsline {subsubsection}{\numberline {3.8.2}Parallelization and Hardware Considerations}{50}{subsubsection.3.8.2}%
+\contentsline {subsubsection}{\numberline {3.8.3}Algorithmic and Numerical Efficiency}{50}{subsubsection.3.8.3}%
+\contentsline {subsubsection}{\numberline {3.8.4}Optimization of the Training Process}{51}{subsubsection.3.8.4}%
+\contentsline {subsubsection}{\numberline {3.8.5}Workflow-Level Enhancements and Model Design}{51}{subsubsection.3.8.5}%
+\contentsline {subsection}{\numberline {3.9}Use of AI}{52}{subsection.3.9}%
+\contentsline {section}{\numberline {4}Results}{52}{section.4}%
+\contentsline {section}{\numberline {5}Conclusion}{53}{section.5}%
 \contentsline {section}{\numberline {A}Appendix}{55}{appendix.A}%
