@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.16)  19 OCT 2025 16:37
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.16)  19 OCT 2025 16:53
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -677,30 +677,30 @@ Package csquotes Info: Checking for multilingual support...
 Package csquotes Info: ... found 'babel' package.
 Package csquotes Info: Adjusting default style.
 Package csquotes Info: Redefining alias 'default' -> 'english'.
-LaTeX Font Info:    Trying to load font information for T1+lmr on input line 51.
+LaTeX Font Info:    Trying to load font information for T1+lmr on input line 44.
  (C:\Users\bened\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmr.fd
 File: t1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 ) (main.aux)
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
  (C:\Users\bened\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count468
@@ -720,7 +720,7 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 48
  (C:\Users\bened\AppData\Local\Programs\MiKTeX\tex/latex/00miktex\epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
-Package hyperref Info: Link coloring OFF on input line 51.
+Package hyperref Info: Link coloring OFF on input line 44.
  (main.out) (main.out)
 \@outlinefile=\write4
 \openout4 = `main.out'.
@@ -791,42 +791,71 @@ Package biblatex Info: Automatic encoding selection.
 Package biblatex Info: Trying to load bibliographic data...
 Package biblatex Info: ... file 'main.bbl' found.
  (main.bbl)
-Package biblatex Info: Reference section=0 on input line 51.
-Package biblatex Info: Reference segment=0 on input line 51.
-LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 53.
+Package biblatex Info: Reference section=0 on input line 44.
+Package biblatex Info: Reference segment=0 on input line 44.
+<images/zhaw_logo.png, id=215, 602.25pt x 602.25pt>
+File: images/zhaw_logo.png Graphic file (type png)
+<use images/zhaw_logo.png>
+Package pdftex.def Info: images/zhaw_logo.png  used on input line 54.
+(pdftex.def)             Requested size: 181.18439pt x 181.18181pt.
+LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 72.
  (C:\Users\bened\AppData\Local\Programs\MiKTeX\tex/latex/lm\ot1lmr.fd
 File: ot1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-LaTeX Font Info:    Trying to load font information for OML+lmm on input line 53.
+LaTeX Font Info:    Trying to load font information for OML+lmm on input line 72.
  (C:\Users\bened\AppData\Local\Programs\MiKTeX\tex/latex/lm\omllmm.fd
 File: omllmm.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line 53.
+LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line 72.
  (C:\Users\bened\AppData\Local\Programs\MiKTeX\tex/latex/lm\omslmsy.fd
 File: omslmsy.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-LaTeX Font Info:    Trying to load font information for OMX+lmex on input line 53.
+LaTeX Font Info:    Trying to load font information for OMX+lmex on input line 72.
  (C:\Users\bened\AppData\Local\Programs\MiKTeX\tex/latex/lm\omxlmex.fd
 File: omxlmex.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <14.4> on input line 53.
+(Font)              <14.4> on input line 72.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 53.
+(Font)              <10> on input line 72.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 53.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 53.
+(Font)              <7> on input line 72.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 72.
  (C:\Users\bened\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 53.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 72.
  (C:\Users\bened\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <12> on input line 79.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <8> on input line 79.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <6> on input line 79.
+
 
 [1
 
-{C:/Users/bened/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ec.enc}] (chapters/0_abstract.tex)
+{C:/Users/bened/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ec.enc} <./images/zhaw_logo.png>] (chapters/0_abstract.tex)
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+
+pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.99 \clearpage
+                [1
+
+
+] (main.toc
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -837,25 +866,6 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 [2
 
-
-] (main.toc
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <12> on input line 4.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 4.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 4.
-
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[3
-
 ]
 
 
@@ -865,7 +875,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[4])
+[3])
 \tf@toc=\write5
 \openout5 = `main.toc'.
 
@@ -878,7 +888,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[5] (chapters/1_introduction.tex
+[4] (chapters/1_introduction.tex
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -887,9 +897,18 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[6
+[5
 
 ]) (chapters/2_background.tex
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[6]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -916,7 +935,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[9]
+[9{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathsy.enc}{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathit.enc}{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-rm.enc}{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathex.enc}]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -925,7 +944,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[10{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathsy.enc}{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathit.enc}{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-rm.enc}{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathex.enc}]
+[10]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -961,7 +980,12 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[14]
+[14
+pdfTeX warning (ext4): destination with the same identifier (name{table.1}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.187 
+      ]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -970,12 +994,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[15
-pdfTeX warning (ext4): destination with the same identifier (name{table.1}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.187 
-      ]
+[15]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -993,7 +1012,12 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[17]
+[17
+pdfTeX warning (ext4): destination with the same identifier (name{table.2}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.305 
+      ]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1002,12 +1026,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[18
-pdfTeX warning (ext4): destination with the same identifier (name{table.2}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.305 
-      ]
+[18]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1071,15 +1090,6 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [25]
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[26]
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 517.
  (C:\Users\bened\AppData\Local\Programs\MiKTeX\tex/latex/lm\ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -1092,7 +1102,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[27{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ts1.enc}]
+[26{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ts1.enc}]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1101,7 +1111,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[28]) (chapters/3_methodology.tex
+[27]) (chapters/3_methodology.tex
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1110,7 +1120,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[29]
+[28]
 LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 18.
  (C:\Users\bened\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -1123,7 +1133,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[30]
+[29]
 <images/descriptive_data_analysis/external_data_time_series.png, id=590, 1011.78pt x 1084.05pt>
 File: images/descriptive_data_analysis/external_data_time_series.png Graphic file (type png)
 <use images/descriptive_data_analysis/external_data_time_series.png>
@@ -1138,7 +1148,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[31]
+[30]
 LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <5> on input line 72.
 
@@ -1150,7 +1160,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[32
+[31
 pdfTeX warning (ext4): destination with the same identifier (name{figure.1}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
@@ -1175,7 +1185,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[33
+[32
 pdfTeX warning (ext4): destination with the same identifier (name{table.3}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
@@ -1186,7 +1196,7 @@ pdfTeX warning (ext4): destination with the same identifier (name{figure.2}) has
                                                   \__shipout_drop_firstpage_...
 l.95 
       <./images/descriptive_data_analysis/yield_curve_selected_tenors.png>]
-<images/descriptive_data_analysis/yield_curve_2d_snapshots.png, id=617, 1445.4pt x 433.62pt>
+<images/descriptive_data_analysis/yield_curve_2d_snapshots.png, id=618, 1445.4pt x 433.62pt>
 File: images/descriptive_data_analysis/yield_curve_2d_snapshots.png Graphic file (type png)
 <use images/descriptive_data_analysis/yield_curve_2d_snapshots.png>
 Package pdftex.def Info: images/descriptive_data_analysis/yield_curve_2d_snapshots.png  used on input line 100.
@@ -1200,7 +1210,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[34
+[33
 pdfTeX warning (ext4): destination with the same identifier (name{figure.3}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
@@ -1211,12 +1221,12 @@ pdfTeX warning (ext4): destination with the same identifier (name{figure.4}) has
                                                   \__shipout_drop_firstpage_...
 l.129 
        <./images/descriptive_data_analysis/vol_surface_coterminal_series.png> <./images/descriptive_data_analysis/yield_curve_2d_snapshots.png>]
-<images/descriptive_data_analysis/vol_surface_3d_snapshots.png, id=629, 1734.48pt x 578.16pt>
+<images/descriptive_data_analysis/vol_surface_3d_snapshots.png, id=630, 1734.48pt x 578.16pt>
 File: images/descriptive_data_analysis/vol_surface_3d_snapshots.png Graphic file (type png)
 <use images/descriptive_data_analysis/vol_surface_3d_snapshots.png>
 Package pdftex.def Info: images/descriptive_data_analysis/vol_surface_3d_snapshots.png  used on input line 135.
 (pdftex.def)             Requested size: 452.9679pt x 150.98853pt.
-<images/descriptive_data_analysis/yield_curve_std_by_tenor.png, id=631, 1011.78pt x 505.89pt>
+<images/descriptive_data_analysis/yield_curve_std_by_tenor.png, id=632, 1011.78pt x 505.89pt>
 File: images/descriptive_data_analysis/yield_curve_std_by_tenor.png Graphic file (type png)
 <use images/descriptive_data_analysis/yield_curve_std_by_tenor.png>
 Package pdftex.def Info: images/descriptive_data_analysis/yield_curve_std_by_tenor.png  used on input line 144.
@@ -1230,7 +1240,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[35
+[34
 pdfTeX warning (ext4): destination with the same identifier (name{table.4}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
@@ -1241,7 +1251,7 @@ pdfTeX warning (ext4): destination with the same identifier (name{figure.5}) has
                                                   \__shipout_drop_firstpage_...
 l.148 
        <./images/descriptive_data_analysis/vol_surface_3d_snapshots.png>]
-<images/descriptive_data_analysis/vol_surface_std_heatmap.png, id=641, 1011.78pt x 722.7pt>
+<images/descriptive_data_analysis/vol_surface_std_heatmap.png, id=642, 1011.78pt x 722.7pt>
 File: images/descriptive_data_analysis/vol_surface_std_heatmap.png Graphic file (type png)
 <use images/descriptive_data_analysis/vol_surface_std_heatmap.png>
 Package pdftex.def Info: images/descriptive_data_analysis/vol_surface_std_heatmap.png  used on input line 153.
@@ -1255,7 +1265,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[36
+[35
 pdfTeX warning (ext4): destination with the same identifier (name{figure.6}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
@@ -1269,7 +1279,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[37
+[36
 pdfTeX warning (ext4): destination with the same identifier (name{figure.7}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
@@ -1280,12 +1290,12 @@ pdfTeX warning (ext4): destination with the same identifier (name{table.5}) has 
                                                   \__shipout_drop_firstpage_...
 l.185 
        <./images/descriptive_data_analysis/vol_surface_std_heatmap.png>]
-<images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png, id=658, 1084.05pt x 867.24pt>
+<images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png, id=659, 1084.05pt x 867.24pt>
 File: images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png Graphic file (type png)
 <use images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png>
 Package pdftex.def Info: images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png  used on input line 188.
 (pdftex.def)             Requested size: 452.9679pt x 362.37247pt.
-<images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png, id=660, 1084.05pt x 867.24pt>
+<images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png, id=661, 1084.05pt x 867.24pt>
 File: images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png Graphic file (type png)
 <use images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png>
 Package pdftex.def Info: images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png  used on input line 197.
@@ -1299,7 +1309,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[38
+[37
 pdfTeX warning (ext4): destination with the same identifier (name{figure.8}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
@@ -1313,7 +1323,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[39
+[38
 pdfTeX warning (ext4): destination with the same identifier (name{figure.9}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
@@ -1327,8 +1337,8 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[40]
-<images/features/feature_correlation_matrixPre-PCA.png, id=684, 1330.4907pt x 1148.3703pt>
+[39]
+<images/features/feature_correlation_matrixPre-PCA.png, id=685, 1330.4907pt x 1148.3703pt>
 File: images/features/feature_correlation_matrixPre-PCA.png Graphic file (type png)
 <use images/features/feature_correlation_matrixPre-PCA.png>
 Package pdftex.def Info: images/features/feature_correlation_matrixPre-PCA.png  used on input line 267.
@@ -1342,7 +1352,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[41]
+[40]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1351,13 +1361,13 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[42
+[41
 pdfTeX warning (ext4): destination with the same identifier (name{figure.10}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
 l.285 \end{equation}
                      <./images/features/feature_correlation_matrixPre-PCA.png>]
-<images/features/feature_correlation_matrixPost-PCA.png, id=701, 1330.4907pt x 1148.3703pt>
+<images/features/feature_correlation_matrixPost-PCA.png, id=702, 1330.4907pt x 1148.3703pt>
 File: images/features/feature_correlation_matrixPost-PCA.png Graphic file (type png)
 <use images/features/feature_correlation_matrixPost-PCA.png>
 Package pdftex.def Info: images/features/feature_correlation_matrixPost-PCA.png  used on input line 302.
@@ -1371,7 +1381,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[43]
+[42]
 Overfull \hbox (34.57867pt too wide) in paragraph at lines 310--311
 \T1/lmr/m/n/12 Prior to be-ing fed into the neu-ral net-work, all in-put fea-tures are scaled us-ing the \T1/lmtt/m/n/12 StandardScaler
  []
@@ -1385,12 +1395,21 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[44
+[43
 pdfTeX warning (ext4): destination with the same identifier (name{figure.11}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
 l.319 \end{equation}
                      <./images/features/feature_correlation_matrixPost-PCA.png>]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[44]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1444,7 +1463,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[50]
+[50]) (chapters/4_results.tex
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1453,7 +1472,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[51]) (chapters/4_results.tex
+[51]
 Overfull \hbox (6.38647pt too wide) in paragraph at lines 11--12
 []\T1/lmr/m/n/12 Provide av-er-age cal-i-bra-tion times for the tra-di-tional al-go-rithms (e.g., Levenberg-
  []
@@ -1468,16 +1487,7 @@ Overfull \hbox (1.98425pt too wide) in paragraph at lines 18--19
 []\T1/lmr/m/n/12 Present ta-bles and graphs com-par-ing model-implied swap-tion volatil-i-ties/prices
  []
 
-
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[52]) (chapters/5_conclusion.tex
+) (chapters/5_conclusion.tex
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1486,8 +1496,17 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[53])
-Overfull \hbox (34.4283pt too wide) in paragraph at lines 85--85
+[52])
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[53]
+Overfull \hbox (34.4283pt too wide) in paragraph at lines 126--126
 [][]\T1/lmr/m/n/12 Goodfellow, I., Ben-gio, Y., & Courville, A. (2016). \T1/lmr/m/it/12 Deep learn-ing \T1/lmr/m/n/12 [[]$http : / / www . deeplearningbook .
  []
 
@@ -1500,7 +1519,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[54] (chapters/appendix_code.tex
+[54]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1509,7 +1528,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[55]
+[55] (chapters/appendix_code.tex
 Overfull \hbox (3.06987pt too wide) in paragraph at lines 5--6
 []\T1/lmr/bx/n/12 Mathematical Deriva-tions: \T1/lmr/m/n/12 In-clude any lengthy or com-plex math-e-mat-i-cal deriva-
  []
@@ -1539,17 +1558,17 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 ### simple group (level 1) entered at line 211 ({)
 ### bottom level 
 Here is how much of TeX's memory you used:
- 23727 strings out of 468149
- 419764 string characters out of 5431082
- 1377901 words of memory out of 5000000
- 51753 multiletter control sequences out of 15000+600000
- 716747 words of font info for 105 fonts, out of 8000000 for 9000
+ 23736 strings out of 468149
+ 420019 string characters out of 5431082
+ 1379718 words of memory out of 5000000
+ 51762 multiletter control sequences out of 15000+600000
+ 716755 words of font info for 105 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,12n,79p,1699b,5052s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmex10.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi12.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi6.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi8.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmib10.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr10.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr12.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr17.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr6.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr8.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmri12.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy10.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy6.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy8.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt12.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on main.pdf (56 pages, 2015473 bytes).
+Output written on main.pdf (57 pages, 2031639 bytes).
 PDF statistics:
- 954 PDF objects out of 1000 (max. 8388607)
+ 959 PDF objects out of 1000 (max. 8388607)
  238 named destinations out of 1000 (max. 500000)
- 480 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 485 words of extra memory for PDF output out of 10000 (max. 10000000)
 

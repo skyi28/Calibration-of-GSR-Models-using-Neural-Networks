@@ -41,15 +41,56 @@
   language=Python
 }
 
-% Title
-\title{A Comparison Between Traditional and Machine Learning Based Calibration of the One Factor Hull-White Model}
-\author{Benedikt Grimus \\
-\small Master’s Program in Banking and Finance \\
-\small ZHAW School of Management and Law}
-\date{\today}
-
 \begin{document}
-\maketitle
+
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    
+    % --- University Logo Placeholder ---
+    % Replace the \fbox below with your university's logo.
+    % Uncomment the \includegraphics line and update the path.
+    
+    \includegraphics[width=0.4\textwidth]{images/zhaw_logo.png}
+    % \fbox{\parbox[c][6cm][c]{0.4\textwidth}{\centering \large University Logo Placeholder}}
+    
+    \vfill % Adds flexible vertical space
+    
+    % --- Title ---
+    {\Huge\bfseries A Comparison Between Traditional and Machine Learning Based Calibration of the One Factor Hull-White Model\par}
+    
+    \vspace{1.5cm}
+    
+    % --- Subtitle ---
+    {\Large Master's Thesis\par}
+    
+    \vfill % Adds flexible vertical space
+    
+    % --- Author and Supervisor Details ---
+    \begin{minipage}{0.8\textwidth}
+        \large
+        \begin{tabular}{@{}ll}
+            \textbf{Author:} & Benedikt Grimus \\
+            \addlinespace[1em]
+            \textbf{Study Program:} & Banking \& Finance \\
+            \addlinespace[1em]
+            \textbf{Supervisor:} & Dr. Marc Weibel \\
+        \end{tabular}
+    \end{minipage}
+    
+    \vfill % Adds flexible vertical space
+    
+    % --- Submission Date and University ---
+    {\large
+    ZHAW School of Management and Law\par
+    Submitted on: 18. November 2025\par
+    }
+    
+    \vspace*{1cm}
+
+\end{titlepage}
+
+% \maketitle
 \clearpage
 
 \clearpage
@@ -80,8 +121,10 @@
 \label{conclusion}
 \input{chapters/5_conclusion}
 
+\newpage
 \printbibliography
-% Appendices
+
+\newpage
 \appendix
 \section{Appendix}
 \input{chapters/appendix_code}

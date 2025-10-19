@@ -345,6 +345,13 @@ By applying \texttt{StandardScaler}, the neural network receives a well-conditio
 
 The predictive performance and stability of neural networks depend critically on an appropriate choice of hyperparameters. To identify an optimal configuration, a structured hyperparameter optimization process was conducted using the Hyperband algorithm, as described in Subsection~\ref{subsec:hyperband_algorithm}. This algorithm efficiently allocates computational resources to explore a broad hyperparameter space while focusing on the most promising configurations.
 
+The core settings for the Hyperband tuner were configured as follows:
+\begin{itemize}
+    \item Maximum Epochs per Trial (\texttt{max\_epochs}): A total of 1000 epochs were allocated as the maximum budget for training any single hyperparameter configuration.
+    \item Reduction Factor (\texttt{factor}): A factor of 3 was used, meaning that after each round of training within a bracket, the number of configurations is reduced by a factor of 3, retaining only the top-performing third.
+    \item Objective: The optimization objective was the minimization of the root mean squared error on the validation set.
+\end{itemize}
+
 The hyperparameters tuned in this study can be divided into two categories: those defining the neural network architecture and those related to the training process and loss function. Hyperparameters related to the architecture are:
 \begin{itemize}
 	\item Number of Hidden Layers: This parameter determines the depth of the neural network. A deeper network has greater representational power and can capture more complex nonlinear relationships in the data, but it also increases the risk of overfitting and computational cost. \newline
