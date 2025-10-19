@@ -1101,8 +1101,7 @@ class HullWhiteHyperModel(kt.HyperModel):
 
         epochs = kwargs.get('epochs', 1)
         trial = next((cb for cb in kwargs.get('callbacks', []) if hasattr(cb, 'trial')), None)
-        trial_id = trial.trial_id if trial else "unknown"
-        
+        trial_id = trial.trial.trial_id if trial else "unknown"        
         pca_model = trial_settings.get('pca_model')
         rate_indices = trial_settings.get('rate_indices')
         
@@ -1309,23 +1308,23 @@ if __name__ == '__main__':
 
         TF_NN_CALIBRATION_SETTINGS = {
             "evaluate_only": False,
-            "perform_hyperparameter_tuning": False,
+            "perform_hyperparameter_tuning": True,
             "show_plots": False,
             "model_evaluation_dir": r"results\neural_network\models\model_20251008_110404",
-            "hyperband_settings": {"max_epochs": 1, "factor": 3, "directory": "results/neural_network/hyperband_tuner", "project_name": "hull_white_calibration"},
+            "hyperband_settings": {"max_epochs": 1000, "factor": 3, "directory": "results/neural_network/hyperband_tuner", "project_name": "hull_white_calibration"},
             "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True,
             "instrument_batch_size_percentage": 100, "upper_bound": 0.1, "pricing_engine_integration_points": 32,
-            "num_epochs": 200,
+            "num_epochs": 100,
             "early_stopping_patience": 10,
             "h_relative": 1e-7,
             "initial_guess": [0.02, 0.0002, 0.0002, 0.00017, 0.00017, 0.00017, 0.00017, 0.00017],
             "gradient_method": "forward", "gradient_clip_norm": 2.0, "num_threads": os.cpu_count() or 1,
-            "min_expiry_years": 2.0, "min_tenor_years": 2.0, "use_coterminal_only": True,
+            "min_expiry_years": 2.0, "min_tenor_years": 2.0, "use_coterminal_only": False,
         }
 
         ADWIN_SETTINGS = {
             "use_adwin_trigger": True, # Master switch to enable/disable ADWIN retraining
-            "delta": 0.1,             # Confidence value. Lower is less sensitive to change.
+            "delta": 0.15,             # Confidence value. Lower is less sensitive to change.
             "use_hardcoded_threshold": False, # If True, uses retrain_threshold_bps in addition to ADWIN
             "retrain_threshold_bps": 10.0, # RMSE increase (bps) to trigger retraining
         }
