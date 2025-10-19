@@ -20,11 +20,18 @@ ADWIN (ADaptive WINdowing) concept drift detection algorithm. When a statistical
 significant increase in the test set error is detected, the script automatically
 triggers a full retraining of the model using all data available up to that point.
 
+<<<<< TUNER REPAIR FUNCTIONALITY >>>>>
+This version includes a "Repair Mode" controlled by the 'train_from_salvaged_hps' flag.
+When enabled, it loads the state of a failed tuner, identifies top-performing trials
+with missing checkpoints, retrains them for the required short duration, and saves
+the checkpoints. This allows a previously failed Hyperband search to be resumed.
+
 WARNING: This script is computationally intensive and is intended for long-running
 execution on powerful hardware.
 """
 import datetime
 import glob
+import math
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # Filter out tensorflow information messages
 import sys
@@ -51,6 +58,15 @@ import random
 import shap
 import seaborn as sns
 from river import drift # Added for ADWIN drift detection
+
+# -------------------- REPRODUCIBILITY SEED --------------------
+# Set a seed for reproducibility, so the same script will produce the same
+# results every time it is run.
+SEED: int = 42
+os.environ['PYTHONHASHSEED'] = str(SEED)
+random.seed(SEED)
+np.random.seed(SEED)
+tf.random.set_seed(SEED)
 
 #--------------------CONFIG--------------------
 # Set to False to skip the initial data preparation steps if they have already been run
@@ -1018,7 +1034,8 @@ def _calculate_loss_for_day(params: np.ndarray, ql_eval_date, term_structure_han
         
         return float(np.mean(weighted_squared_errors)) if weighted_squared_errors else 1e6
     except (RuntimeError, ValueError):
-        print(traceback.format_exc())
+        # This can happen if QuantLib fails to find an implied volatility
+        # Returning a large loss value is a standard way to handle this
         return 1e6
 
 def _perform_training_step(model, optimizer, feature_vector, initial_logits, ql_eval_date, term_structure_handle, helpers_with_info, settings):
@@ -1042,13 +1059,14 @@ def _perform_training_step(model, optimizer, feature_vector, initial_logits, ql_
                     loss_plus = _calculate_loss_for_day(p_plus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
                     loss_minus = _calculate_loss_for_day(p_minus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
                     return (loss_plus - loss_minus) / (2 * h)
-            else:
+            else: # Forward difference
                 def _calc_single_grad(i):
                     p_plus = base_params.copy()
                     p_plus[i] += h
                     loss_plus = _calculate_loss_for_day(p_plus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
                     return (loss_plus - loss_val) / h
             
+            # Using ThreadPoolExecutor for I/O-bound-like QuantLib calls
             with ThreadPoolExecutor(max_workers=settings.get("num_threads", os.cpu_count() or 1)) as executor:
                 grad = np.array(list(executor.map(_calc_single_grad, range(len(base_params)))))
             
@@ -1135,14 +1153,120 @@ class HullWhiteHyperModel(kt.HyperModel):
             avg_val_rmse = np.mean(val_losses) if val_losses else float('inf')
             print(f"  Trial {trial_id} | Epoch {epoch+1}/{epochs} | Avg Validation RMSE (Unweighted): {avg_val_rmse:.2f} bps")
             
-            if trial:
-                # Note: KerasTuner < 1.4.0 used 'checkpoint.h5', newer versions use 'checkpoint.weights.h5'
-                # The name must match exactly what the tuner expects.
-                checkpoint_path = os.path.join(trial.get_trial_dir(), "checkpoint.weights.h5")
-                print(f"  Saving checkpoint for trial {trial_id} to {checkpoint_path}")
-                model.save_weights(checkpoint_path)
-            
+        # <<< CRITICAL FIX FOR HYPERBAND >>>
+        # Manually save the weights at the end of the training for this round.
+        # The tuner will automatically load them back if the trial is resumed.
+        if trial:
+            # The name must match exactly what the tuner expects.
+            checkpoint_path = os.path.join(settings['hyperband_settings']['directory'] + os.sep + settings['hyperband_settings']['project_name'] + f"/trial_{trial_id}", "checkpoint.weights.h5")
+            print(f"  Saving checkpoint for trial {trial_id} to {checkpoint_path}")
+            model.save_weights(checkpoint_path)
+        # <<< END OF FIX >>>
+
         return { 'val_rmse': avg_val_rmse }
+
+# <<< NEW FUNCTION TO REPAIR THE TUNER STATE >>>
+def salvage_and_repair_tuner_state(
+    settings: Dict,
+    loaded_train_data: List,
+    feature_scaler: StandardScaler,
+    initial_logits: tf.Tensor,
+    external_data: pd.DataFrame
+):
+    """
+    Enters a "Repair Mode" to fix a failed Hyperband search. It identifies top-performing
+    trials that are missing checkpoints, re-runs their initial training, and saves the
+    weights to the correct trial directories.
+    """
+    print("\n" + "="*80)
+    print(" SCRIPT IS RUNNING IN TUNER REPAIR MODE ".center(80, "="))
+    print("="*80)
+    
+    tuner_settings = settings['hyperband_settings']
+    
+    print(f"\nLoading tuner state from project: {tuner_settings['project_name']}")
+    tuner = kt.Hyperband(
+        hypermodel=HullWhiteHyperModel(),
+        objective=kt.Objective("val_rmse", direction="min"),
+        **tuner_settings
+    )
+    tuner.reload()
+
+    print("Retrieving all trials to find candidates for repair...")
+    all_trials = tuner.oracle.get_best_trials(num_trials=len(tuner.oracle.trials))
+    
+    # We are interested in trials that completed the first round (e.g., 2 epochs)
+    # but likely failed when promoted because their checkpoint was missing.
+    # We will repair the top 33% of them as a robust measure.
+    completed_trials = [t for t in all_trials if t.status == "COMPLETED" and t.score is not None]
+    if not completed_trials:
+        print("No completed trials found. Nothing to repair.")
+        return
+
+    completed_trials.sort(key=lambda t: t.score)
+    
+    percentage_to_repair = 0.33
+    num_to_repair = math.ceil(len(completed_trials) * percentage_to_repair)
+    trials_to_repair = completed_trials[:num_to_repair]
+
+    print(f"\nFound {len(completed_trials)} completed trials. Will repair the top {num_to_repair} ({percentage_to_repair:.0%}).")
+
+    for i, trial in enumerate(trials_to_repair):
+        trial_id = trial.trial_id
+        trial_dir = os.path.join(tuner_settings['directory'], tuner_settings['project_name'], trial_id)
+        checkpoint_path = os.path.join(settings['hyperband_settings']['directory'] + os.sep + settings['hyperband_settings']['project_name'] + f"/trial_{trial_id}", "checkpoint.weights.h5")
+
+        
+        if os.path.exists(checkpoint_path):
+            print(f"  ({i+1}/{num_to_repair}) Skipping Trial {trial_id}: Checkpoint already exists.")
+            continue
+            
+        print("\n" + "-"*60)
+        print(f"Repairing Trial {trial_id} ({i+1}/{num_to_repair}) | Score: {trial.score:.4f}")
+        print("-"*60)
+        
+        # Build the model exactly as the tuner would have
+        hp = trial.hyperparameters
+        model = tuner.hypermodel.build(hp)
+        
+        # Train it for the number of epochs it completed in its first round.
+        # As per your observation, this was 2 epochs.
+        epochs_to_run = 2
+        
+        # This part mimics the logic from the `fit` method
+        learning_rate = hp.get('learning_rate')
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        
+        penalty = hp.get('underestimation_penalty')
+        trial_settings = settings.copy()
+        trial_settings['underestimation_penalty'] = penalty
+        
+        pca_model = settings.get('pca_model')
+        rate_indices = settings.get('rate_indices')
+
+        for epoch in range(epochs_to_run):
+            print(f"  -> Running repair epoch {epoch + 1}/{epochs_to_run}...")
+            for day_idx, (eval_date, zero_df, vol_df) in enumerate(loaded_train_data):
+                ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
+                ql.Settings.instance().evaluationDate = ql_eval_date
+                term_structure = create_ql_yield_curve(zero_df, eval_date)
+                helpers = prepare_calibration_helpers(vol_df, term_structure, trial_settings)
+                if not helpers: continue
+                
+                feature_vec = prepare_nn_features(term_structure, ql_eval_date, feature_scaler, external_data, pca_model=pca_model, rate_indices=rate_indices)
+                _perform_training_step(model, optimizer, tf.constant(feature_vec, dtype=tf.float64), initial_logits, ql_eval_date, term_structure, helpers, trial_settings)
+
+        # Save the missing checkpoint file
+        print(f"  -> Training complete. Saving missing checkpoint to: {checkpoint_path}")
+        model.save_weights(checkpoint_path)
+
+    print("\n" + "="*80)
+    print(" TUNER REPAIR COMPLETE ".center(80, "="))
+    print(" You can now set 'train_from_salvaged_hps' to False and re-run ".center(80))
+    print(" the script to resume the hyperparameter search. ".center(80))
+    print("="*80)
+# <<< END OF NEW FUNCTION >>>
+
 
 #--------------------NEW TRAINING FUNCTION FOR RETRAINING LOOP--------------------
 def train_new_model(
@@ -1193,11 +1317,32 @@ def train_new_model(
     p_scaled = np.clip(np.array(settings['initial_guess'], dtype=np.float64) / settings['upper_bound'], 1e-9, 1 - 1e-9)
     initial_logits = tf.constant([np.log(p_scaled / (1 - p_scaled))], dtype=tf.float64)
     
+    # <<< NEW LOGIC: Check if we are in Repair Mode >>>
+    if settings.get("train_from_salvaged_hps", False):
+        salvage_and_repair_tuner_state(
+            settings=settings,
+            loaded_train_data=loaded_train_data,
+            feature_scaler=feature_scaler,
+            initial_logits=initial_logits,
+            external_data=external_data
+        )
+        # After repair, exit the script. User must re-run with flag set to False.
+        print("\n--- Repair process finished. Please re-run the script with 'train_from_salvaged_hps' set to False. ---")
+        sys.exit(0)
+    # <<< END OF NEW LOGIC >>>
+    
     best_hyperparameters = None
     if settings['perform_hyperparameter_tuning']:
         print("\n--- Starting Hyperparameter Tuning with Hyperband ---")
         hypermodel = HullWhiteHyperModel()
-        tuner = kt.Hyperband(hypermodel=hypermodel, overwrite=False, objective=kt.Objective("val_rmse", direction="min"), **settings['hyperband_settings'])
+        # Ensure overwrite=False to allow resuming
+        tuner = kt.Hyperband(
+            hypermodel=hypermodel, 
+            objective=kt.Objective("val_rmse", direction="min"), 
+            overwrite=False, 
+            **settings['hyperband_settings']
+        )
+        print("Searching for best hyperparameters...")
         tuner.search(loaded_train_data=loaded_train_data, loaded_val_data=loaded_val_data, settings=settings, feature_scaler=feature_scaler, initial_logits=initial_logits, external_data=external_data)
         best_hyperparameters = tuner.get_best_hyperparameters(num_trials=1)[0]
     else:
@@ -1316,6 +1461,7 @@ if __name__ == '__main__':
         TF_NN_CALIBRATION_SETTINGS = {
             "evaluate_only": False,
             "perform_hyperparameter_tuning": True,
+            "train_from_salvaged_hps": True, 
             "show_plots": False,
             "model_evaluation_dir": r"results\neural_network\models\model_20251008_110404",
             "hyperband_settings": {"max_epochs": 1000, "factor": 3, "directory": "results/neural_network/hyperband_tuner", "project_name": "hull_white_calibration"},
@@ -1328,6 +1474,10 @@ if __name__ == '__main__':
             "gradient_method": "forward", "gradient_clip_norm": 2.0, "num_threads": os.cpu_count() or 1,
             "min_expiry_years": 2.0, "min_tenor_years": 2.0, "use_coterminal_only": False,
         }
+        
+        # checkpoint_path = os.path.join(TF_NN_CALIBRATION_SETTINGS['hyperband_settings']['directory'] + os.sep + TF_NN_CALIBRATION_SETTINGS['hyperband_settings']['project_name'] + f"/trial_0182", "checkpoint.weights.h5")
+        # print(f"Checkpoint path for testing: {checkpoint_path}")
+        # sys.exit(0)
 
         ADWIN_SETTINGS = {
             "use_adwin_trigger": True, # Master switch to enable/disable ADWIN retraining
