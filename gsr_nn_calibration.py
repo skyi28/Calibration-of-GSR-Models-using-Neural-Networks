@@ -1135,6 +1135,13 @@ class HullWhiteHyperModel(kt.HyperModel):
             avg_val_rmse = np.mean(val_losses) if val_losses else float('inf')
             print(f"  Trial {trial_id} | Epoch {epoch+1}/{epochs} | Avg Validation RMSE (Unweighted): {avg_val_rmse:.2f} bps")
             
+            if trial:
+                # Note: KerasTuner < 1.4.0 used 'checkpoint.h5', newer versions use 'checkpoint.weights.h5'
+                # The name must match exactly what the tuner expects.
+                checkpoint_path = os.path.join(trial.get_trial_dir(), "checkpoint.weights.h5")
+                print(f"  Saving checkpoint for trial {trial_id} to {checkpoint_path}")
+                model.save_weights(checkpoint_path)
+            
         return { 'val_rmse': avg_val_rmse }
 
 #--------------------NEW TRAINING FUNCTION FOR RETRAINING LOOP--------------------
@@ -1190,7 +1197,7 @@ def train_new_model(
     if settings['perform_hyperparameter_tuning']:
         print("\n--- Starting Hyperparameter Tuning with Hyperband ---")
         hypermodel = HullWhiteHyperModel()
-        tuner = kt.Hyperband(hypermodel=hypermodel, objective=kt.Objective("val_rmse", direction="min"), **settings['hyperband_settings'])
+        tuner = kt.Hyperband(hypermodel=hypermodel, overwrite=False, objective=kt.Objective("val_rmse", direction="min"), **settings['hyperband_settings'])
         tuner.search(loaded_train_data=loaded_train_data, loaded_val_data=loaded_val_data, settings=settings, feature_scaler=feature_scaler, initial_logits=initial_logits, external_data=external_data)
         best_hyperparameters = tuner.get_best_hyperparameters(num_trials=1)[0]
     else:
