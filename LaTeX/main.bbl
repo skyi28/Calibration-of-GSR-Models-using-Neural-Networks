@@ -294,6 +294,82 @@
       \field{title}{Interest Rate Models: Theory and Practice}
       \field{year}{2006}
     \endentry
+    \entry{chan2022multicollinearity}{article}{}{}
+      \name{author}{7}{}{%
+        {{un=0,uniquepart=base,hash=f664f3e691a0b4e47f4e15d3f0be5a90}{%
+           family={Chan},
+           familyi={C\bibinitperiod},
+           given={Jireh\bibnamedelima Yi-Le},
+           giveni={J\bibinitperiod\bibinitdelim Y\bibinithyphendelim L\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=e3bf7c4a6c8b72eb5d1fc903f78f2614}{%
+           family={Leow},
+           familyi={L\bibinitperiod},
+           given={Steven\bibnamedelimb Mun\bibnamedelima Hong},
+           giveni={S\bibinitperiod\bibinitdelim M\bibinitperiod\bibinitdelim H\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=447c048aaa2e41b5fb4d0a487507b288}{%
+           family={Bea},
+           familyi={B\bibinitperiod},
+           given={Khean\bibnamedelima Thye},
+           giveni={K\bibinitperiod\bibinitdelim T\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=4354f73b579b0cacdda5f213524b8f94}{%
+           family={Cheng},
+           familyi={C\bibinitperiod},
+           given={Wai\bibnamedelima Khuen},
+           giveni={W\bibinitperiod\bibinitdelim K\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=f74a4f2e76e153ecdc5f5ab85f375181}{%
+           family={Phoong},
+           familyi={P\bibinitperiod},
+           given={Seuk\bibnamedelima Wai},
+           giveni={S\bibinitperiod\bibinitdelim W\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=1c8694e70c057cfe222033a7f5f100f4}{%
+           family={Hong},
+           familyi={H\bibinitperiod},
+           given={Zeng-Wei},
+           giveni={Z\bibinithyphendelim W\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=5134a3e472169b6a24f0b5c7d97a9c4e}{%
+           family={Chen},
+           familyi={C\bibinitperiod},
+           given={Yen-Lin},
+           giveni={Y\bibinithyphendelim L\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{73da5cd79e336fa039b50146e21710ec}
+      \strng{fullhash}{7b0c9db1a2630757cc38f65f10612ce6}
+      \strng{fullhashraw}{7b0c9db1a2630757cc38f65f10612ce6}
+      \strng{bibnamehash}{7b0c9db1a2630757cc38f65f10612ce6}
+      \strng{authorbibnamehash}{7b0c9db1a2630757cc38f65f10612ce6}
+      \strng{authornamehash}{73da5cd79e336fa039b50146e21710ec}
+      \strng{authorfullhash}{7b0c9db1a2630757cc38f65f10612ce6}
+      \strng{authorfullhashraw}{7b0c9db1a2630757cc38f65f10612ce6}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{2227-7390}
+      \field{journaltitle}{Mathematics}
+      \field{number}{8}
+      \field{title}{Mitigating the Multicollinearity Problem and Its Machine Learning Approach: A Review}
+      \field{volume}{10}
+      \field{year}{2022}
+      \verb{doi}
+      \verb 10.3390/math10081283
+      \endverb
+      \verb{urlraw}
+      \verb https://www.mdpi.com/2227-7390/10/8/1283
+      \endverb
+      \verb{url}
+      \verb https://www.mdpi.com/2227-7390/10/8/1283
+      \endverb
+    \endentry
     \entry{goodfellow2016deeplearning}{book}{}{}
       \name{author}{3}{}{%
         {{un=0,uniquepart=base,hash=5d2585c11210cf1d4512e6e0a03ec315}{%
@@ -523,6 +599,74 @@
       \endverb
       \verb{url}
       \verb https://web.actuaries.ie/sites/default/files/erm-resources/2079LDP_20150911.pdf
+      \endverb
+    \endentry
+    \entry{huang2020normalizationtechniquestrainingdnns}{misc}{}{}
+      \name{author}{6}{}{%
+        {{un=0,uniquepart=base,hash=ebcb470ee777cbc56984a83379d29819}{%
+           family={Huang},
+           familyi={H\bibinitperiod},
+           given={Lei},
+           giveni={L\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=2f85a6ceba865d9250bcbbc35cf70c03}{%
+           family={Qin},
+           familyi={Q\bibinitperiod},
+           given={Jie},
+           giveni={J\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=3625efaf108a2751cfdacddd7a073c3d}{%
+           family={Zhou},
+           familyi={Z\bibinitperiod},
+           given={Yi},
+           giveni={Y\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=078be312360889dac2a3708191ef8d56}{%
+           family={Zhu},
+           familyi={Z\bibinitperiod},
+           given={Fan},
+           giveni={F\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=fa3e4da50b3416b1a04c39a932b2344c}{%
+           family={Liu},
+           familyi={L\bibinitperiod},
+           given={Li},
+           giveni={L\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=a19a5e715fda869516c9d9d4ffbfd7f7}{%
+           family={Shao},
+           familyi={S\bibinitperiod},
+           given={Ling},
+           giveni={L\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{d5a72ad860f0ae3bd779658a39d022a7}
+      \strng{fullhash}{c164d67e410c3db6bb56f90e84815e82}
+      \strng{fullhashraw}{c164d67e410c3db6bb56f90e84815e82}
+      \strng{bibnamehash}{c164d67e410c3db6bb56f90e84815e82}
+      \strng{authorbibnamehash}{c164d67e410c3db6bb56f90e84815e82}
+      \strng{authornamehash}{d5a72ad860f0ae3bd779658a39d022a7}
+      \strng{authorfullhash}{c164d67e410c3db6bb56f90e84815e82}
+      \strng{authorfullhashraw}{c164d67e410c3db6bb56f90e84815e82}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{cs.LG}
+      \field{eprinttype}{arXiv}
+      \field{title}{Normalization Techniques in Training DNNs: Methodology, Analysis and Application}
+      \field{year}{2020}
+      \verb{eprint}
+      \verb 2009.12836
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/2009.12836
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/2009.12836
       \endverb
     \endentry
     \entry{hull1990pricing}{article}{}{}
@@ -1005,6 +1149,7 @@
       \strng{authornamehash}{97ac04c59cb2232ff66b5c201b536369}
       \strng{authorfullhash}{97ac04c59cb2232ff66b5c201b536369}
       \strng{authorfullhashraw}{97ac04c59cb2232ff66b5c201b536369}
+      \field{extraname}{1}
       \field{sortinit}{R}
       \field{sortinithash}{5e1c39a9d46ffb6bebd8f801023a9486}
       \field{extradatescope}{labelyear}
@@ -1024,6 +1169,43 @@
       \endverb
       \verb{url}
       \verb https://doi.org/10.1002/9781118673539
+      \endverb
+    \endentry
+    \entry{Rebonato_2018}{inbook}{}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=97ac04c59cb2232ff66b5c201b536369}{%
+           family={Rebonato},
+           familyi={R\bibinitperiod},
+           given={Riccardo},
+           giveni={R\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{publisher}{1}{%
+        {Cambridge University Press}%
+      }
+      \strng{namehash}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{fullhash}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{fullhashraw}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{bibnamehash}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{authorbibnamehash}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{authornamehash}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{authorfullhash}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{authorfullhashraw}{97ac04c59cb2232ff66b5c201b536369}
+      \field{extraname}{2}
+      \field{sortinit}{R}
+      \field{sortinithash}{5e1c39a9d46ffb6bebd8f801023a9486}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Bond Pricing and Yield Curve Modeling: A Structural Approach}
+      \field{title}{Principal Components: Theory}
+      \field{year}{2018}
+      \field{pages}{98\bibrangedash 107}
+      \range{pages}{10}
+      \verb{doi}
+      \verb https://doi.org/10.1017/9781316694169.006
       \endverb
     \endentry
     \entry{sazli2006feedforwardnn}{article}{}{}
@@ -1062,6 +1244,155 @@
       \verb 10.1501/commua1-2_0000000026
       \endverb
       \keyw{Artificial neural networks,feed-forward neural networks,back-propagation algorithm}
+    \endentry
+    \entry{shanker1996effectdatastandardization}{article}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=18cfcf4f4754c2389d74db1fccbc1277}{%
+           family={Shanker},
+           familyi={S\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=76afd0a6c1a84d33d4c629dc5db27da8}{%
+           family={Hu},
+           familyi={H\bibinitperiod},
+           given={M.Y.},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=f016f6f8dee2c8821e9a53a02a5da2ac}{%
+           family={Hung},
+           familyi={H\bibinitperiod},
+           given={M.S.},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{1ffe99c5830ef57d4451eb1b4471c7e8}
+      \strng{fullhash}{f6e75c2eacad68d620a6dbfc58ceadec}
+      \strng{fullhashraw}{f6e75c2eacad68d620a6dbfc58ceadec}
+      \strng{bibnamehash}{f6e75c2eacad68d620a6dbfc58ceadec}
+      \strng{authorbibnamehash}{f6e75c2eacad68d620a6dbfc58ceadec}
+      \strng{authornamehash}{1ffe99c5830ef57d4451eb1b4471c7e8}
+      \strng{authorfullhash}{f6e75c2eacad68d620a6dbfc58ceadec}
+      \strng{authorfullhashraw}{f6e75c2eacad68d620a6dbfc58ceadec}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Data transformation is a popular option in training neural networks. This study evaluates the effectiveness of two well-known transformation methods: linear transformation and statistical standardization. These two are referred to as data standardization. A carefully designed experiment is used in which data from two-group classification problems were trained by feedforward networks. Different kinds of classification problems, from relatively simple to hard, were generated. Other experimental factors include network architecture, sample size, and sample proportion of group 1 members. Three performance measurements for the effect of data standardization are employed. The results suggest that networks trained on standardized data yield better results in general, but the advantage diminishes as network and sample size become large. In other words, neural networks exhibit a self-scaling capability. In addition, impact of data standardization on the performance of training algorithm in terms of computation time and number of iterations is evaluated. The results indicate that, overall, data standardization slows down training. Finally, these results are illustrated with a data set obtained from the American Telephone and Telegraph Company.}
+      \field{issn}{0305-0483}
+      \field{journaltitle}{Omega}
+      \field{number}{4}
+      \field{title}{Effect of data standardization on neural network training}
+      \field{volume}{24}
+      \field{year}{1996}
+      \field{pages}{385\bibrangedash 397}
+      \range{pages}{13}
+      \verb{doi}
+      \verb https://doi.org/10.1016/0305-0483(96)00010-2
+      \endverb
+      \verb{urlraw}
+      \verb https://www.sciencedirect.com/science/article/pii/0305048396000102
+      \endverb
+      \verb{url}
+      \verb https://www.sciencedirect.com/science/article/pii/0305048396000102
+      \endverb
+      \keyw{neural networks,modelling}
+    \endentry
+    \entry{sildir2020redudantfeatures}{article}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=95017552ecc298566361e3771e67d309}{%
+           family={Sildir},
+           familyi={S\bibinitperiod},
+           given={Hasan},
+           giveni={H\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=8af8fdda14c5af9d05d697e0a093b490}{%
+           family={Aydin},
+           familyi={A\bibinitperiod},
+           given={Erdal},
+           giveni={E\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=38448fe96da25329812641d704cd9c60}{%
+           family={Kavzoglu},
+           familyi={K\bibinitperiod},
+           given={Taskin},
+           giveni={T\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{9690753377f7d3e02bad703f5649a7e1}
+      \strng{fullhash}{f510594bbb5d0b098f426525c75b6480}
+      \strng{fullhashraw}{f510594bbb5d0b098f426525c75b6480}
+      \strng{bibnamehash}{f510594bbb5d0b098f426525c75b6480}
+      \strng{authorbibnamehash}{f510594bbb5d0b098f426525c75b6480}
+      \strng{authornamehash}{9690753377f7d3e02bad703f5649a7e1}
+      \strng{authorfullhash}{f510594bbb5d0b098f426525c75b6480}
+      \strng{authorfullhashraw}{f510594bbb5d0b098f426525c75b6480}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{2072-4292}
+      \field{journaltitle}{Remote Sensing}
+      \field{number}{6}
+      \field{title}{Design of Feedforward Neural Networks in the Classification of Hyperspectral Imagery Using Superstructural Optimization}
+      \field{volume}{12}
+      \field{year}{2020}
+      \verb{doi}
+      \verb 10.3390/rs12060956
+      \endverb
+      \verb{urlraw}
+      \verb https://www.mdpi.com/2072-4292/12/6/956
+      \endverb
+      \verb{url}
+      \verb https://www.mdpi.com/2072-4292/12/6/956
+      \endverb
+    \endentry
+    \entry{sola1997importancedatanormalization}{article}{}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=f977967ec2bead596509134a49e37d25}{%
+           family={Sola},
+           familyi={S\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=0ede2fde38c17975c1490cc9f71d98c3}{%
+           family={Sevilla},
+           familyi={S\bibinitperiod},
+           given={Joaquin},
+           giveni={J\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{fullhash}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{fullhashraw}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{bibnamehash}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{authorbibnamehash}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{authornamehash}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{authorfullhash}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{authorfullhashraw}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Nuclear Science, IEEE Transactions on}
+      \field{month}{07}
+      \field{title}{Importance of input data normalization for the application of neural networks to complex industrial problems}
+      \field{volume}{44}
+      \field{year}{1997}
+      \field{pages}{1464\bibrangedash 1468}
+      \range{pages}{5}
+      \verb{doi}
+      \verb 10.1109/23.589532
+      \endverb
     \endentry
     \entry{suo2009volatility}{misc}{}{}
       \name{author}{3}{}{%
@@ -1152,6 +1483,47 @@
       \field{edition}{2nd}
       \field{title}{Reinforcement Learning: An Introduction}
       \field{year}{2015}
+    \endentry
+    \entry{zheng2018feature}{book}{}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=c13fb4f803b58840c527774ac5c341cf}{%
+           family={Zheng},
+           familyi={Z\bibinitperiod},
+           given={Alice},
+           giveni={A\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=8e567d74ee37d95e8f11d5449a95d67b}{%
+           family={Casari},
+           familyi={C\bibinitperiod},
+           given={Amanda},
+           giveni={A\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{location}{1}{%
+        {Sebastopol, CA}%
+      }
+      \list{publisher}{1}{%
+        {O'Reilly Media}%
+      }
+      \strng{namehash}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{fullhash}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{fullhashraw}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{bibnamehash}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{authorbibnamehash}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{authornamehash}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{authorfullhash}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{authorfullhashraw}{a69eb49dbeefa2409448cfe537cae3ad}
+      \field{sortinit}{Z}
+      \field{sortinithash}{96892c0b0a36bb8557c40c49813d48b3}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{edition}{1st}
+      \field{note}{A PDF version is available at \url{https://www.repath.in/gallery/feature_engineering_for_machine_learning.pdf}}
+      \field{title}{Feature Engineering for Machine Learning: Principles and Techniques for Data Scientists}
+      \field{year}{2018}
     \endentry
   \enddatalist
   \datalist[entry]{apa/global//global/global/global}
@@ -1430,6 +1802,82 @@
       \field{title}{Interest Rate Models: Theory and Practice}
       \field{year}{2006}
     \endentry
+    \entry{chan2022multicollinearity}{article}{}{}
+      \name{author}{7}{}{%
+        {{un=0,uniquepart=base,hash=f664f3e691a0b4e47f4e15d3f0be5a90}{%
+           family={Chan},
+           familyi={C\bibinitperiod},
+           given={Jireh\bibnamedelima Yi-Le},
+           giveni={J\bibinitperiod\bibinitdelim Y\bibinithyphendelim L\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=e3bf7c4a6c8b72eb5d1fc903f78f2614}{%
+           family={Leow},
+           familyi={L\bibinitperiod},
+           given={Steven\bibnamedelimb Mun\bibnamedelima Hong},
+           giveni={S\bibinitperiod\bibinitdelim M\bibinitperiod\bibinitdelim H\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=447c048aaa2e41b5fb4d0a487507b288}{%
+           family={Bea},
+           familyi={B\bibinitperiod},
+           given={Khean\bibnamedelima Thye},
+           giveni={K\bibinitperiod\bibinitdelim T\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=4354f73b579b0cacdda5f213524b8f94}{%
+           family={Cheng},
+           familyi={C\bibinitperiod},
+           given={Wai\bibnamedelima Khuen},
+           giveni={W\bibinitperiod\bibinitdelim K\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=f74a4f2e76e153ecdc5f5ab85f375181}{%
+           family={Phoong},
+           familyi={P\bibinitperiod},
+           given={Seuk\bibnamedelima Wai},
+           giveni={S\bibinitperiod\bibinitdelim W\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=1c8694e70c057cfe222033a7f5f100f4}{%
+           family={Hong},
+           familyi={H\bibinitperiod},
+           given={Zeng-Wei},
+           giveni={Z\bibinithyphendelim W\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=5134a3e472169b6a24f0b5c7d97a9c4e}{%
+           family={Chen},
+           familyi={C\bibinitperiod},
+           given={Yen-Lin},
+           giveni={Y\bibinithyphendelim L\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{73da5cd79e336fa039b50146e21710ec}
+      \strng{fullhash}{7b0c9db1a2630757cc38f65f10612ce6}
+      \strng{fullhashraw}{7b0c9db1a2630757cc38f65f10612ce6}
+      \strng{bibnamehash}{7b0c9db1a2630757cc38f65f10612ce6}
+      \strng{authorbibnamehash}{7b0c9db1a2630757cc38f65f10612ce6}
+      \strng{authornamehash}{73da5cd79e336fa039b50146e21710ec}
+      \strng{authorfullhash}{7b0c9db1a2630757cc38f65f10612ce6}
+      \strng{authorfullhashraw}{7b0c9db1a2630757cc38f65f10612ce6}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{2227-7390}
+      \field{journaltitle}{Mathematics}
+      \field{number}{8}
+      \field{title}{Mitigating the Multicollinearity Problem and Its Machine Learning Approach: A Review}
+      \field{volume}{10}
+      \field{year}{2022}
+      \verb{doi}
+      \verb 10.3390/math10081283
+      \endverb
+      \verb{urlraw}
+      \verb https://www.mdpi.com/2227-7390/10/8/1283
+      \endverb
+      \verb{url}
+      \verb https://www.mdpi.com/2227-7390/10/8/1283
+      \endverb
+    \endentry
     \entry{goodfellow2016deeplearning}{book}{}{}
       \name{author}{3}{}{%
         {{un=0,uniquepart=base,hash=5d2585c11210cf1d4512e6e0a03ec315}{%
@@ -1659,6 +2107,74 @@
       \endverb
       \verb{url}
       \verb https://web.actuaries.ie/sites/default/files/erm-resources/2079LDP_20150911.pdf
+      \endverb
+    \endentry
+    \entry{huang2020normalizationtechniquestrainingdnns}{misc}{}{}
+      \name{author}{6}{}{%
+        {{un=0,uniquepart=base,hash=ebcb470ee777cbc56984a83379d29819}{%
+           family={Huang},
+           familyi={H\bibinitperiod},
+           given={Lei},
+           giveni={L\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=2f85a6ceba865d9250bcbbc35cf70c03}{%
+           family={Qin},
+           familyi={Q\bibinitperiod},
+           given={Jie},
+           giveni={J\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=3625efaf108a2751cfdacddd7a073c3d}{%
+           family={Zhou},
+           familyi={Z\bibinitperiod},
+           given={Yi},
+           giveni={Y\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=078be312360889dac2a3708191ef8d56}{%
+           family={Zhu},
+           familyi={Z\bibinitperiod},
+           given={Fan},
+           giveni={F\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=fa3e4da50b3416b1a04c39a932b2344c}{%
+           family={Liu},
+           familyi={L\bibinitperiod},
+           given={Li},
+           giveni={L\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=a19a5e715fda869516c9d9d4ffbfd7f7}{%
+           family={Shao},
+           familyi={S\bibinitperiod},
+           given={Ling},
+           giveni={L\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{d5a72ad860f0ae3bd779658a39d022a7}
+      \strng{fullhash}{c164d67e410c3db6bb56f90e84815e82}
+      \strng{fullhashraw}{c164d67e410c3db6bb56f90e84815e82}
+      \strng{bibnamehash}{c164d67e410c3db6bb56f90e84815e82}
+      \strng{authorbibnamehash}{c164d67e410c3db6bb56f90e84815e82}
+      \strng{authornamehash}{d5a72ad860f0ae3bd779658a39d022a7}
+      \strng{authorfullhash}{c164d67e410c3db6bb56f90e84815e82}
+      \strng{authorfullhashraw}{c164d67e410c3db6bb56f90e84815e82}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{cs.LG}
+      \field{eprinttype}{arXiv}
+      \field{title}{Normalization Techniques in Training DNNs: Methodology, Analysis and Application}
+      \field{year}{2020}
+      \verb{eprint}
+      \verb 2009.12836
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/2009.12836
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/2009.12836
       \endverb
     \endentry
     \entry{hull1990pricing}{article}{}{}
@@ -2141,6 +2657,7 @@
       \strng{authornamehash}{97ac04c59cb2232ff66b5c201b536369}
       \strng{authorfullhash}{97ac04c59cb2232ff66b5c201b536369}
       \strng{authorfullhashraw}{97ac04c59cb2232ff66b5c201b536369}
+      \field{extraname}{1}
       \field{sortinit}{R}
       \field{sortinithash}{5e1c39a9d46ffb6bebd8f801023a9486}
       \field{extradatescope}{labelyear}
@@ -2160,6 +2677,43 @@
       \endverb
       \verb{url}
       \verb https://doi.org/10.1002/9781118673539
+      \endverb
+    \endentry
+    \entry{Rebonato_2018}{inbook}{}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=97ac04c59cb2232ff66b5c201b536369}{%
+           family={Rebonato},
+           familyi={R\bibinitperiod},
+           given={Riccardo},
+           giveni={R\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{publisher}{1}{%
+        {Cambridge University Press}%
+      }
+      \strng{namehash}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{fullhash}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{fullhashraw}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{bibnamehash}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{authorbibnamehash}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{authornamehash}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{authorfullhash}{97ac04c59cb2232ff66b5c201b536369}
+      \strng{authorfullhashraw}{97ac04c59cb2232ff66b5c201b536369}
+      \field{extraname}{2}
+      \field{sortinit}{R}
+      \field{sortinithash}{5e1c39a9d46ffb6bebd8f801023a9486}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Bond Pricing and Yield Curve Modeling: A Structural Approach}
+      \field{title}{Principal Components: Theory}
+      \field{year}{2018}
+      \field{pages}{98\bibrangedash 107}
+      \range{pages}{10}
+      \verb{doi}
+      \verb https://doi.org/10.1017/9781316694169.006
       \endverb
     \endentry
     \entry{sazli2006feedforwardnn}{article}{}{}
@@ -2198,6 +2752,155 @@
       \verb 10.1501/commua1-2_0000000026
       \endverb
       \keyw{Artificial neural networks,feed-forward neural networks,back-propagation algorithm}
+    \endentry
+    \entry{shanker1996effectdatastandardization}{article}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=18cfcf4f4754c2389d74db1fccbc1277}{%
+           family={Shanker},
+           familyi={S\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=76afd0a6c1a84d33d4c629dc5db27da8}{%
+           family={Hu},
+           familyi={H\bibinitperiod},
+           given={M.Y.},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=f016f6f8dee2c8821e9a53a02a5da2ac}{%
+           family={Hung},
+           familyi={H\bibinitperiod},
+           given={M.S.},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{1ffe99c5830ef57d4451eb1b4471c7e8}
+      \strng{fullhash}{f6e75c2eacad68d620a6dbfc58ceadec}
+      \strng{fullhashraw}{f6e75c2eacad68d620a6dbfc58ceadec}
+      \strng{bibnamehash}{f6e75c2eacad68d620a6dbfc58ceadec}
+      \strng{authorbibnamehash}{f6e75c2eacad68d620a6dbfc58ceadec}
+      \strng{authornamehash}{1ffe99c5830ef57d4451eb1b4471c7e8}
+      \strng{authorfullhash}{f6e75c2eacad68d620a6dbfc58ceadec}
+      \strng{authorfullhashraw}{f6e75c2eacad68d620a6dbfc58ceadec}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Data transformation is a popular option in training neural networks. This study evaluates the effectiveness of two well-known transformation methods: linear transformation and statistical standardization. These two are referred to as data standardization. A carefully designed experiment is used in which data from two-group classification problems were trained by feedforward networks. Different kinds of classification problems, from relatively simple to hard, were generated. Other experimental factors include network architecture, sample size, and sample proportion of group 1 members. Three performance measurements for the effect of data standardization are employed. The results suggest that networks trained on standardized data yield better results in general, but the advantage diminishes as network and sample size become large. In other words, neural networks exhibit a self-scaling capability. In addition, impact of data standardization on the performance of training algorithm in terms of computation time and number of iterations is evaluated. The results indicate that, overall, data standardization slows down training. Finally, these results are illustrated with a data set obtained from the American Telephone and Telegraph Company.}
+      \field{issn}{0305-0483}
+      \field{journaltitle}{Omega}
+      \field{number}{4}
+      \field{title}{Effect of data standardization on neural network training}
+      \field{volume}{24}
+      \field{year}{1996}
+      \field{pages}{385\bibrangedash 397}
+      \range{pages}{13}
+      \verb{doi}
+      \verb https://doi.org/10.1016/0305-0483(96)00010-2
+      \endverb
+      \verb{urlraw}
+      \verb https://www.sciencedirect.com/science/article/pii/0305048396000102
+      \endverb
+      \verb{url}
+      \verb https://www.sciencedirect.com/science/article/pii/0305048396000102
+      \endverb
+      \keyw{neural networks,modelling}
+    \endentry
+    \entry{sildir2020redudantfeatures}{article}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=95017552ecc298566361e3771e67d309}{%
+           family={Sildir},
+           familyi={S\bibinitperiod},
+           given={Hasan},
+           giveni={H\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=8af8fdda14c5af9d05d697e0a093b490}{%
+           family={Aydin},
+           familyi={A\bibinitperiod},
+           given={Erdal},
+           giveni={E\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=38448fe96da25329812641d704cd9c60}{%
+           family={Kavzoglu},
+           familyi={K\bibinitperiod},
+           given={Taskin},
+           giveni={T\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{9690753377f7d3e02bad703f5649a7e1}
+      \strng{fullhash}{f510594bbb5d0b098f426525c75b6480}
+      \strng{fullhashraw}{f510594bbb5d0b098f426525c75b6480}
+      \strng{bibnamehash}{f510594bbb5d0b098f426525c75b6480}
+      \strng{authorbibnamehash}{f510594bbb5d0b098f426525c75b6480}
+      \strng{authornamehash}{9690753377f7d3e02bad703f5649a7e1}
+      \strng{authorfullhash}{f510594bbb5d0b098f426525c75b6480}
+      \strng{authorfullhashraw}{f510594bbb5d0b098f426525c75b6480}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{2072-4292}
+      \field{journaltitle}{Remote Sensing}
+      \field{number}{6}
+      \field{title}{Design of Feedforward Neural Networks in the Classification of Hyperspectral Imagery Using Superstructural Optimization}
+      \field{volume}{12}
+      \field{year}{2020}
+      \verb{doi}
+      \verb 10.3390/rs12060956
+      \endverb
+      \verb{urlraw}
+      \verb https://www.mdpi.com/2072-4292/12/6/956
+      \endverb
+      \verb{url}
+      \verb https://www.mdpi.com/2072-4292/12/6/956
+      \endverb
+    \endentry
+    \entry{sola1997importancedatanormalization}{article}{}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=f977967ec2bead596509134a49e37d25}{%
+           family={Sola},
+           familyi={S\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=0ede2fde38c17975c1490cc9f71d98c3}{%
+           family={Sevilla},
+           familyi={S\bibinitperiod},
+           given={Joaquin},
+           giveni={J\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{fullhash}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{fullhashraw}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{bibnamehash}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{authorbibnamehash}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{authornamehash}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{authorfullhash}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \strng{authorfullhashraw}{67723fc4e4bd6bbb2c77cb0f4a695a05}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Nuclear Science, IEEE Transactions on}
+      \field{month}{07}
+      \field{title}{Importance of input data normalization for the application of neural networks to complex industrial problems}
+      \field{volume}{44}
+      \field{year}{1997}
+      \field{pages}{1464\bibrangedash 1468}
+      \range{pages}{5}
+      \verb{doi}
+      \verb 10.1109/23.589532
+      \endverb
     \endentry
     \entry{suo2009volatility}{misc}{}{}
       \name{author}{3}{}{%
@@ -2288,6 +2991,47 @@
       \field{edition}{2nd}
       \field{title}{Reinforcement Learning: An Introduction}
       \field{year}{2015}
+    \endentry
+    \entry{zheng2018feature}{book}{}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=c13fb4f803b58840c527774ac5c341cf}{%
+           family={Zheng},
+           familyi={Z\bibinitperiod},
+           given={Alice},
+           giveni={A\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=8e567d74ee37d95e8f11d5449a95d67b}{%
+           family={Casari},
+           familyi={C\bibinitperiod},
+           given={Amanda},
+           giveni={A\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{location}{1}{%
+        {Sebastopol, CA}%
+      }
+      \list{publisher}{1}{%
+        {O'Reilly Media}%
+      }
+      \strng{namehash}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{fullhash}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{fullhashraw}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{bibnamehash}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{authorbibnamehash}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{authornamehash}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{authorfullhash}{a69eb49dbeefa2409448cfe537cae3ad}
+      \strng{authorfullhashraw}{a69eb49dbeefa2409448cfe537cae3ad}
+      \field{sortinit}{Z}
+      \field{sortinithash}{96892c0b0a36bb8557c40c49813d48b3}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{edition}{1st}
+      \field{note}{A PDF version is available at \url{https://www.repath.in/gallery/feature_engineering_for_machine_learning.pdf}}
+      \field{title}{Feature Engineering for Machine Learning: Principles and Techniques for Data Scientists}
+      \field{year}{2018}
     \endentry
   \enddatalist
 \endrefsection

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.16)  19 OCT 2025 16:56
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.16)  20 OCT 2025 12:24
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -793,7 +793,7 @@ Package biblatex Info: ... file 'main.bbl' found.
  (main.bbl)
 Package biblatex Info: Reference section=0 on input line 44.
 Package biblatex Info: Reference segment=0 on input line 44.
-<images/zhaw_logo.png, id=215, 602.25pt x 602.25pt>
+<images/zhaw_logo.png, id=219, 602.25pt x 602.25pt>
 File: images/zhaw_logo.png Graphic file (type png)
 <use images/zhaw_logo.png>
 Package pdftex.def Info: images/zhaw_logo.png  used on input line 54.
@@ -1134,7 +1134,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [29]
-<images/descriptive_data_analysis/external_data_time_series.png, id=590, 1011.78pt x 1084.05pt>
+<images/descriptive_data_analysis/external_data_time_series.png, id=595, 1011.78pt x 1084.05pt>
 File: images/descriptive_data_analysis/external_data_time_series.png Graphic file (type png)
 <use images/descriptive_data_analysis/external_data_time_series.png>
 Package pdftex.def Info: images/descriptive_data_analysis/external_data_time_series.png  used on input line 48.
@@ -1166,12 +1166,12 @@ pdfTeX warning (ext4): destination with the same identifier (name{figure.1}) has
                                                   \__shipout_drop_firstpage_...
 l.75 \end{table}
                  <./images/descriptive_data_analysis/external_data_time_series.png>]
-<images/descriptive_data_analysis/yield_curve_selected_tenors.png, id=606, 1011.78pt x 505.89pt>
+<images/descriptive_data_analysis/yield_curve_selected_tenors.png, id=611, 1011.78pt x 505.89pt>
 File: images/descriptive_data_analysis/yield_curve_selected_tenors.png Graphic file (type png)
 <use images/descriptive_data_analysis/yield_curve_selected_tenors.png>
 Package pdftex.def Info: images/descriptive_data_analysis/yield_curve_selected_tenors.png  used on input line 82.
 (pdftex.def)             Requested size: 452.9679pt x 226.48277pt.
-<images/descriptive_data_analysis/vol_surface_coterminal_series.png, id=608, 1011.78pt x 505.89pt>
+<images/descriptive_data_analysis/vol_surface_coterminal_series.png, id=613, 1011.78pt x 505.89pt>
 File: images/descriptive_data_analysis/vol_surface_coterminal_series.png Graphic file (type png)
 <use images/descriptive_data_analysis/vol_surface_coterminal_series.png>
 Package pdftex.def Info: images/descriptive_data_analysis/vol_surface_coterminal_series.png  used on input line 91.
@@ -1196,7 +1196,7 @@ pdfTeX warning (ext4): destination with the same identifier (name{figure.2}) has
                                                   \__shipout_drop_firstpage_...
 l.95 
       <./images/descriptive_data_analysis/yield_curve_selected_tenors.png>]
-<images/descriptive_data_analysis/yield_curve_2d_snapshots.png, id=618, 1445.4pt x 433.62pt>
+<images/descriptive_data_analysis/yield_curve_2d_snapshots.png, id=623, 1445.4pt x 433.62pt>
 File: images/descriptive_data_analysis/yield_curve_2d_snapshots.png Graphic file (type png)
 <use images/descriptive_data_analysis/yield_curve_2d_snapshots.png>
 Package pdftex.def Info: images/descriptive_data_analysis/yield_curve_2d_snapshots.png  used on input line 100.
@@ -1221,12 +1221,12 @@ pdfTeX warning (ext4): destination with the same identifier (name{figure.4}) has
                                                   \__shipout_drop_firstpage_...
 l.129 
        <./images/descriptive_data_analysis/vol_surface_coterminal_series.png> <./images/descriptive_data_analysis/yield_curve_2d_snapshots.png>]
-<images/descriptive_data_analysis/vol_surface_3d_snapshots.png, id=630, 1734.48pt x 578.16pt>
+<images/descriptive_data_analysis/vol_surface_3d_snapshots.png, id=635, 1734.48pt x 578.16pt>
 File: images/descriptive_data_analysis/vol_surface_3d_snapshots.png Graphic file (type png)
 <use images/descriptive_data_analysis/vol_surface_3d_snapshots.png>
 Package pdftex.def Info: images/descriptive_data_analysis/vol_surface_3d_snapshots.png  used on input line 135.
 (pdftex.def)             Requested size: 452.9679pt x 150.98853pt.
-<images/descriptive_data_analysis/yield_curve_std_by_tenor.png, id=632, 1011.78pt x 505.89pt>
+<images/descriptive_data_analysis/yield_curve_std_by_tenor.png, id=637, 1011.78pt x 505.89pt>
 File: images/descriptive_data_analysis/yield_curve_std_by_tenor.png Graphic file (type png)
 <use images/descriptive_data_analysis/yield_curve_std_by_tenor.png>
 Package pdftex.def Info: images/descriptive_data_analysis/yield_curve_std_by_tenor.png  used on input line 144.
@@ -1251,7 +1251,7 @@ pdfTeX warning (ext4): destination with the same identifier (name{figure.5}) has
                                                   \__shipout_drop_firstpage_...
 l.148 
        <./images/descriptive_data_analysis/vol_surface_3d_snapshots.png>]
-<images/descriptive_data_analysis/vol_surface_std_heatmap.png, id=642, 1011.78pt x 722.7pt>
+<images/descriptive_data_analysis/vol_surface_std_heatmap.png, id=647, 1011.78pt x 722.7pt>
 File: images/descriptive_data_analysis/vol_surface_std_heatmap.png Graphic file (type png)
 <use images/descriptive_data_analysis/vol_surface_std_heatmap.png>
 Package pdftex.def Info: images/descriptive_data_analysis/vol_surface_std_heatmap.png  used on input line 153.
@@ -1290,12 +1290,12 @@ pdfTeX warning (ext4): destination with the same identifier (name{table.5}) has 
                                                   \__shipout_drop_firstpage_...
 l.185 
        <./images/descriptive_data_analysis/vol_surface_std_heatmap.png>]
-<images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png, id=659, 1084.05pt x 867.24pt>
+<images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png, id=664, 1084.05pt x 867.24pt>
 File: images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png Graphic file (type png)
 <use images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png>
 Package pdftex.def Info: images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png  used on input line 188.
 (pdftex.def)             Requested size: 452.9679pt x 362.37247pt.
-<images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png, id=661, 1084.05pt x 867.24pt>
+<images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png, id=666, 1084.05pt x 867.24pt>
 File: images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png Graphic file (type png)
 <use images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png>
 Package pdftex.def Info: images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png  used on input line 197.
@@ -1338,7 +1338,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [39]
-<images/features/feature_correlation_matrixPre-PCA.png, id=685, 1330.4907pt x 1148.3703pt>
+<images/features/feature_correlation_matrixPre-PCA.png, id=690, 1330.4907pt x 1148.3703pt>
 File: images/features/feature_correlation_matrixPre-PCA.png Graphic file (type png)
 <use images/features/feature_correlation_matrixPre-PCA.png>
 Package pdftex.def Info: images/features/feature_correlation_matrixPre-PCA.png  used on input line 267.
@@ -1365,12 +1365,12 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 pdfTeX warning (ext4): destination with the same identifier (name{figure.10}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.285 \end{equation}
-                     <./images/features/feature_correlation_matrixPre-PCA.png>]
-<images/features/feature_correlation_matrixPost-PCA.png, id=702, 1330.4907pt x 1148.3703pt>
+l.281 \]
+         <./images/features/feature_correlation_matrixPre-PCA.png>]
+<images/features/feature_correlation_matrixPost-PCA.png, id=713, 1330.4907pt x 1148.3703pt>
 File: images/features/feature_correlation_matrixPost-PCA.png Graphic file (type png)
 <use images/features/feature_correlation_matrixPost-PCA.png>
-Package pdftex.def Info: images/features/feature_correlation_matrixPost-PCA.png  used on input line 302.
+Package pdftex.def Info: images/features/feature_correlation_matrixPost-PCA.png  used on input line 304.
 (pdftex.def)             Requested size: 452.9679pt x 390.96642pt.
 
 
@@ -1382,7 +1382,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [42]
-Overfull \hbox (34.57867pt too wide) in paragraph at lines 310--311
+Overfull \hbox (34.57867pt too wide) in paragraph at lines 312--313
 \T1/lmr/m/n/12 Prior to be-ing fed into the neu-ral net-work, all in-put fea-tures are scaled us-ing the \T1/lmtt/m/n/12 StandardScaler
  []
 
@@ -1399,7 +1399,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 pdfTeX warning (ext4): destination with the same identifier (name{figure.11}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.319 \end{equation}
+l.321 \end{equation}
                      <./images/features/feature_correlation_matrixPost-PCA.png>]
 
 
@@ -1436,7 +1436,12 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[47]
+[47
+pdfTeX warning (ext4): destination with the same identifier (name{table.6}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.444 
+      ]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1463,7 +1468,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[50]) (chapters/4_results.tex
+[50]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1473,6 +1478,24 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [51]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[52]) (chapters/4_results.tex
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[53]
 Overfull \hbox (6.38647pt too wide) in paragraph at lines 11--12
 []\T1/lmr/m/n/12 Provide av-er-age cal-i-bra-tion times for the tra-di-tional al-go-rithms (e.g., Levenberg-
  []
@@ -1496,7 +1519,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[52])
+[54])
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1505,7 +1528,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[53]
+[55]
 Overfull \hbox (34.4283pt too wide) in paragraph at lines 126--126
 [][]\T1/lmr/m/n/12 Goodfellow, I., Ben-gio, Y., & Courville, A. (2016). \T1/lmr/m/it/12 Deep learn-ing \T1/lmr/m/n/12 [[]$http : / / www . deeplearningbook .
  []
@@ -1519,7 +1542,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[54]
+[56]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1528,7 +1551,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[55] (chapters/appendix_code.tex
+[57] (chapters/appendix_code.tex
 Overfull \hbox (3.06987pt too wide) in paragraph at lines 5--6
 []\T1/lmr/bx/n/12 Mathematical Deriva-tions: \T1/lmr/m/n/12 In-clude any lengthy or com-plex math-e-mat-i-cal deriva-
  []
@@ -1542,13 +1565,13 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[56] (main.aux)
+[58] (main.aux)
  ***********
 LaTeX2e <2025-06-01> patch level 1
 L3 programming layer <2025-07-11>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 4668FCE8483B6AE7BD9AF0AB4531E115;10647.
+(rerunfilecheck)             Checksum: F024085D8D690BD817C1B4BFB82D3FEB;10868.
 Package logreq Info: Writing requests to 'main.run.xml'.
 \openout1 = `main.run.xml'.
 
@@ -1558,17 +1581,17 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 ### simple group (level 1) entered at line 211 ({)
 ### bottom level 
 Here is how much of TeX's memory you used:
- 23736 strings out of 468149
- 420019 string characters out of 5431082
- 1379718 words of memory out of 5000000
- 51762 multiletter control sequences out of 15000+600000
+ 23807 strings out of 468149
+ 422581 string characters out of 5431082
+ 1380451 words of memory out of 5000000
+ 51813 multiletter control sequences out of 15000+600000
  716755 words of font info for 105 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,12n,79p,1699b,5052s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmex10.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi12.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi6.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi8.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmib10.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr10.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr12.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr17.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr6.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr8.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmri12.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy10.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy6.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy8.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt12.pfb><C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on main.pdf (57 pages, 2031639 bytes).
+Output written on main.pdf (59 pages, 2053328 bytes).
 PDF statistics:
- 959 PDF objects out of 1000 (max. 8388607)
- 238 named destinations out of 1000 (max. 500000)
- 485 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1017 PDF objects out of 1200 (max. 8388607)
+ 258 named destinations out of 1000 (max. 500000)
+ 493 words of extra memory for PDF output out of 10000 (max. 10000000)
 

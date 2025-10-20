@@ -41,17 +41,18 @@
 \contentsline {paragraph}{Features Engineered from External Market Data}{40}{equation.59}%
 \contentsline {paragraph}{Features Engineered via Dimensionality Reduction}{40}{equation.61}%
 \contentsline {subsubsection}{\numberline {3.3.4}Feature Scaling}{43}{subsubsection.3.3.4}%
-\contentsline {subsection}{\numberline {3.4}Hyperparameter Optimization}{44}{subsection.3.4}%
-\contentsline {subsection}{\numberline {3.5}Methodology Workflow}{46}{subsection.3.5}%
-\contentsline {subsection}{\numberline {3.6}Used Model Architecture \& Setup}{48}{subsection.3.6}%
-\contentsline {subsection}{\numberline {3.7}Calibration Strategy}{48}{subsection.3.7}%
-\contentsline {subsection}{\numberline {3.8}Technical Setup and Computational Optimization}{48}{subsection.3.8}%
-\contentsline {subsubsection}{\numberline {3.8.1}Integration of TensorFlow and QuantLib}{49}{subsubsection.3.8.1}%
-\contentsline {subsubsection}{\numberline {3.8.2}Parallelization and Hardware Considerations}{49}{subsubsection.3.8.2}%
-\contentsline {subsubsection}{\numberline {3.8.3}Algorithmic and Numerical Efficiency}{50}{subsubsection.3.8.3}%
-\contentsline {subsubsection}{\numberline {3.8.4}Optimization of the Training Process}{50}{subsubsection.3.8.4}%
-\contentsline {subsubsection}{\numberline {3.8.5}Workflow-Level Enhancements and Model Design}{50}{subsubsection.3.8.5}%
-\contentsline {subsection}{\numberline {3.9}Use of AI}{51}{subsection.3.9}%
-\contentsline {section}{\numberline {4}Results}{51}{section.4}%
-\contentsline {section}{\numberline {5}Conclusion}{52}{section.5}%
-\contentsline {section}{\numberline {A}Appendix}{56}{appendix.A}%
+\contentsline {subsection}{\numberline {3.4}Hyperparameter Optimization}{45}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Loss Function and Error Metric}{46}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Methodology Workflow}{48}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.7}Used Model Architecture \& Setup}{50}{subsection.3.7}%
+\contentsline {subsection}{\numberline {3.8}Calibration Strategy}{50}{subsection.3.8}%
+\contentsline {subsection}{\numberline {3.9}Technical Setup and Computational Optimization}{50}{subsection.3.9}%
+\contentsline {subsubsection}{\numberline {3.9.1}Integration of TensorFlow and QuantLib}{51}{subsubsection.3.9.1}%
+\contentsline {subsubsection}{\numberline {3.9.2}Parallelization and Hardware Considerations}{51}{subsubsection.3.9.2}%
+\contentsline {subsubsection}{\numberline {3.9.3}Algorithmic and Numerical Efficiency}{52}{subsubsection.3.9.3}%
+\contentsline {subsubsection}{\numberline {3.9.4}Optimization of the Training Process}{52}{subsubsection.3.9.4}%
+\contentsline {subsubsection}{\numberline {3.9.5}Workflow-Level Enhancements and Model Design}{52}{subsubsection.3.9.5}%
+\contentsline {subsection}{\numberline {3.10}Use of AI}{53}{subsection.3.10}%
+\contentsline {section}{\numberline {4}Results}{53}{section.4}%
+\contentsline {section}{\numberline {5}Conclusion}{54}{section.5}%
+\contentsline {section}{\numberline {A}Appendix}{58}{appendix.A}%

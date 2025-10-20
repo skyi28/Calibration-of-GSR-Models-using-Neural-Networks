@@ -269,11 +269,11 @@ Instead of feeding all individual zero-coupon rates directly into the neural net
 	\label{fig:feature_correlation_prePCA}
 \end{figure}
 
-Multicollinearity causes instability in the learned weights of the neural network. When input features contain overlapping information, the model struggles to assign stable importance to each feature. It may assign large, offsetting weights to features that move together, resulting in unstable and unreliable predictions.
+Multicollinearity causes instability in the learned weights of the neural network. When input features contain overlapping information, the model struggles to assign stable importance to each feature. It may assign large, offsetting weights to features that move together, resulting in unstable and unreliable predictions \parencite[p.~2]{chan2022multicollinearity}.
 
-Redundant information makes the learning process inefficient. Most daily movements in the yield curve are dominated by a single pattern — a parallel shift. Feeding the model all the raw rates forces it to re-learn this shared structure repeatedly instead of focusing on economically meaningful dynamics such as slope or curvature changes.
+Redundant information makes the learning process inefficient and typically leads to poor test performance \parencite[p.~3]{sildir2020redudantfeatures}. Most daily movements in the yield curve are dominated by a single pattern — a parallel shift. Feeding the model all the raw rates forces it to re-learn this shared structure repeatedly instead of focusing on economically meaningful dynamics such as slope or curvature changes.
 
-High dimensionality further increases the complexity of the model, encouraging overfitting. With too many correlated features, the neural network risks memorizing noise instead of generalizable relationships, which harms out-of-sample performance.
+High dimensionality further increases the complexity of the model, encouraging overfitting. With too many correlated features, the neural network risks memorizing noise instead of generalizable relationships, which harms out-of-sample performance \parencite[p.~3]{sildir2020redudantfeatures}.
 
 PCA directly resolves these issues by transforming the vector of rates
 \[
@@ -290,10 +290,12 @@ into a set of uncorrelated and economically interpretable components:
 	\text{PC\_Curvature} = \mathbf{w}_3 \cdot \mathbf{R}
 \end{equation}
 
-These three “super-features” capture nearly all the meaningful variation of the yield curve:
-- PC\_Level represents the overall interest rate level and captures parallel shifts. Empirically, higher rate levels are associated with higher volatility (\(\sigma\)).
-- PC\_Slope measures the steepness of the curve and reflects economic expectations, influencing both \(\sigma\) and \(a\).
-- PC\_Curvature captures the non-linear “bow” of the curve, aiding the model in learning term-structure effects in the piecewise \(\sigma\) and mean-reversion dynamics \(a\).
+These three “super-features” capture nearly all the meaningful variation of the yield curve and can be interpreted as follows \parencite[pp.~98--107]{Rebonato_2018}:
+\begin{itemize}
+	\item PC\_Level represents the overall interest rate level and captures parallel shifts. Empirically, higher rate levels are associated with higher volatility (\(\sigma\)).
+	\item PC\_Slope measures the steepness of the curve and reflects economic expectations, influencing both \(\sigma\) and \(a\).
+	\item PC\_Curvature captures the non-linear “bow” of the curve, aiding the model in learning term-structure effects in the piecewise $\sigma$ and mean-reversion dynamics $\alpha$.
+\end{itemize}
 
 After applying PCA to the engineered features, the resulting correlation matrix exhibits a significant reduction in the highest correlations. The originally strong dependencies between individual yield curve rates and other features are largely removed as visible in figure \ref{fig:feature_correlation_postPCA}, demonstrating that the principal components provide a set of largely uncorrelated, independent features for the neural network.
 
@@ -307,7 +309,7 @@ After applying PCA to the engineered features, the resulting correlation matrix 
 By reducing the dimensionality from roughly ten correlated rate inputs to three independent components, PCA provides a stable, interpretable, and compact representation of the yield curve. This significantly improves the neural network’s training efficiency, robustness, and generalization performance.
 
 \subsubsection{Feature Scaling}
-Prior to being fed into the neural network, all input features are scaled using the \texttt{StandardScaler} from the \texttt{scikit-learn} library. This process, also known as standardization or Z-score normalization, ensures that each feature has a mean of zero and a standard deviation of one.
+Prior to being fed into the neural network, all input features are scaled using the \texttt{StandardScaler} from the \texttt{scikit-learn} library. This process, also known as standardization or Z-score normalization, ensures that each feature has a mean of zero and a standard deviation of one \parencite[pp.~31--32]{zheng2018feature}.
 
 The scaling process consists of two main steps:
 
@@ -332,13 +334,13 @@ The learned parameters are used to transform all values of that feature in the t
 
 This centers the data around zero and scales it to unit variance.
 
-Standardization is crucial for several reasons:
-Handling Varying Scales and Units: Input features have vastly different magnitudes (e.g., interest rates vs. MOVE index). Without scaling, features with larger values would dominate the learning process, regardless of their actual importance. Standardization puts all features on a comparable scale.
-Gradient-based optimizers, such as Adam, perform more efficiently when the input features are scaled. Unscaled features can create a skewed loss landscape, leading to slow and erratic convergence. Scaling produces a more uniform loss landscape, allowing faster and more stable optimization.
-When features are standardized, the learned network weights can be interpreted relative to each other. This is especially important for post-hoc explainability analyses, such as SHAP, to determine feature importance accurately.
-Activation functions like \texttt{tanh} and \texttt{sigmoid} are most effective when inputs are centered around zero. Standardization prevents neuron saturation, ensuring gradients remain significant and learning progresses efficiently.
+From a computational perspective, normalization is necessary to manage issues arising from the inherent structure of raw data inputs. It is a technique widely used in statistics for making the units of variables comparable, which is critical when input data are expressed in very different units and exhibit disparate orders of magnitude. Without scaling, features with very large numerical values can dominate the error calculation, causing the error reduction algorithm to focus primarily on these variables while neglecting the information contained in smaller-valued features. Furthermore, when raw numerical values are extremely large, such as on the order of $10^{6}$, their processing can generate outputs that exceed the capacity of standard computing hardware, making scaling essential to control for calculation and roundoff errors \parencite{shanker1996effectdatastandardization}.
 
-By applying \texttt{StandardScaler}, the neural network receives a well-conditioned, standardized input, which improves training stability, convergence speed, and the interpretability of the resulting model.
+The application of scaling directly addresses the optimization landscape of the training problem, leading to more efficient convergence. Normalizing the input is known to accelerate convergence during the optimization of linear models. Linear scale transformations, especially those that compress the search space, reduce the distance the backpropagation algorithm must cover in each iteration \parencite{sola1997importancedatanormalization}. This improved conditioning, where normalization helps ensure the covariance matrix of the layer input $\sum{}x$ is well-conditioned, is crucial for faster learning and aids the optimization algorithm in locating local minima \parencite{huang2020normalizationtechniquestrainingdnns}. Consequently, an adequate normalization protocol can significantly reduce calculation and training time, with studies showing that estimation errors can be reduced by a factor of 5 to 10 and the time required to achieve such results reduced by an order of magnitude \parencite{sola1997importancedatanormalization}.
+
+Ultimately, the primary result of standardization is an improvement in the neural network's quality and training stability. Data transformation is frequently used for improved learning, and normalization techniques are considered essential for accelerating the training and enhancing the generalization of deep neural networks (DNNs). Networks trained on standardized data generally yield better overall results, leading to a higher classification rate and a smaller Mean Square Error (MSE) in regression problems, where a smaller MSE indicates a higher quality solution \parencite{shanker1996effectdatastandardization}. The performance of a network, including the number of training iterations required and the final error attained, is enhanced as the input variable ranges are 'equalized' by the normalization process. This contributes to scale-invariant learning, which is important for stabilizing training and has been shown to be useful for adaptively adjusting the learning rate. In some cases, standardization is not merely a best practice but a formal prerequisite due to specific algorithm requirements \parencite{huang2020normalizationtechniquestrainingdnns}.
+
+By applying \texttt{StandardScaler}, the neural network receives a well-conditioned, standardized input, which improves training stability, and convergence speed of the resulting model.
 
 \subsection{Hyperparameter Optimization}
 \label{subsec:hyperparameter_optimization}
@@ -347,9 +349,9 @@ The predictive performance and stability of neural networks depend critically on
 
 The core settings for the Hyperband tuner were configured as follows:
 \begin{itemize}
-    \item Maximum Epochs per Trial (\texttt{max\_epochs}): A total of 1000 epochs were allocated as the maximum budget for training any single hyperparameter configuration.
-    \item Reduction Factor (\texttt{factor}): A factor of 3 was used, meaning that after each round of training within a bracket, the number of configurations is reduced by a factor of 3, retaining only the top-performing third.
-    \item Objective: The optimization objective was the minimization of the root mean squared error on the validation set.
+	\item Maximum Epochs per Trial (\texttt{max\_epochs}): A total of 1000 epochs were allocated as the maximum budget for training any single hyperparameter configuration.
+	\item Reduction Factor (\texttt{factor}): A factor of 3 was used, meaning that after each round of training within a bracket, the number of configurations is reduced by a factor of 3, retaining only the top-performing third.
+	\item Objective: The optimization objective was the minimization of the root mean squared error on the validation set.
 \end{itemize}
 
 The hyperparameters tuned in this study can be divided into two categories: those defining the neural network architecture and those related to the training process and loss function. Hyperparameters related to the architecture are:
@@ -375,6 +377,70 @@ Tuneable hyperparameters which cover the training and the loss functions are:
 	\item Underestimation Penalty: This custom hyperparameter is designed to address the asymmetric cost of forecasting errors in financial volatility modeling. Underestimating volatility poses a greater financial risk than overestimating it. Therefore, this penalty increases the loss when the model underpredicts volatility, encouraging more conservative estimates. \newline
 	      \textit{Search Space:} Floating-point value between 0.5 (penalty for overestimation) and 4.0 (strong penalty) in steps of 0.1.
 \end{itemize}
+
+\subsection{Loss Function and Error Metric}
+
+The objective of the neural network is to determine the optimal set of weights W and biases b such that the predicted Hull--White parameters minimize the discrepancy between model-implied swaption volatilities and their market-observed counterparts. The neural network acts as a function
+\begin{equation}
+	\text{NN} : x \mapsto \theta(x; W, b),
+\end{equation}
+where $x \in \mathbb{R}^d$ is the input feature vector containing scaled and PCA-transformed market data (yield curve levels, slopes, curvatures, etc.) for a given day, and $\theta$ denotes the vector of Hull--White model parameters to be predicted. The network employs a residual architecture: instead of predicting $\theta$ directly, it predicts a deviation $\Delta z$ from a fixed initial guess $z_0$:
+\begin{equation}
+	\Delta z = \text{NN}(x; W, b), \quad
+	z = z_0 + \Delta z.
+\end{equation}
+The predicted parameters are obtained by applying a scaled sigmoid to ensure they remain within a predefined range [0, U]:
+\begin{equation}
+	\theta(x; W, b) = U \cdot \sigma(z) = U \cdot \frac{1}{1 + e^{-z}}.
+\end{equation}
+
+The predicted parameters $\theta$ are subsequently used within the QuantLib library as a black-box function $V_{\text{QL}}$, which computes model-implied volatilities $\hat{\sigma}$ for a portfolio of $n$ swaptions given the additional market data $M_j$ on day $j$:
+\begin{equation}
+	\hat{\sigma} = V_{\text{QL}}(\theta, M_j) = \{\hat{\sigma}_1, \hat{\sigma}_2, \dots, \hat{\sigma}_n\}.
+\end{equation}
+
+The predictive accuracy of the network is quantified using the root mean squared error (RMSE), which measures the average magnitude of deviation between model-implied and market-observed volatilities, expressed in basis points (bps):
+\begin{equation}
+	\text{RMSE} = \sqrt{\frac{1}{n}\sum_{i=1}^{n}(\hat{\sigma}_i - \sigma_i)^2} \times 10000.
+\end{equation}
+
+\begin{table}[H]
+	\centering
+	\caption{Notation used in the RMSE formula}
+	\begin{tabular}{lp{12cm}}
+		\toprule
+		Symbol  & Meaning                                                                                                                   \\
+		\midrule
+		$n$              & Total number of swaptions in the evaluation dataset                                                                                \\
+		$\hat{\sigma}_i$ & Implied volatility predicted by the Hull--White model using the parameters generated by the neural network for the $i$-th swaption \\
+		$\sigma_i$       & Market-observed implied volatility for the $i$-th swaption                                                                         \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+To align the optimization with practical calibration objectives, an asymmetric loss function is employed during training. For each day $j$, the loss is computed as the mean of weighted squared errors between predicted and observed volatilities:
+\begin{equation}
+	L_j(W, b) = \frac{1}{n} \sum_{i=1}^{n} w_i (\hat{\sigma}_i - \sigma_{j,i})^2,
+\end{equation}
+where the weight $w_i$ accounts for underestimation penalties:
+\begin{equation}
+	w_i =
+	\begin{cases}
+		P, & \text{if } \hat{\sigma}_i < \sigma_{j,i} \quad \text{(underestimation)},   \\
+		1, & \text{if } \hat{\sigma}_i \geq \sigma_{j,i} \quad \text{(overestimation)}.
+	\end{cases}
+\end{equation}
+Here, $P>1$ is the underestimation penalty, treated as a hyperparameter optimized using the Hyperband algorithm. This asymmetric weighting is applied exclusively during training to encourage conservative predictions, while evaluation on validation and test sets uses the standard (unweighted) RMSE to assess predictive accuracy objectively.
+
+The overall training objective is to identify network parameters $(W^*, b^*)$ that minimize the expected daily loss over the distribution of training data $D$:
+\begin{equation}
+	(W^*, b^*) = \arg \min_{W, b} \ \mathbb{E}_{(x_j, \sigma_j, M_j) \sim D} \left[ L_j(W, b) \right].
+\end{equation}
+In practice, this expectation is approximated by iterating over the training set day by day (batches) using the stochastic optimizer Adam:
+\begin{equation}
+	W_{t+1} = W_t - \eta \nabla_W L_j(W_t, b_t),
+\end{equation}
+where $\eta$ is the learning rate. Since $V_{\text{QL}}$ is a non-differentiable black-box function, gradients are computed numerically via finite differences using a tf.custom\_gradient implementation.
 
 \subsection{Methodology Workflow}
 The subsequent section delineates the comprehensive, step-by-step workflow implemented for the calibration of the Hull-White model, as depicted by the provided source code. The process is designed as an end-to-end pipeline, commencing with raw data ingestion and culminating in model evaluation, adaptive retraining, and interpretability analysis.
