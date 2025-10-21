@@ -381,11 +381,11 @@ if __name__ == '__main__':
 
             # d. Generate LM Parameters
             start_time_lm = time.perf_counter()
-            # params_lm_a, params_lm_sigma = calibrate_on_subset(
-            #     eval_date, zero_df, calibration_set, term_structure, **TRADITIONAL_CALIBRATION_SETTINGS
-            # )
-            # TODO Change back to above line after testing
-            params_lm_a, params_lm_sigma = ([0.021], [0.00021, 0.00019, 0.00018, 0.00017, 0.00016, 0.00015, 0.00014])
+            params_lm_a, params_lm_sigma = calibrate_on_subset(
+                eval_date, zero_df, calibration_set, term_structure, **TRADITIONAL_CALIBRATION_SETTINGS
+            )
+            # This line is for testing purposes, since the actual calibration can be time-consuming
+            # params_lm_a, params_lm_sigma = ([0.021], [0.00021, 0.00019, 0.00018, 0.00017, 0.00016, 0.00015, 0.00014])
             time_lm_sec = time.perf_counter() - start_time_lm
 
             if params_lm_a is None:
