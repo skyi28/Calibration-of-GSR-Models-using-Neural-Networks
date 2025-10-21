@@ -1,5 +1,6 @@
 /.old_code_versions
 /.vscode
+/__pycache__
 
 /data/EUR BVOL CUBE
 /data/EUR SWAP CURVE
@@ -10,10 +11,9 @@
 
 /results/traditional/
 
-/results/traditional/predictions
-/results/traditional/parameters
 /results/neural_network/hyperband_tuner
 /results/neural_network/hyperparameters
 /results/neural_network/models
+/results/comparison
 
 NOTES.txt
