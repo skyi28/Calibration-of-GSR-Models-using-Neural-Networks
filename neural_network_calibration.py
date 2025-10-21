@@ -785,7 +785,7 @@ if __name__ == '__main__':
         os.makedirs(FOLDER_HYPERPARAMETERS, exist_ok=True)
 
         TF_NN_CALIBRATION_SETTINGS = {
-            "perform_hyperparameter_tuning": False,
+            "perform_hyperparameter_tuning": True,
             "show_plots": False,
             "hyperband_settings": {"max_epochs": 100, "factor": 3, "directory": "results/neural_network/hyperband_tuner", "project_name": "hull_white_calibration"},
             "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True,

@@ -1,3 +1,21 @@
+\subsection{Principal Component Analysis on the Yield Curve}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/pca/pca_component_loadings.png}
+	\caption{Component Loadings for the First Three Principal Components}
+	\label{fig:pca_loadings}
+\end{figure}
+
+Figure~\ref{fig:pca_loadings} presents the component loadings (eigenvectors) for the first three principal components obtained from the Principal Component Analysis (PCA) applied to the time series of zero-coupon yield curves. Each panel in the figure displays the loading values on the vertical axis against the nine yield curve maturities on the horizontal axis. The shape and sign pattern of each component provide valuable insights into the underlying yield curve movements that each factor represents.
+
+The first principal component (PC1) exhibits uniformly positive loadings across all maturities, indicating that changes in this factor lead to parallel shifts in the yield curve. This behavior corresponds to the so-called level factor, which reflects movements in the overall level of interest rates.
+
+The second principal component (PC2) displays negative loadings for short-term maturities and positive loadings for long-term maturities. This transition from negative to positive values indicates that changes in this factor modify the steepness of the yield curve, capturing variations in the term spread between short- and long-term rates. This component therefore represents the slope factor.
+
+The third principal component (PC3) is characterized by a distinct hump-shaped pattern, with positive loadings at the short and long ends of the maturity spectrum and negative loadings for intermediate maturities. This configuration reflects changes in the curvature of the yield curve, often referred to as butterfly movements, in which medium-term rates move differently from short- and long-term rates.
+
+Taken together, these three loading structures provide strong visual evidence supporting the economic interpretation of the principal components as level, slope, and curvature factors. The figure thus offers a graphical confirmation of the empirical findings discussed in the main text and highlights the fundamental drivers of yield curve dynamics.
+
 \begin{itemize}
     \item \textbf{Detailed Data Tables:} Include extensive tables of raw data, implied volatility surfaces, or specific swaption characteristics if they were too large or detailed for the main body of the text.
     \item \textbf{Code Snippets or Repository Reference:} Provide key code segments, especially for the custom gradient implementation in TensorFlow or the neural network architecture. Alternatively, a link to a public code repository (e.g., GitHub) is highly recommended.
