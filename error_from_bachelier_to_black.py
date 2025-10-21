@@ -1,24 +1,28 @@
 """
-This script performs a financial model calibration task by converting a constant
-model error from Normal (Bachelier) volatility terms to an equivalent,
-vega-weighted Black (lognormal) volatility term.
+This script extends a financial model calibration task. It reads a time series
+of daily model errors (in Normal, or Bachelier, volatility terms) from a CSV
+file. For each day, it converts these errors into their equivalent, vega-weighted
+Black (lognormal) volatility terms.
 
-The script reads historical financial data consisting of:
-1. Daily EUR zero-coupon yield curves.
-2. Corresponding daily swaption volatility cubes.
+The script processes each row of the input CSV, which represents a single day's
+model performance. For each day, it:
+1. Loads the corresponding historical financial data:
+   - A EUR zero-coupon yield curve.
+   - A swaption volatility cube.
+2. Parses all swaptions from the cube for that day.
+3. Calculates their respective vegas (sensitivity to volatility).
+4. For each model error (NN and LM), it computes a portfolio-wide,
+   vega-weighted average Black volatility. This provides a representative
+   error figure in Black's model terms for that specific day.
 
-For each day, it parses all the swaptions from the volatility cube, calculates
-their respective vegas (sensitivity to volatility), and then computes a
-portfolio-wide, vega-weighted average Black volatility error. This provides a
-single, representative error figure in Black's model terms, equivalent to the
-input error in the Normal model.
-
-The processing is parallelized across all available dates to improve performance.
+The final output is a new CSV file containing the original data plus two new
+columns with the calculated Black volatilities.
 
 Key Libraries:
-- QuantLib: For financial instrument pricing and yield curve construction.
 - pandas: For data manipulation and file I/O.
-- concurrent.futures: For parallel processing of daily data.
+- QuantLib: For financial instrument pricing and yield curve construction.
+- numpy: For numerical operations.
+- tqdm: For displaying progress bars during processing.
 """
 import datetime
 import os
@@ -27,7 +31,6 @@ import pandas as pd
 import numpy as np
 import QuantLib as ql
 from typing import List, Tuple, Optional, Dict
-from concurrent.futures import ProcessPoolExecutor, as_completed
 import random
 from tqdm import tqdm
 
@@ -40,16 +43,15 @@ np.random.seed(SEED)
 
 # -------------------- CONFIGURATION --------------------
 # Define file paths for input data.
-# Alternative paths can be uncommented for testing purposes.
 FOLDER_ZERO_CURVES: str = r'data/EUR ZERO CURVE'
-# FOLDER_ZERO_CURVES: str = r'data\TESTS\EUcR ZERO CURVE'
 FOLDER_VOLATILITY_CUBES: str = r'data/EUR BVOL CUBE'
-# FOLDER_VOLATILITY_CUBES: str = r'data\TESTS\EUR BVOL CUBE'
 
-# Define the constant model error in Normal volatility terms (Bachelier model).
-MODEL_ERROR_NORMAL_BPS: float = 6.0
 # Define a standard notional for vega calculation.
 ASSUMED_NOTIONAL: float = 1.0
+
+# Define input and output file paths for the time series data.
+INPUT_CSV_PATH: str = r'results/comparison/daily_summary_results.csv'
+OUTPUT_CSV_PATH: str = r'results/comparison/daily_summary_results_black.csv'
 
 # -------------------- DATA LOADING & HELPERS --------------------
 
@@ -88,34 +90,6 @@ def create_ql_yield_curve(
     handle: ql.RelinkableYieldTermStructureHandle = ql.RelinkableYieldTermStructureHandle()
     handle.linkTo(term_structure)
     return handle
-
-def load_all_data_files(
-    zero_curve_folder: str,
-    vol_cube_folder: str
-) -> List[Tuple[datetime.date, str, str]]:
-    """Discovers all matching pairs of zero curve and volatility cube files."""
-    print("\n--- Discovering all available data files ---")
-    vol_cube_xlsx_folder: str = os.path.join(vol_cube_folder, 'xlsx')
-    if not os.path.exists(zero_curve_folder) or not os.path.exists(vol_cube_xlsx_folder):
-        print(f"Checked paths:\n Zero Curves: {zero_curve_folder}\n Vol Cubes: {vol_cube_xlsx_folder}")
-        raise FileNotFoundError("Data folders not found. Please check CONFIG paths.")
-
-    available_files: List[Tuple[datetime.date, str, str]] = []
-    for entry_name in os.listdir(zero_curve_folder):
-        if entry_name.endswith('.csv'):
-            date_str: str = entry_name.replace('.csv', '')
-            eval_date: datetime.date = datetime.datetime.strptime(date_str, '%d.%m.%Y').date()
-            zero_path: str = os.path.join(zero_curve_folder, entry_name)
-            vol_path: str = os.path.join(vol_cube_xlsx_folder, f"{date_str}.xlsx")
-            if os.path.exists(vol_path):
-                available_files.append((eval_date, zero_path, vol_path))
-
-    if not available_files:
-        raise ValueError("No matching pairs of zero curve and volatility data found.")
-    
-    available_files.sort(key=lambda x: x[0])
-    print(f"Found {len(available_files)} complete data sets from {available_files[0][0]} to {available_files[-1][0]}.")
-    return available_files
 
 # -------------------- CALCULATION LOGIC --------------------
 
@@ -188,106 +162,123 @@ def calculate_vega_and_black_error(
         normal_vega = (swaption_obj.vega() / 100.0) * ASSUMED_NOTIONAL
         return (individual_black_vol_error, normal_vega)
 
-    except Exception as e:
-        print(f"Error processing swaption {swaption} on {eval_date}: {e}")
+    except Exception:
+        # Suppress verbose error printing for individual swaptions during batch processing.
         return None
 
-def process_date_files(date_file_tuple: Tuple[datetime.date, str, str]) -> Dict:
-    """Processes all swaptions for a single evaluation date."""
-    eval_date, zero_path, vol_path = date_file_tuple
-    
-    # Load and build financial objects for the given date.
-    zero_curve_df = pd.read_csv(zero_path, parse_dates=['Date'])
-    vol_cube_df = load_volatility_cube(vol_path)
-    yield_curve_handle = create_ql_yield_curve(zero_curve_df, eval_date)
-    
-    swaptions_to_process = get_swaption_details_from_cube(vol_cube_df)
-    parsed_count = len(swaptions_to_process)
-    valid_results = []
-    
-    for swaption in swaptions_to_process:
-        result = calculate_vega_and_black_error(eval_date, swaption, yield_curve_handle, MODEL_ERROR_NORMAL_BPS)
-        if result:
-            valid_results.append(result)
-            
-    return {
-        'parsed_count': parsed_count,
-        'valid_count': len(valid_results),
-        'results': valid_results
-    }
+def convert_normal_to_black_for_date(
+    eval_date: datetime.date,
+    normal_error_bps: float,
+    zero_curve_folder: str,
+    vol_cube_folder: str
+) -> Optional[float]:
+    """
+    For a single date and a given normal volatility error, calculates the
+    vega-weighted equivalent Black volatility.
+    """
+    # Construct file paths for the given date
+    date_str = eval_date.strftime('%d.%m.%Y')
+    zero_path = os.path.join(zero_curve_folder, f"{date_str}.csv")
+    vol_path = os.path.join(vol_cube_folder, 'xlsx', f"{date_str}.xlsx")
+
+    if not os.path.exists(zero_path) or not os.path.exists(vol_path):
+        return None  # Return None if data for this date is missing
+
+    try:
+        # Load and build financial objects for the given date.
+        zero_curve_df = pd.read_csv(zero_path, parse_dates=['Date'])
+        vol_cube_df = load_volatility_cube(vol_path)
+        yield_curve_handle = create_ql_yield_curve(zero_curve_df, eval_date)
+        
+        swaptions_to_process = get_swaption_details_from_cube(vol_cube_df)
+        
+        total_weighted_error = 0.0
+        total_vega = 0.0
+        
+        for swaption in swaptions_to_process:
+            result = calculate_vega_and_black_error(eval_date, swaption, yield_curve_handle, normal_error_bps)
+            if result:
+                individual_black_vol_error, normal_vega = result
+                total_weighted_error += individual_black_vol_error * normal_vega
+                total_vega += normal_vega
+
+        if total_vega == 0:
+            return None # Avoid division by zero if no valid vegas were found
+
+        # Calculate and return the final portfolio-level Black volatility error.
+        portfolio_black_vol_error = total_weighted_error / total_vega
+        return portfolio_black_vol_error
+
+    except Exception as e:
+        print(f"Warning: An unexpected error occurred while processing date {eval_date}: {e}")
+        return None
 
 # -------------------- MAIN EXECUTION BLOCK --------------------
 if __name__ == "__main__":
-    print("--- Starting: Vega-Weighted Model Error Conversion ---")
-    print(f"Input model error is {MODEL_ERROR_NORMAL_BPS} bps in Normal (Bachelier) terms.")
-
+    print("--- Starting: Time Series Model Error Conversion ---")
+    
+    # --- 1. Load Input Data ---
     try:
-        all_files = load_all_data_files(FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES)
-    except (FileNotFoundError, ValueError) as e:
-        print(f"Error during data discovery: {e}")
+        print(f"Reading input data from: {INPUT_CSV_PATH}")
+        df = pd.read_csv(INPUT_CSV_PATH)
+        df['Date'] = pd.to_datetime(df['Date']).dt.date
+        print(f"Successfully loaded {len(df)} daily records.")
+    except FileNotFoundError:
+        print(f"CRITICAL ERROR: Input file not found at '{INPUT_CSV_PATH}'.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"CRITICAL ERROR: Failed to read or parse input CSV. Details: {e}")
         sys.exit(1)
 
-    all_results = []
-    total_parsed = 0
-    total_valid = 0
-
-    # Use a process pool to parallelize the calculations across multiple CPU cores.
-    with ProcessPoolExecutor() as executor:
-        future_to_file = {executor.submit(process_date_files, file_tuple): file_tuple for file_tuple in all_files}
-        print(f"\nSubmitting {len(all_files)} dates for processing...")
+    # --- 2. Process Each Date in the DataFrame ---
+    black_vols_nn = []
+    black_vols_lm = []
+    
+    print("\n--- Processing each date to convert Normal volatility errors to Black ---")
+    # Use tqdm for a progress bar over the DataFrame rows.
+    for index, row in tqdm(df.iterrows(), total=df.shape[0], desc="Converting Errors"):
+        eval_date = row['Date']
         
-        # Process results as they are completed.
-        for future in tqdm(as_completed(future_to_file), total=len(all_files), desc="Processing Dates"):
-            try:
-                report = future.result()
-                total_parsed += report['parsed_count']
-                total_valid += report['valid_count']
-                if report['results']:
-                    all_results.extend(report['results'])
-            except Exception as exc:
-                file_date = future_to_file[future][0]
-                print(f'\nERROR: {file_date} generated an exception: {exc}')
+        # Get the normal volatility errors for the current date.
+        rmse_nn_bps = row['RMSE_NN_OutOfSample']
+        rmse_lm_bps = row['RMSE_LM_OutOfSample']
+        
+        # Convert the NN model error.
+        black_vol_nn = convert_normal_to_black_for_date(eval_date, rmse_nn_bps, FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES)
+        black_vols_nn.append(black_vol_nn)
+        
+        # Convert the LM model error.
+        black_vol_lm = convert_normal_to_black_for_date(eval_date, rmse_lm_bps, FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES)
+        black_vols_lm.append(black_vol_lm)
 
-    print("\n--- All dates processed. Aggregating results... ---")
+    # --- 3. Store Results and Save Output ---
+    print("\n--- Aggregating results and saving output file ---")
+    
+    # Add the new lists as columns to the DataFrame.
+    # The results are multiplied by 100 to express them in percentage points (%).
+    df['BlackVol_NN'] = [vol * 100 if vol is not None else np.nan for vol in black_vols_nn]
+    df['BlackVol_LM'] = [vol * 100 if vol is not None else np.nan for vol in black_vols_lm]
 
-    # --- Nicer Output Section ---
-    print("\n" + "="*55)
-    print(" " * 18 + "DIAGNOSTIC SUMMARY")
-    print("="*55)
-    print(f"  Total swaption points parsed from all files: {total_parsed:,}")
-    print(f"  Total swaption points with valid forward rates: {total_valid:,}")
-    print("="*55)
+    # Perform basic error handling and summary.
+    processed_count = df['BlackVol_NN'].notna().sum()
+    if processed_count == 0:
+        print("\nCRITICAL WARNING: No dates could be processed.")
+        print("Please check that the dates in the CSV match the filenames in the data folders.")
+        print(f"Example expected file path for first date ({df['Date'].iloc[0]}):")
+        print(f"  {os.path.join(FOLDER_ZERO_CURVES, df['Date'].iloc[0].strftime('%d.%m.%Y') + '.csv')}")
+    else:
+        print(f"\nSuccessfully processed {processed_count} out of {len(df)} dates.")
+        
+    # Save the updated DataFrame to a new CSV file.
+    try:
+        # Ensure the output directory exists
+        output_dir = os.path.dirname(OUTPUT_CSV_PATH)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            
+        df.to_csv(OUTPUT_CSV_PATH, index=False)
+        print(f"\nResults successfully saved to: {OUTPUT_CSV_PATH}")
+    except Exception as e:
+        print(f"\nCRITICAL ERROR: Failed to save the output file. Details: {e}")
 
-    if not all_results:
-        print("\nCRITICAL ERROR: No valid swaption data could be processed.")
-        if total_parsed > 0 and total_valid == 0:
-            print("CONCLUSION: The script parsed your data, but 100% of the forward rates")
-            print("            in the 'Strike' columns were negative or zero.")
-        else:
-            print("CONCLUSION: The script could not parse any valid swaption data from your files.")
-        sys.exit(1)
-
-    # Aggregate results for the final vega-weighted calculation.
-    total_weighted_error = 0.0
-    total_vega = 0.0
-    for individual_black_vol_error, normal_vega in all_results:
-        total_weighted_error += individual_black_vol_error * normal_vega
-        total_vega += normal_vega
-
-    if total_vega == 0:
-        print("\nCRITICAL ERROR: Total portfolio vega is zero. Cannot divide by zero.")
-        sys.exit(1)
-
-    # Calculate the final portfolio-level Black volatility error.
-    portfolio_black_vol_error = total_weighted_error / total_vega
-
-    print("\n" + "#"*55)
-    print(" " * 10 + "PORTFOLIO ERROR CONVERSION RESULTS")
-    print("#"*55)
-    print(f"  Input Model Error (Normal Vol) : {MODEL_ERROR_NORMAL_BPS:.2f} bps")
-    print(f"  Total Number of Swaptions      : {len(all_results):,}")
-    print(f"  Total Normal Vega (Notional=1) : {total_vega:,.4f}")
-    print(f"-"*55)
-    print(f"  Vega-Weighted Error (Black Vol): {portfolio_black_vol_error * 100:.4f} %")
-    print("#"*55)
-    print("\n--- Script finished successfully. ---")
+    print("\n--- Script finished. ---")
