@@ -13,6 +13,8 @@
 
 /results/traditional/
 
+/results/sensitivity_analysis/
+
 /results/neural_network/hyperband_tuner
 /results/neural_network/hyperparameters
 /results/neural_network/models
