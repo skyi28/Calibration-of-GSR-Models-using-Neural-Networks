@@ -17,6 +17,7 @@
 \usepackage{xcolor}
 \usepackage{titlesec}
 \usepackage{csquotes}
+\usepackage{caption}
 \usepackage[style=apa,backend=biber]{biblatex}
 \addbibresource{references.bib}
 
@@ -44,53 +45,47 @@
 \begin{document}
 
 \begin{titlepage}
-    \centering
-    \vspace*{1cm}
-    
-    % --- University Logo Placeholder ---
-    % Replace the \fbox below with your university's logo.
-    % Uncomment the \includegraphics line and update the path.
-    
-    \includegraphics[width=0.4\textwidth]{images/zhaw_logo.png}
-    % \fbox{\parbox[c][6cm][c]{0.4\textwidth}{\centering \large University Logo Placeholder}}
-    
-    \vfill % Adds flexible vertical space
-    
-    % --- Title ---
-    {\Huge\bfseries A Comparison Between Traditional and Machine Learning Based Calibration of the One Factor Hull-White Model\par}
-    
-    \vspace{1.5cm}
-    
-    % --- Subtitle ---
-    {\Large Master's Thesis\par}
-    
-    \vfill % Adds flexible vertical space
-    
-    % --- Author and Supervisor Details ---
-    \begin{minipage}{0.8\textwidth}
-        \large
-        \begin{tabular}{@{}ll}
-            \textbf{Author:} & Benedikt Grimus \\
-            \addlinespace[1em]
-            \textbf{Study Program:} & Banking \& Finance \\
-            \addlinespace[1em]
-            \textbf{Supervisor:} & Dr. Marc Weibel \\
-        \end{tabular}
-    \end{minipage}
-    
-    \vfill % Adds flexible vertical space
-    
-    % --- Submission Date and University ---
-    {\large
-    ZHAW School of Management and Law\par
-    Submitted on: 18. November 2025\par
-    }
-    
-    \vspace*{1cm}
+	\centering
+	\vspace*{1cm}
+
+	\includegraphics[width=0.4\textwidth]{images/zhaw_logo.png}
+
+	\vfill
+
+	% --- Title ---
+	{\Huge\bfseries A Comparison Between Traditional and Machine Learning Based Calibration of the One Factor Hull-White Model\par}
+
+	\vspace{1.5cm}
+
+	% --- Subtitle ---
+	{\Large Master's Thesis\par}
+
+	\vfill
+
+	% --- Author and Supervisor Details ---
+	\begin{minipage}{0.8\textwidth}
+		\large
+		\begin{tabular}{@{}ll}
+			\textbf{Author:}        & Benedikt Grimus    \\
+			\addlinespace[1em]
+			\textbf{Study Program:} & Banking \& Finance \\
+			\addlinespace[1em]
+			\textbf{Supervisor:}    & Dr. Marc Weibel    \\
+		\end{tabular}
+	\end{minipage}
+
+	\vfill
+
+	% --- Submission Date and University ---
+	{\large
+		ZHAW School of Management and Law\par
+		Submitted on: 18. November 2025\par
+	}
+
+	\vspace*{1cm}
 
 \end{titlepage}
 
-% \maketitle
 \clearpage
 
 \clearpage
@@ -100,33 +95,77 @@
 
 \tableofcontents
 \clearpage
+\newpage
+\listoffigures
+\newpage
 
 \section{Introduction}
 \label{introduction}
 \input{chapters/1_introduction}
+\newpage
 
 \section{Background}
 \label{background}
 \input{chapters/2_background}
+\newpage
 
 \section{Methodology}
 \label{methodology}
 \input{chapters/3_methodology}
+\newpage
 
 \section{Results}
 \label{results}
 \input{chapters/4_results}
+\newpage
 
 \section{Conclusion}
 \label{conclusion}
 \input{chapters/5_conclusion}
-
 \newpage
+
 \printbibliography
+
+% ------------------------------------------------------------------------
+% Appendix: Overview of AI Tools Used (Not in LoT or ToC)
+% ------------------------------------------------------------------------
+\captionsetup{list=no} % Exclude from List of Tables (applies to subsequent floats)
+\begin{table}[H]
+    \centering
+    \begin{threeparttable}
+        \caption{\textbf{Overview of AI Models Utilized During Thesis Preparation}}
+        \label{list_of_ai_tools}
+        \small
+        \begin{tabular}{p{4cm} p{12cm}}
+            \toprule
+            \textbf{AI Model}                                                 & \textbf{Citation Information} \\
+            \midrule
+            ChatGPT (GPT-5 Model)                                             &
+            OpenAI, \textit{ChatGPT (GPT-5 Model)}, 2025, Version: GPT-5, Used for text refinement including improving grammar, writing style and constiency as well as text proposals. Furtermore, it was used to create \texttt{LaTeX} table structures and or querying specific \texttt{LaTeX} commands to ensure accurate formatting, \url{https://chat.openai.com} \\
+
+            ChatGPT (GPT-5 Thinking Mini)                                     &
+            OpenAI, \textit{ChatGPT (GPT-5 Thinking Mini Model)}, 2025, Version: GPT-5 Thinking Mini, Used for text refinement including improving grammar, writing style and constiency as well as text proposals. Furtermore, it was used to create \texttt{LaTeX} table structures and or querying specific \texttt{LaTeX} commands to ensure accurate formatting. Note this is the fallback model if the GPT-5 model free quota is exceeded, \url{https://chat.openai.com} \\
+
+            Gemini 2.5 Pro                                                    &
+            Google DeepMind, \textit{Gemini 2.5 Pro}, 2025, Version: 2.5 Pro, Used for the generation and refinement of code fragments as well as for enhancement of existing code written by the author in terms of readability and computational efficiency. Furthermore it was used to summarize complex theoretical concepts, \url{https://gemini.google.com} \\
+
+            Windsurf Chat (Llama 3.1 70B)                                     &
+            Codeium / Windsurf, \textit{Windsurf Chat Model (based on Meta’s Llama 3.1 70B)}, 2025, Version: Llama 3.1 70B, Used for coding assistance in the IDE as well as for the creation of Git commit messages, \url{https://codeium.com/windsurf} \\
+
+            DeepL Translator                                                  &
+            DeepL SE, \textit{DeepL Translator}, 2025, Version: 2025 Release, Used for high-quality translation and linguistic consistency checking, \url{https://www.deepl.com} \\
+            \bottomrule
+        \end{tabular}
+    \end{threeparttable}
+\end{table}
 
 \newpage
 \appendix
 \section{Appendix}
 \input{chapters/appendix_code}
+\newpage
+
+\section{Affidavit}
+\input{chapters/6_affidavit}
 
 \end{document}
