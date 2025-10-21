@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Standalone Python script for Descriptive Data Analysis.
 
@@ -31,7 +30,6 @@ from pathlib import Path
 from typing import List, Dict, Tuple
 from scipy.stats import norm # Added for normal distribution overlay
 
-# --- Configuration: Set paths to your data folders ---
 
 # Define the base directory for data and results
 BASE_DATA_DIR = Path('data')
@@ -46,12 +44,19 @@ FOLDER_EXTERNAL_DATA: Path = BASE_DATA_DIR / 'EXTERNAL'
 OUTPUT_DIR = BASE_RESULTS_DIR / 'descriptive_analysis'
 
 
-# --- Helper Functions (adapted from the user's script) ---
-
 def load_volatility_cube(file_path: str) -> pd.DataFrame:
     """
-    Reads and preprocesses an Excel file containing a swaption volatility cube.
-    This function is copied from the user's script for compatibility.
+    Loads a volatility cube from an Excel file and formats it.
+
+    Args:
+        file_path (str): Path to the Excel file containing the volatility cube.
+
+    Returns:
+        pd.DataFrame: A Pandas DataFrame containing the volatility cube data.
+
+    Raises:
+        FileNotFoundError: If the file at the specified path does not exist.
+        Exception: If any other error occurs during the loading process.
     """
     try:
         df = pd.read_excel(file_path, engine='openpyxl')
@@ -71,7 +76,16 @@ def load_volatility_cube(file_path: str) -> pd.DataFrame:
 
 def parse_tenor_to_years(tenor_str: str) -> float:
     """
-    Parses a tenor string (e.g., '1Yr', '6Mo') into a float representing years.
+    Parses a tenor string (e.g., '10YR', '6MO') into a float representing years.
+
+    Args:
+        tenor_str (str): The tenor string to be parsed.
+
+    Returns:
+        float: The parsed tenor in years. If the parsing fails, returns np.nan.
+
+    Raises:
+        ValueError: If the parsing fails due to an invalid tenor string.
     """
     if not isinstance(tenor_str, str):
         return np.nan
@@ -87,11 +101,16 @@ def parse_tenor_to_years(tenor_str: str) -> float:
 
 
 # --- Data Loading and Preparation ---
-
 def find_available_data_files() -> List[Tuple[datetime.date, Path, Path]]:
     """
-    Scans data directories to find matching pairs of zero curve and volatility files.
-    Returns a chronologically sorted list of tuples with the date and file paths.
+    Finds all available data files for the descriptive analysis by searching for
+    matching pairs of zero-coupon yield curve CSV files and volatility cube Excel files
+    in the specified data folders.
+
+    Returns a list of tuples containing the evaluation date, the path to the
+    zero-coupon yield curve CSV file, and the path to the volatility cube Excel file.
+
+    Raises a FileNotFoundError if the required data folders are not found.
     """
     print("--- Discovering available data files... ---")
     vol_cube_xlsx_folder = FOLDER_VOLATILITY_CUBES / 'xlsx'
@@ -119,8 +138,23 @@ def find_available_data_files() -> List[Tuple[datetime.date, Path, Path]]:
 
 def download_and_load_external_data(start_date: datetime.date, end_date: datetime.date) -> pd.DataFrame:
     """
-    Loads external market data (VIX, MOVE, EUR/USD) from a CSV file.
-    If the file doesn't exist, it downloads the data using yfinance.
+    Downloads or loads external market data (VIX, MOVE, EURUSD=X) from Yahoo Finance
+    for the specified date range. If the data is not already present in the
+    'EXTERNAL' folder, it downloads the required data and saves it to a CSV file.
+    Otherwise, it loads the existing CSV file.
+
+    Args:
+        start_date (datetime.date): The start date of the desired data range.
+        end_date (datetime.date): The end date of the desired data range.
+
+    Returns:
+        pd.DataFrame: A Pandas DataFrame containing the external market data for the
+            specified date range. If the data could not be downloaded or loaded, an empty
+            DataFrame is returned.
+
+    Raises:
+        ValueError: If no data is available for the specified date range or if the
+            data could not be downloaded from Yahoo Finance.
     """
     print("\n--- Loading or Downloading External Market Data... ---")
     csv_path = FOLDER_EXTERNAL_DATA / 'external_market_data.csv'
@@ -152,10 +186,18 @@ def download_and_load_external_data(start_date: datetime.date, end_date: datetim
 
 
 # --- Analysis and Visualization Functions ---
-
 def analyze_external_data(df: pd.DataFrame, output_dir: Path):
     """
-    Performs descriptive analysis on external market data (indices and FX).
+    Analyzes the external market data (VIX, MOVE, EUR/USD) loaded from Yahoo Finance
+    and saves summary statistics, time series plots, and box plots to the specified
+    output directory.
+
+    Args:
+        df (pd.DataFrame): The external market data DataFrame to be analyzed.
+        output_dir (Path): The directory where the analysis results will be saved.
+
+    Returns:
+        None
     """
     print("\n--- Analyzing External Market Data (VIX, MOVE, EUR/USD)... ---")
     if df.empty:
@@ -227,7 +269,14 @@ def analyze_external_data(df: pd.DataFrame, output_dir: Path):
 
 def analyze_yield_curves(files: List[Tuple[datetime.date, Path, Path]], output_dir: Path):
     """
-    Loads all zero curves, calculates summary statistics, and creates visualizations.
+    Analyzes the zero-coupon yield curves loaded from CSV files and saves summary statistics, line plots, heatmaps, 2D line plots, bar charts, and histograms to the specified output directory.
+
+    Args:
+        files (List[Tuple[datetime.date, Path, Path]]): A list of tuples containing the evaluation date, path to the zero-coupon yield curve CSV file, and path to the forward curve CSV file.
+        output_dir (Path): The directory where the analysis results will be saved.
+
+    Returns:
+        None
     """
     print("\n--- Analyzing Zero-Coupon Yield Curves... ---")
     all_curves = []
@@ -344,7 +393,14 @@ def analyze_yield_curves(files: List[Tuple[datetime.date, Path, Path]], output_d
 
 def analyze_volatility_surfaces(files: List[Tuple[datetime.date, Path, Path]], output_dir: Path):
     """
-    Loads all volatility surfaces, calculates summary statistics, and creates visualizations.
+    Analyze a list of files containing swaption volatility surfaces at different points in time.
+
+    Parameters:
+    files (List[Tuple[datetime.date, Path, Path]]): List of tuples containing the evaluation date, the path to the yield curve file, and the path to the volatility surface file.
+    output_dir (Path): Directory in which to save output plots and statistics.
+
+    Returns:
+    None
     """
     print("\n--- Analyzing Swaption Volatility Surfaces... ---")
     all_vols = []
@@ -454,10 +510,23 @@ def analyze_volatility_surfaces(files: List[Tuple[datetime.date, Path, Path]], o
 
 
 # --- Main Execution Block ---
-
-def main():
+def main() -> None:
     """
-    Main function to orchestrate the descriptive data analysis.
+    Main entry point for the descriptive data analysis script.
+
+    This script will generate a comprehensive set of plots and statistics that
+    summarize the key characteristics of the input market data.
+
+    The script is divided into three main sections:
+
+    1. Analysis of external market data
+    2. Analysis of yield curves
+    3. Analysis of volatility surfaces
+
+    The output will be saved to the directory specified by the OUTPUT_DIR variable.
+
+    If any unexpected errors occur during execution, a detailed traceback will be
+    printed to the console.
     """
     print("=" * 60)
     print(" Starting Descriptive Data Analysis Script ".center(60, "="))

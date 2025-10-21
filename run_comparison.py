@@ -96,7 +96,25 @@ TRADITIONAL_CALIBRATION_SETTINGS = {
 
 # --- HELPER FUNCTIONS ---
 def load_nn_artifacts(model_dir: str) -> Dict[str, Any]:
-    """Loads all necessary artifacts for the trained NN model."""
+    """
+    Loads all necessary artifacts from the trained Neural Network model.
+
+    Parameters
+    ----------
+    model_dir : str
+        The directory containing the trained model's artifacts.
+
+    Returns
+    -------
+    Dict[str, Any]
+        A dictionary containing all the necessary artifacts for the trained model.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the model directory is not found.
+
+    """
     print(f"\n--- Loading Neural Network artifacts from: {model_dir} ---")
     if not os.path.isdir(model_dir):
         raise FileNotFoundError(f"Model directory not found: {model_dir}")
@@ -125,7 +143,25 @@ def evaluate_on_holdout(
     settings: Dict
 ) -> Tuple[pd.DataFrame, float]:
     """
-    Evaluates a given set of Hull-White parameters on a hold-out set of swaptions.
+    Evaluates the performance of the neural network on a holdout set of swaption helpers.
+
+    Parameters
+    ----------
+    parameters : np.ndarray
+        The calibrated Hull-White parameters to be used for evaluation.
+    holdout_helpers_with_info : List[Tuple[ql.SwaptionHelper, str, str]]
+        A list of (SwaptionHelper, expiry_str, tenor_str) tuples to be used for evaluation.
+    eval_date : datetime.date
+        The evaluation date for the calibration.
+    term_structure_handle : ql.RelinkableYieldTermStructureHandle
+        A handle to the QuantLib yield curve.
+    settings : Dict
+        A dictionary containing the necessary settings for the calibration.
+
+    Returns
+    -------
+    Tuple[pd.DataFrame, float]
+        A tuple containing a pandas DataFrame with the evaluation results and the root-mean-squared error in basis points.
     """
     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     ql.Settings.instance().evaluationDate = ql_eval_date
@@ -179,20 +215,33 @@ def evaluate_on_holdout(
     
     return results_df, rmse_bps
 
-
-# <<< --- NEW, FULLY CORRECTED FUNCTION FOR run_comparison.py --- >>>
-
 def perform_and_save_shap_analysis(
     nn_artifacts: Dict[str, Any],
     test_files_list: List[Tuple[datetime.date, str, str]],
     external_market_data: pd.DataFrame,
     settings: Dict,
     output_dir: str
-):
+    ) -> None:
     """
-    Performs SHAP analysis on the trained NN model to explain its predictions on the
-    entire test set and saves the resulting plots.
-    This version includes a manual beeswarm plot to bypass potential library bugs.
+    Performs SHAP analysis on a given neural network model to interpret its output.
+
+    Given the model's artifacts, a list of test files, and external market data, this function
+    creates a SHAP explainer and calculates the SHAP values for the given inputs. It then
+    generates two plots for each parameter: (1) a manual beeswarm plot showing the SHAP values
+    for each feature, and (2) a bar plot showing the feature importance based on the mean
+    absolute SHAP values.
+
+    The generated plots are saved to the specified output directory.
+
+    Parameters:
+        nn_artifacts (Dict[str, Any]): A dictionary containing the model's artifacts.
+        test_files_list (List[Tuple[datetime.date, str, str]]): A list of tuples containing the evaluation date, zero curve path, and volatility cube path.
+        external_market_data (pd.DataFrame): A pandas DataFrame containing the external market data used for feature extraction.
+        settings (Dict): A dictionary containing the model's settings.
+        output_dir (str): The directory where the SHAP plots will be saved.
+
+    Returns:
+        None
     """
     print("\n--- Starting SHAP Analysis for Model Interpretability ---")
     
@@ -223,7 +272,17 @@ def perform_and_save_shap_analysis(
     test_features_df = pd.DataFrame(scaled_test_features, columns=feature_names)
 
     features_input = tf.keras.Input(shape=(scaled_test_features.shape[1],), dtype=tf.float64, name="features")
-    def tile_logits(features):
+    def tile_logits(features: tf.Tensor) -> tf.Tensor:
+        """
+        Tile the initial logits tensor to match the shape of the given features
+        tensor.
+
+        Parameters:
+            features (tf.Tensor): The input features tensor.
+
+        Returns:
+            tf.Tensor: The tiled initial logits tensor.
+        """
         return tf.tile(initial_logits_tensor, [tf.shape(features)[0], 1])
     logits_input = tf.keras.layers.Lambda(tile_logits)(features_input)
     outputs = model((features_input, logits_input))
