@@ -28,6 +28,7 @@ COMPARISON_DIR = os.path.join(RESULTS_DIR, 'comparison')
 
 # Input files
 SUMMARY_CSV = os.path.join(COMPARISON_DIR, 'daily_summary_results.csv')
+SUMMARY_CSV_BLACK = os.path.join(COMPARISON_DIR, 'daily_summary_results_black.csv')
 SWAPTION_CSV = os.path.join(COMPARISON_DIR, 'per_swaption_holdout_results.csv')
 
 # --- PLOT STYLING ---
@@ -156,7 +157,7 @@ def plot_daily_rmse(df: pd.DataFrame, save_path: str):
     fig, ax = plt.subplots(figsize=(14, 7))
     ax.plot(df['Date'], df['RMSE_NN_OutOfSample'], label='Neural Network', color=NN_COLOR, marker='o', linestyle='-', markersize=4)
     ax.plot(df['Date'], df['RMSE_LM_OutOfSample'], label='Levenberg-Marquardt', color=LM_COLOR, marker='x', linestyle='--', markersize=5)
-    ax.set_title('Plot 1: Daily Out-of-Sample RMSE Over Time', fontsize=16)
+    ax.set_title('Daily Out-of-Sample RMSE Over Time', fontsize=16)
     ax.set_xlabel('Date', fontsize=12)
     ax.set_ylabel('RMSE (bps)', fontsize=12)
     ax.legend()
@@ -166,6 +167,39 @@ def plot_daily_rmse(df: pd.DataFrame, save_path: str):
     plt.savefig(save_path)
     plt.close(fig)
     print(f"Saved Plot 1: {save_path}")
+
+def plot_daily_rmse_black(df: pd.DataFrame, save_path: str):
+    """
+    Plot: Daily Out-of-Sample RMSE Over Time (Black Volatility)
+
+    Plots the daily out-of-sample RMSE for both the Neural Network and
+    Levenberg-Marquardt models, where the error is measured in log-normal
+    (Black) volatility.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame containing the daily comparison results for Black volatility.
+    save_path : str
+        The path where the plot will be saved.
+
+    Returns
+    -------
+    None
+    """
+    fig, ax = plt.subplots(figsize=(14, 7))
+    ax.plot(df['Date'], df['BlackVol_NN'], label='Neural Network', color=NN_COLOR, marker='o', linestyle='-', markersize=4)
+    ax.plot(df['Date'], df['BlackVol_LM'], label='Levenberg-Marquardt', color=LM_COLOR, marker='x', linestyle='--', markersize=5)
+    ax.set_title('Daily Out-of-Sample RMSE Over Time (Black Volatility)', fontsize=16)
+    ax.set_xlabel('Date', fontsize=12)
+    ax.set_ylabel('RMSE (Black Volatility) in %', fontsize=12)
+    ax.legend()
+    ax.grid(True, which='both', linestyle='--')
+    fig.autofmt_xdate()
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close(fig)
+    print(f"Saved Black Volatility RMSE Plot: {save_path}")
 
 def plot_rmse_distribution(df: pd.DataFrame, save_path: str):
     """
@@ -197,7 +231,7 @@ def plot_rmse_distribution(df: pd.DataFrame, save_path: str):
 
     fig, ax = plt.subplots(figsize=(10, 7))
     sns.violinplot(data=df_melted, x='Model', y='Daily RMSE (bps)', palette=MODEL_PALETTE, ax=ax, cut=0)
-    ax.set_title('Plot 2: Distribution of Daily Out-of-Sample RMSE', fontsize=16)
+    ax.set_title('Distribution of Daily Out-of-Sample RMSE', fontsize=16)
     ax.set_xlabel('Model', fontsize=12)
     ax.set_ylabel('Daily RMSE (bps)', fontsize=12)
     plt.tight_layout()
@@ -209,7 +243,8 @@ def plot_parameter_evolution(df: pd.DataFrame, save_path: str):
     """
     Plot 3: Comparison of Model Parameter Evolution
 
-    Plots a comparison of the evolution of each model's parameters over time.
+    Plots a comparison of the evolution of the model parameters over time on two subplots.
+    The top plot shows the 'alpha' parameter, and the bottom plot shows all 'sigma' parameters.
 
     Parameters
     ----------
@@ -222,28 +257,58 @@ def plot_parameter_evolution(df: pd.DataFrame, save_path: str):
     -------
     None
     """
-    nn_params = sorted([c for c in df.columns if c.startswith('NN_param_') or c.startswith('NN_a_') or c.startswith('NN_sigma_')])
-    lm_params = sorted([c for c in df.columns if c.startswith('LM_param_') or c.startswith('LM_a_') or c.startswith('LM_sigma_')])
-    
-    if not nn_params or len(nn_params) != len(lm_params):
-        print("Could not generate Plot 3: Parameter columns not found or mismatched.")
+    # Find alpha parameter columns (handles legacy and new formats)
+    nn_alpha_col = next((c for c in df.columns if c in ['NN_param_a', 'NN_a_1']), None)
+    lm_alpha_col = next((c for c in df.columns if c in ['LM_param_a', 'LM_a_1']), None)
+
+    # Find all sigma parameter columns
+    nn_sigma_cols = sorted([c for c in df.columns if 'NN_sigma' in c])
+    lm_sigma_cols = sorted([c for c in df.columns if 'LM_sigma' in c])
+
+    # --- Validation ---
+    if not nn_alpha_col or not lm_alpha_col:
+        print("Could not generate Plot 3: Alpha parameter columns not found.")
+        return
+    if not nn_sigma_cols or not lm_sigma_cols:
+        print("Could not generate Plot 3: Sigma parameter columns not found.")
         return
 
-    num_params = len(nn_params)
-    fig, axes = plt.subplots(num_params, 1, figsize=(15, 5 * num_params), sharex=True)
-    if num_params == 1: axes = [axes] # Ensure axes is iterable
+    # --- Plotting ---
+    fig, axes = plt.subplots(2, 1, figsize=(15, 10), sharex=True)
+    fig.suptitle('Comparison of Model Parameter Evolution', fontsize=18, y=0.95)
 
-    for i, (nn_col, lm_col) in enumerate(zip(nn_params, lm_params)):
-        param_name = nn_col.replace('NN_', '').replace('param_', '')
-        axes[i].plot(df['Date'], df[nn_col], label='Neural Network', color=NN_COLOR, linestyle='-')
-        axes[i].plot(df['Date'], df[lm_col], label='Levenberg-Marquardt', color=LM_COLOR, linestyle='--')
-        axes[i].set_title(f'Evolution of Parameter: {param_name}', fontsize=14)
-        axes[i].set_ylabel('Parameter Value', fontsize=12)
-        axes[i].legend()
+    # --- Subplot 1: Alpha Parameter ---
+    axes[0].plot(df['Date'], df[nn_alpha_col], color=NN_COLOR, linestyle='-', label=nn_alpha_col)
+    axes[0].plot(df['Date'], df[lm_alpha_col], color=LM_COLOR, linestyle='--', label=lm_alpha_col)
+    axes[0].set_title('Evolution of Mean-Reversion Parameter (Alpha)', fontsize=14)
+    axes[0].set_ylabel('Parameter Value', fontsize=12)
+    axes[0].legend()
+    axes[0].grid(True, which='both', linestyle='--')
 
-    axes[-1].set_xlabel('Date', fontsize=12)
-    fig.suptitle('Plot 3: Comparison of Model Parameter Evolution', fontsize=20, y=1.02)
-    plt.tight_layout()
+    # --- Subplot 2: Sigma Parameters ---
+    num_sigmas = len(nn_sigma_cols)
+    # Generate distinct colors for each sigma line from the coolwarm map
+    # Use the blue-ish side for NN and the red-ish side for LM
+    nn_sigma_colors = cm.coolwarm(np.linspace(0, 0.4, num_sigmas))
+    lm_sigma_colors = cm.coolwarm(np.linspace(0.6, 1.0, num_sigmas))
+
+    # Plot all NN sigmas with varying blue-ish colors
+    for i, col in enumerate(nn_sigma_cols):
+        axes[1].plot(df['Date'], df[col], color=nn_sigma_colors[i], linestyle='-', label=col)
+
+    # Plot all LM sigmas with varying red-ish colors
+    for i, col in enumerate(lm_sigma_cols):
+        axes[1].plot(df['Date'], df[col], color=lm_sigma_colors[i], linestyle='--', label=col)
+
+    axes[1].set_title('Evolution of Volatility Parameters (Sigmas)', fontsize=14)
+    axes[1].set_ylabel('Parameter Value', fontsize=12)
+    axes[1].legend()
+    axes[1].grid(True, which='both', linestyle='--')
+
+    # Final adjustments
+    axes[1].set_xlabel('Date', fontsize=12)
+    fig.autofmt_xdate()
+    plt.tight_layout(rect=[0, 0.03, 1, 0.93])
     plt.savefig(save_path)
     plt.close(fig)
     print(f"Saved Plot 3: {save_path}")
@@ -281,7 +346,7 @@ def plot_volatility_surface(df: pd.DataFrame, save_path_prefix: str):
     day_df.dropna(subset=['Expiry', 'Tenor'], inplace=True)
 
     fig = plt.figure(figsize=(24, 8))
-    fig.suptitle(f'Plot 4: Volatility Surface Reconstruction on Hold-Out Set ({date_str})', fontsize=16)
+    fig.suptitle(f'Volatility Surface Reconstruction on Hold-Out Set ({date_str})', fontsize=16)
 
     # Subplot 1: Market Surface
     ax1 = fig.add_subplot(1, 3, 1, projection='3d')
@@ -346,7 +411,7 @@ def plot_error_heatmaps(df: pd.DataFrame, save_path: str):
     vmax = max(abs(nn_pivot.min().min()), abs(nn_pivot.max().max()), abs(lm_pivot.min().min()), abs(lm_pivot.max().max()))
     
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(24, 7))
-    fig.suptitle('Plot 5: Mean Prediction Errors (Model - Market) in bps across Volatility Surface', fontsize=16)
+    fig.suptitle('Mean Prediction Errors (Model - Market) in bps across Volatility Surface', fontsize=16)
 
     sns.heatmap(nn_pivot, ax=ax1, cmap='coolwarm', annot=True, fmt=".2f", vmin=-vmax, vmax=vmax)
     ax1.set_title('Neural Network Mean Error')
@@ -408,7 +473,7 @@ def plot_error_by_expiry(df: pd.DataFrame, save_path: str):
     fig, ax = plt.subplots(figsize=(12, 7))
     sns.boxplot(data=df_melted, x='Expiry Bin', y='Error (bps)', hue='Model', palette=MODEL_PALETTE, ax=ax)
     ax.axhline(0, color='black', linestyle='--')
-    ax.set_title('Plot 6: Error Distribution by Swaption Expiry Bucket', fontsize=16)
+    ax.set_title('Error Distribution by Swaption Expiry Bucket', fontsize=16)
     ax.set_xlabel('Expiry Bucket', fontsize=12)
     ax.set_ylabel('Error (bps)', fontsize=12)
     plt.tight_layout()
@@ -434,7 +499,7 @@ def plot_scatter_comparison(df: pd.DataFrame, save_path: str):
     None
     """
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7), sharey=True, sharex=True)
-    fig.suptitle('Plot 7: Model vs. Market Volatility on All Hold-Out Swaptions', fontsize=16)
+    fig.suptitle('Model vs. Market Volatility on All Hold-Out Swaptions', fontsize=16)
 
     max_val = max(df['MarketVol_bps'].max(), df['NN_ModelVol_bps'].max(), df['LM_ModelVol_bps'].max()) * 1.05
     min_val = min(df['MarketVol_bps'].min(), df['NN_ModelVol_bps'].min(), df['LM_ModelVol_bps'].min()) * 0.95
@@ -499,7 +564,7 @@ def plot_error_by_tenor(df: pd.DataFrame, save_path: str):
     fig, ax = plt.subplots(figsize=(12, 7))
     sns.boxplot(data=df_melted, x='Tenor Bin', y='Error (bps)', hue='Model', palette=MODEL_PALETTE, ax=ax)
     ax.axhline(0, color='black', linestyle='--')
-    ax.set_title('Plot 11: Error Distribution by Swaption Tenor Bucket', fontsize=16)
+    ax.set_title('Error Distribution by Swaption Tenor Bucket', fontsize=16)
     ax.set_xlabel('Tenor Bucket', fontsize=12)
     ax.set_ylabel('Error (bps)', fontsize=12)
     plt.tight_layout()
@@ -551,7 +616,7 @@ def plot_error_by_volatility(df: pd.DataFrame, save_path: str):
     fig, ax = plt.subplots(figsize=(12, 7))
     sns.boxplot(data=df_melted, x='Volatility Bin', y='Error (bps)', hue='Model', palette=MODEL_PALETTE, ax=ax)
     ax.axhline(0, color='black', linestyle='--')
-    ax.set_title('Plot 12: Error Distribution by Market Volatility Level', fontsize=16)
+    ax.set_title('Error Distribution by Market Volatility Level', fontsize=16)
     ax.set_xlabel('Market Volatility Quantile', fontsize=12)
     ax.set_ylabel('Error (bps)', fontsize=12)
     plt.tight_layout()
@@ -574,16 +639,21 @@ if __name__ == '__main__':
         plot_rmse_distribution(summary_df, os.path.join(COMPARISON_DIR, 'plot2_rmse_distribution.png'))
         plot_parameter_evolution(summary_df, os.path.join(COMPARISON_DIR, 'plot3_parameter_evolution.png'))
 
+        # --- Generate Black Volatility RMSE Plot ---
+        try:
+            summary_df_black = pd.read_csv(SUMMARY_CSV_BLACK, parse_dates=['Date'])
+            plot_daily_rmse_black(summary_df_black, os.path.join(COMPARISON_DIR, 'plot4_daily_rmse_black_vol.png'))
+        except FileNotFoundError:
+            print(f"\nINFO: Black volatility summary file not found at '{SUMMARY_CSV_BLACK}'. Skipping corresponding plot.")
+
         # --- Generate Part 2 Visuals ---
-        plot_volatility_surface(swaption_df, os.path.join(COMPARISON_DIR, 'plot4_volatility_surface'))
-        plot_error_heatmaps(swaption_df, os.path.join(COMPARISON_DIR, 'plot5_error_heatmaps.png'))
-        plot_error_by_expiry(swaption_df, os.path.join(COMPARISON_DIR, 'plot6_error_by_expiry.png'))
-        plot_scatter_comparison(swaption_df, os.path.join(COMPARISON_DIR, 'plot7_scatter_comparison.png'))
-        
-        # --- Generate NEW Integrated Plots ---
-        plot_error_by_tenor(swaption_df, os.path.join(COMPARISON_DIR, 'plot11_error_by_tenor.png'))
-        plot_error_by_volatility(swaption_df, os.path.join(COMPARISON_DIR, 'plot12_error_by_volatility.png'))
-        
+        plot_volatility_surface(swaption_df, os.path.join(COMPARISON_DIR, 'plot5_volatility_surface'))
+        plot_error_heatmaps(swaption_df, os.path.join(COMPARISON_DIR, 'plot6_error_heatmaps.png'))
+        plot_error_by_expiry(swaption_df, os.path.join(COMPARISON_DIR, 'plot7_error_by_expiry.png'))
+        plot_error_by_tenor(swaption_df, os.path.join(COMPARISON_DIR, 'plot8_error_by_tenor.png'))
+        plot_error_by_volatility(swaption_df, os.path.join(COMPARISON_DIR, 'plot9_error_by_volatility.png'))
+        plot_scatter_comparison(swaption_df, os.path.join(COMPARISON_DIR, 'plot10_scatter_comparison.png'))
+                
         print("\n--- All visualizations have been generated successfully. ---")
 
     except FileNotFoundError:
