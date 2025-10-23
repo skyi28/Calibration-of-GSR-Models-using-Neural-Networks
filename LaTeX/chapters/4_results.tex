@@ -88,36 +88,45 @@ The architecture of the best-performing model reflects these findings. It consis
 \subsubsection{Pricing Ability}
 Figure~\ref{fig:daily_rmse_comparison} depicts the daily out-of-sample \ac{rmse} for the \ac{nn} and the traditional \ac{lm} calibration methods over the test period from early August to early September 2025. The evaluation is conducted on a hold-out set of swaptions that were excluded from the \ac{lm} optimization on each respective day, ensuring an unbiased comparison between the \ac{nn}'s predictive capability and the \ac{lm}'s in-sample fitting performance as described in section~\ref{subsec:comparison_of_nn_and_lm}.
 
+To provide a metric that reflects the financial significance of the calibration errors, rather than just their statistical magnitude, the subsequent analysis additionally utilizes vega-weighted values. The formal procedure for this vega-based aggregation, which translates volatility errors into their approximate price impact, is specified in section~\ref{subsec:conversion_from_normal_to_lognormal_errors}.
+
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=1\textwidth]{images/calibration_results/plot1_daily_rmse.png}
+	\includegraphics[width=1\textwidth]{images/calibration_results/plot1_daily_rmse_combined.png}
 	\caption{Comparison of daily out-of-sample \ac{rmse} between \ac{nn} and \ac{lm} calibration methods over the test period.}
 	\label{fig:daily_rmse_comparison}
 \end{figure}
 
-Across the entire test horizon, the \ac{nn} consistently achieves superior out-of-sample accuracy relative to the \ac{lm} algorithm. The \ac{rmse} of the \ac{nn} remains persistently lower than that of the \ac{lm} method, indicating a more accurate reproduction of market swaption volatilities on unseen data and reflecting the \ac{nn}'s enhanced ability to generalize beyond the training sample. Table~\ref{tab:rmse_statistics} summarizes the descriptive statistics of the daily out-of-sample \ac{rmse} values for both calibration methods.
+Across the entire test horizon, the \ac{nn} consistently achieves superior out-of-sample accuracy relative to the \ac{lm} algorithm. To provide a more nuanced evaluation beyond a simple statistical average, this analysis considers both the standard, unweighted \ac{rmse} and a vega-weighted \ac{rmse}. The latter metric assesses performance by giving more weight to errors on swaptions with higher price sensitivity to volatility, thereby reflecting financial significance. On both metrics, the \ac{nn} remains persistently superior, indicating a more accurate and robust reproduction of market swaption volatilities. Table~\ref{tab:rmse_statistics} summarizes the descriptive statistics for all four daily out-of-sample \ac{rmse} measures.
 
 \begin{table}[htbp]
 	\centering
 	\begin{threeparttable}
-		\caption{Out-of-Sample \ac{rmse} Statistics for \ac{nn} and \ac{lm} Calibration}
+		\caption{Out-of-Sample \ac{rmse} Statistics (Unweighted vs. Vega-Weighted)}
 		\label{tab:rmse_statistics}
 		\begin{tabular}{lccccc}
 			\toprule
 			\textbf{Method} & \textbf{Mean} & \textbf{Std Dev} & \textbf{Median} & \textbf{Min} & \textbf{Max} \\
 			\midrule
-			\ac{nn}         & 6.53          & 0.73             & 6.47            & 5.04         & 8.53         \\
-			\ac{lm}         & 10.11         & 1.10             & 9.79            & 7.67         & 12.37        \\
+			NN (Unweighted)     & 6.53          & 0.73             & 6.47            & 5.04         & 8.53         \\
+			NN (Vega-Weighted)  & 4.89          & 0.68             & 4.87            & 3.67         & 6.80         \\
+			\midrule
+			LM (Unweighted)     & 10.11         & 1.10             & 9.79            & 7.67         & 12.37        \\
+			LM (Vega-Weighted)  & 11.83         & 1.95             & 11.30           & 7.46         & 15.39        \\
 			\bottomrule
 		\end{tabular}
 		\begin{tablenotes}
 			\footnotesize
-			\item \textit{Note:} The table reports summary statistics of daily out-of-sample \ac{rmse} values over the test period (August 2025) for the \ac{nn} and \ac{lm} calibration methods.
+			\item \textit{Note:} The table reports summary statistics of daily out-of-sample \ac{rmse} values over the test period for both unweighted and vega-weighted metrics. All values are in basis points.
 		\end{tablenotes}
 	\end{threeparttable}
 \end{table}
 
-In addition to its lower average error, the \ac{nn} exhibits markedly higher stability in predictive performance. This is also reflected in its substantially lower standard deviation of \ac{rmse} values (0.73~\ac{bps}) compared to the \ac{lm} algorithm (1.10~\ac{bps}). While the \ac{lm} algorithm shows higher volatility in its error profile, the \ac{nn} consistently maintains a narrow error range , typically between 5 and 7~\ac{bps}.
+A key finding revealed by this dual-metric approach is the relationship between the two error measures for the \ac{nn}. The vega-weighted \ac{rmse} (mean of 4.89~\ac{bps}) is consistently and significantly lower than its unweighted counterpart (mean of 6.53~\ac{bps}). This indicates that the neural network's smallest errors are concentrated on swaptions with the highest vega - typically the most liquid and financially significant instruments. The model has implicitly learned to prioritize the accuracy of the swaptions that have the largest impact on portfolio P\&L, demonstrating a level of financially-aware generalization.
+
+In stark contrast, the \ac{lm} algorithm exhibits the opposite and more problematic behavior. Its vega-weighted \ac{rmse} (mean of 11.83~\ac{bps}) is significantly higher than the unweighted metric (mean of 10.11~\ac{bps}). This reveals a critical weakness of the traditional optimizer: its largest pricing errors are concentrated on the most financially sensitive instruments. While attempting to find a global best-fit, the \ac{lm} method struggles most with the very swaptions where accuracy is paramount, leading to a financially riskier error profile.
+
+Finally, this analysis underscores the superior stability of the \ac{nn}. This is reflected in the standard deviation of its unweighted \ac{rmse} (0.73~\ac{bps}) and its even more stable vega-weighted \ac{rmse} (0.68~\ac{bps}). Conversely, the financial instability of the \ac{lm} method is highlighted by the substantial increase in volatility when moving from its unweighted (1.10~\ac{bps}) to its vega-weighted (1.95~\ac{bps}) error, confirming that its largest and most volatile errors occur on the instruments of highest financial importance.
 
 To formally assess the statistical properties of the daily out-of-sample \ac{rmse} values for both calibration methods, a series of hypothesis tests were conducted. These include normality testing using the Shapiro-Wilk test, a non-parametric Mann-Whitney~U test to examine differences in central tendency, and Levene's test to evaluate equality of variances. The results are summarized in Table~\ref{tab:stat_tests}.
 
@@ -138,7 +147,7 @@ To formally assess the statistical properties of the daily out-of-sample \ac{rms
 		\end{tabular}
 		\begin{tablenotes}
 			\footnotesize
-			\item \textit{Note:} Shapiro--Wilk tests assess normality of \ac{rmse} distributions. Mann--Whitney~U compares central tendency due to non-normality of \ac{lm} errors. Levene's test checks variance equality.
+			\item \textit{Note:} The tests were conducted on the unweighted errors.
 		\end{tablenotes}
 	\end{threeparttable}
 \end{table}
@@ -151,7 +160,7 @@ Finally, Levene's test (\(p=0.1713\)) indicates no statistically significant dif
 
 The magnitude of the observed performance difference is economically and statistically significant. On average, the \ac{nn} reduces the out-of-sample pricing error by 3.58~\ac{bps} compared to the \ac{lm} calibration. During periods of elevated instability in the \ac{lm} algorithm's performance, this gap widens up to 4.57~\ac{bps}.
 
-The mean prediction errors, defined as the difference between model-implied volatilities and observed market volatilities (\(\text{Model Volatility} - \text{Market Volatility}\)) in \ac{bps} (\ac{bps}), were analyzed for the \ac{nn} and \ac{lm} (\ac{lm}) calibration methods across various swaption expiry and tenor bins. The corresponding heatmaps in figure~\ref{fig:error_heatmaps} visualize these errors, where red cells indicate overestimation, blue cells indicate underestimation, and neutral colors indicate a close fit to market data. An additional heatmap depicting the difference between \ac{lm} and \ac{nn} errors highlights the relative performance of the two approaches across the volatility surface.
+The mean prediction errors, defined as the difference between model-implied volatilities and observed market volatilities (\(\text{Model Volatility} - \text{Market Volatility}\)) in basis points (\ac{bps}), were analyzed for the \ac{nn} and \ac{lm} calibration methods across various swaption expiry and tenor bins. The corresponding heatmaps in Figure~\ref{fig:error_heatmaps} visualize these unweighted statistical errors, where red cells indicate overestimation and blue cells indicate underestimation.
 
 \begin{figure}[H]
 	\centering
@@ -160,11 +169,22 @@ The mean prediction errors, defined as the difference between model-implied vola
 	\label{fig:error_heatmaps}
 \end{figure}
 
-The \ac{lm} calibration exhibits pronounced, systematic pricing biases across the surface. At the short end of the surface, errors reach up to +13.75~\ac{bps}, while at the long end, they are as high as +13.93~\ac{bps}, indicating consistent overestimation of volatilities. Conversely, the \ac{lm} model underestimates volatilities in the medium-expiry region, with errors down to -9.84 \ac{bps}. This pattern demonstrates that the in-sample optimization struggles to identify a single set of parameters capable of simultaneously fitting the complex curvature of the entire volatility surface, resulting in large, offsetting errors.
+The \ac{lm} calibration exhibits pronounced, systematic pricing biases across the surface. At the short end, errors reach up to +13.75~\ac{bps}, while at the long end, they are as high as +13.93~\ac{bps}. Conversely, the \ac{lm} model underestimates volatilities in the medium-expiry region, with errors down to -9.84 \ac{bps}. This pattern demonstrates that the in-sample optimization struggles to identify a single set of parameters capable of simultaneously fitting the complex curvature of the surface. In contrast, the \ac{nn} model produces a more balanced and less systematic error distribution. Although it slightly overestimates volatilities at the highly volatile short end (+14.51~\ac{bps}), the errors elsewhere are smaller and more evenly distributed.
 
-In contrast, the \ac{nn} model produces a more balanced and less systematic error distribution. Although it slightly overestimates volatilities at the highly volatile short end (+14.51~\ac{bps}), the errors elsewhere are smaller and more evenly distributed. The absence of large, contiguous regions of severe under- or overestimation, observed in the \ac{lm} model, suggests that the \ac{nn} captures a more flexible representation of the volatility surface, effectively generalizing across different expiry-tenor combinations.
+To deepen this analysis from a financial risk perspective, a second set of heatmaps was generated, as shown in Figure~\ref{fig:error_heatmaps_weighted}. These plots visualize the \textit{vega-weighted} mean errors, which represent the financial impact of the calibration inaccuracies. This metric highlights the regions of the volatility surface where the model's errors would cause the largest potential P\&L discrepancies.
 
-The error difference heatmap (\ac{lm} error minus \ac{nn} error) provides a direct comparison of model performance. Negative values (dark blue) in the medium-expiry region indicate a large negative difference between the error of up to -8.63~\ac{bps} relative to the \ac{lm} method. Similarly, positive values (red) at the long end highlight large positive differences of up to 10.64~\ac{bps}.
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/calibration_results/plot6b_error_heatmaps_weighted.png}
+	\caption{Heatmaps of Vega-Weighted Mean Errors for \ac{nn} and \ac{lm} Calibration, and Their Difference.}
+	\label{fig:error_heatmaps_weighted}
+\end{figure}
+
+The vega-weighted analysis reveals a critical divergence in the models' performance. For the \ac{nn}, the financial impact of its errors is relatively contained and distributed. While the largest unweighted error was at the short end, the largest weighted errors (e.g., 8.55, 11.04~\ac{bps}) are shifted to the mid-to-long tenor and expiry regions. This indicates that the \ac{nn}'s largest statistical mispricings occur on instruments with lower financial sensitivity.
+
+The \ac{lm} model, however, displays a starkly problematic pattern. The vega-weighted heatmap shows an extreme concentration of financial error in the long-expiry, long-tenor portion of the surface, with weighted errors reaching as high as 27.92~\ac{bps}. This demonstrates that the \ac{lm} optimizer's largest statistical errors are systematically located in the region of the surface corresponding to high-vega, financially critical instruments. While its unweighted errors appeared more dispersed, this analysis reveals that its flaws are concentrated where they are most damaging from a risk-management perspective.
+
+The weighted error difference heatmap (\ac{lm} minus \ac{nn}) confirms this conclusion unequivocally. The bright red areas in the long-expiry, long-tenor corner, with differences exceeding 21~\ac{bps}, highlight the \ac{lm} model's profound financial underperformance in this critical region. Conversely, the dark blue areas in the medium-expiry range show where the \ac{lm}'s underestimation bias has a greater financial impact than the \ac{nn}'s errors. Overall, the vega-weighted analysis proves that the \ac{nn} not only achieves superior statistical accuracy but also produces a significantly more benign and robust financial error profile, avoiding the dangerous concentration of risk inherent in the traditional \ac{lm} calibration.
 
 The relationship between model-implied volatilities and observed market volatilities was examined on an instrument-by-instrument basis for all swaptions in the hold-out sets over the entire test period. Scatter plots (figure~\ref{fig:scatter_comparison}) were constructed for both the \ac{nn} and \ac{lm} (\ac{lm}) models, with the dashed \(y=x\) line representing a perfect fit, where model predictions exactly match market values. The proximity of the data points to this line provides a direct measure of each model's out-of-sample accuracy and predictive reliability.
 

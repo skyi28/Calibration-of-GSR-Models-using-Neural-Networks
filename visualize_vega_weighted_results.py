@@ -24,6 +24,8 @@ from matplotlib import cm
 import datetime
 import QuantLib as ql
 from tqdm import tqdm
+from tqdm.auto import tqdm
+tqdm.pandas()
 
 # --- CONFIGURATION ---
 BASE_DIR = os.getcwd()
@@ -370,6 +372,71 @@ def plot_error_heatmaps(df: pd.DataFrame, save_path: str):
     plt.savefig(save_path)
     plt.close(fig)
     print(f"Saved Plot 6: {save_path}")
+    
+def plot_error_heatmaps_weighted(df: pd.DataFrame, save_path: str):
+    """
+    Plot 5b: Vega-Weighted Mean Squared Errors in bps^2 across Volatility Surface
+
+    Plots heatmaps of the mean of (vega * error^2), which represents the
+    financial impact of the calibration errors across the volatility surface.
+    """
+    # Ensure the 'Vega' column has been calculated and added
+    if 'Vega' not in df.columns:
+        print("Could not generate weighted heatmaps: 'Vega' column not found.")
+        print("Please ensure vegas are calculated in the main script block first.")
+        return
+
+    df_copy = df.copy()
+    df_copy['Expiry'] = df_copy['ExpiryStr'].apply(parse_tenor_to_years)
+    df_copy['Tenor'] = df_copy['TenorStr'].apply(parse_tenor_to_years)
+    df_copy.dropna(subset=['Expiry', 'Tenor', 'Vega'], inplace=True)
+    
+    # Calculate the vega-weighted squared error for each instrument
+    # This represents the contribution of each instrument's error to the total weighted MSE
+    df_copy['NN_Weighted_Squared_Error'] = df_copy['NN_Error_bps'] * df_copy['Vega']
+    df_copy['LM_Weighted_Squared_Error'] = df_copy['LM_Error_bps'] * df_copy['Vega']
+
+    # Create bins for heatmap
+    expiry_bins = pd.cut(df_copy['Expiry'], bins=np.arange(0, 31, 5), right=False)
+    tenor_bins = pd.cut(df_copy['Tenor'], bins=np.arange(0, 31, 5), right=False)
+    
+    # Pivot using the mean of these weighted squared errors
+    nn_pivot = df_copy.pivot_table(index=expiry_bins, columns=tenor_bins, values='NN_Weighted_Squared_Error', aggfunc='mean')
+    lm_pivot = df_copy.pivot_table(index=expiry_bins, columns=tenor_bins, values='LM_Weighted_Squared_Error', aggfunc='mean')
+    
+    # Normalize the pivots by the total average vega for better interpretability
+    avg_vega = df_copy['Vega'].mean()
+    if avg_vega > 0:
+        nn_pivot /= avg_vega
+        lm_pivot /= avg_vega
+    
+    diff_pivot = lm_pivot - nn_pivot
+
+    # Find a common, non-symmetric color range, as we are looking at magnitudes
+    vmax = max(nn_pivot.max().max(), lm_pivot.max().max())
+    
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(24, 7))
+    fig.suptitle('Vega-Weighted Mean Squared Errors (bps) across Volatility Surface', fontsize=16)
+
+    sns.heatmap(nn_pivot, ax=ax1, cmap='Reds', annot=True, fmt=".2f", vmax=vmax, vmin=0)
+    ax1.set_title('Neural Network Weighted Error')
+    
+    sns.heatmap(lm_pivot, ax=ax2, cmap='Reds', annot=True, fmt=".2f", vmax=vmax, vmin=0)
+    ax2.set_title('Levenberg-Marquardt Weighted Error')
+
+    # For the difference, a diverging colormap is better
+    diff_vmax = max(abs(diff_pivot.min().min()), abs(diff_pivot.max().max()))
+    sns.heatmap(diff_pivot, ax=ax3, cmap='coolwarm', annot=True, fmt=".2f", vmax=diff_vmax, vmin=-diff_vmax)
+    ax3.set_title('Weighted Error Difference (LM - NN)')
+
+    for ax in [ax1, ax2, ax3]:
+        ax.set_xlabel('Tenor Bins')
+        ax.set_ylabel('Expiry Bins' if ax==ax1 else '')
+
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.savefig(save_path)
+    plt.close(fig)
+    print(f"Saved Weighted Error Heatmaps: {save_path}")
 
 def plot_scatter_comparison(df: pd.DataFrame, save_path: str):
     """Plots model vs. market volatility on a scatter plot for all hold-out swaptions."""
@@ -459,10 +526,37 @@ if __name__ == '__main__':
             plot_parameter_evolution(original_summary_df, os.path.join(COMPARISON_DIR, 'plot3_parameter_evolution.png'))
         except FileNotFoundError:
             print(f"INFO: Original summary file '{ORIGINAL_SUMMARY_CSV}' not found. Skipping parameter evolution plot.")
-            
+
+        # --- PRE-CALCULATE VEGAS FOR ALL GRANULAR PLOTS ---
+        print("\n--- Pre-calculating vegas for all swaptions for granular analysis ---")
+        # Re-use the curve loading from the daily metrics function for efficiency
+        print("Pre-loading yield curves for vega calculation...")
+        unique_dates = pd.to_datetime(swaption_df['EvaluationDate']).unique()
+        yield_curves = {}
+        for dt in tqdm(unique_dates, desc="Loading Curves"):
+            eval_date = dt.date()
+            date_str = eval_date.strftime('%d.%m.%Y')
+            zero_path = os.path.join(FOLDER_ZERO_CURVES, f"{date_str}.csv")
+            if os.path.exists(zero_path):
+                zero_df = pd.read_csv(zero_path, parse_dates=['Date'])
+                yield_curves[eval_date] = create_ql_yield_curve(zero_df, eval_date)
+
+        def get_vega_for_row(row):
+            eval_date = pd.to_datetime(row['EvaluationDate']).date()
+            if eval_date in yield_curves:
+                yield_curve_handle = yield_curves[eval_date]
+                ql.Settings.instance().evaluationDate = ql.Date(eval_date.day, eval_date.month, eval_date.year)
+                return calculate_swaption_vega(row, yield_curve_handle)
+            return np.nan
+
+        swaption_df['Vega'] = swaption_df.progress_apply(get_vega_for_row, axis=1) # Using tqdm_pandas
+        
         # --- Generate Part 2 Visuals ---
         plot_volatility_surface(swaption_df, os.path.join(COMPARISON_DIR, 'plot5_volatility_surface'))
         plot_error_heatmaps(swaption_df, os.path.join(COMPARISON_DIR, 'plot6_error_heatmaps.png'))
+        # Call the new weighted heatmap function
+        plot_error_heatmaps_weighted(swaption_df, os.path.join(COMPARISON_DIR, 'plot6b_error_heatmaps_weighted.png'))
+        
         plot_scatter_comparison(swaption_df, os.path.join(COMPARISON_DIR, 'plot10_scatter_comparison.png'))
         plot_error_by_bucket(swaption_df, os.path.join(COMPARISON_DIR, 'plot7_error_by_expiry.png'), 'Expiry')
         plot_error_by_bucket(swaption_df, os.path.join(COMPARISON_DIR, 'plot8_error_by_tenor.png'), 'Tenor')
