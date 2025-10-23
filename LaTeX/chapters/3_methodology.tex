@@ -1,4 +1,10 @@
-This chapter provides a detailed, step-by-step blueprint of the research design and analytical framework used to compare the traditional and machine learning-based calibration methods. It begins by describing the dataset, including the source and specifications of the swaption and interest rate data. Subsequently, it outlines the data preprocessing pipeline, covering the bootstrapping of zero-coupon curves and the feature engineering process designed to capture key market dynamics. The core of the chapter details the architecture of the neural network model, the hyperparameter optimization strategy, and the implementation of the traditional Levenberg-Marquardt algorithm. Finally, it defines the specific metrics for accuracy, speed, and robustness that will be used to conduct a rigorous and objective evaluation of both approaches.
+This chapter provides a detailed, step-by-step blueprint of the research design and analytical framework used to compare the traditional and machine learning-based calibration methods. The process begins with a thorough description of the dataset, which includes European ATM swaptions, the underlying EUR swap curves, and key external market indicators like the VIX and MOVE indices.
+
+From this raw data, a sophisticated set of features is engineered through a multi-stage preprocessing pipeline. This includes bootstrapping zero-coupon curves, handling non-trading days, and using Principal Component Analysis (PCA) to distill the yield curve's primary drivers—level, slope, and curvature—into a compact and uncorrelated feature set.
+
+The core of the methodology is the end-to-end machine learning pipeline. This section details the neural network's residual architecture, the systematic hyperparameter optimization conducted via the Hyperband algorithm, and the implementation of a custom, asymmetric loss function designed to penalize the underestimation of volatility. Furthermore, it addresses the significant technical challenge of integrating the differentiable TensorFlow framework with the non-differentiable QuantLib pricing engine through the use of custom gradients and parallelized computation.
+
+Crucially, the chapter concludes by defining the rigorous experimental protocol established for the final comparison. It details the unique "Intra-Day Hold-Out Set" framework, which was specifically designed to ensure a scientifically valid and fair out-of-sample evaluation for both the predictive neural network and the in-sample Levenberg-Marquardt optimizer, thereby addressing a fundamental methodological challenge in comparing these two distinct approaches.
 
 \subsection{Dataset}
 \subsubsection{Time Period}
@@ -493,6 +499,8 @@ Since the normal-volatility-based model error \( \varepsilon_N \) is constant ac
 	\bar{\varepsilon}_B = \varepsilon_N \frac{\sum_{i=1}^{n} \frac{\nu_i}{F_i}}{\sum_{i=1}^{n} \nu_i}.
 \end{equation}
 This formula represents the vega-weighted average conversion from normal to lognormal volatility on the portfolio level. It ensures that instruments with higher price sensitivity to volatility contribute proportionally more to the aggregate measure. Conceptually, this approach yields a portfolio-consistent transformation of model errors between the two volatility conventions, allowing for robust comparison of calibration quality under different modeling frameworks.
+
+Having established the input structure and metrics, the next step outlines the full end-to-end workflow.
 
 \subsection{Methodology Workflow}
 The subsequent section delineates the comprehensive, step-by-step workflow implemented for the calibration of the Hull-White model, as depicted by the provided source code. The process is designed as an end-to-end pipeline, commencing with raw data ingestion and culminating in model evaluation, adaptive retraining, and interpretability analysis.

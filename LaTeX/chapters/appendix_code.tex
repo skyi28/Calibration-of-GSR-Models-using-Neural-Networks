@@ -1,8 +1,8 @@
 \subsection{Principal Component Analysis on the Yield Curve}
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=1\textwidth]{images/pca/pca_component_loadings.png}
-	\caption{Component Loadings for the First Three Principal Components}
+	\includegraphics[width=1\textwidth]{images/appendix/pca_component_loadings.png}
+	\caption{Component Loadings for the First Three Principal Components.}
 	\label{fig:pca_loadings}
 \end{figure}
 
@@ -16,11 +16,134 @@ The third principal component (PC3) is characterized by a distinct hump-shaped p
 
 Taken together, these three loading structures provide strong visual evidence supporting the economic interpretation of the principal components as level, slope, and curvature factors. The figure thus offers a graphical confirmation of the empirical findings discussed in the main text and highlights the fundamental drivers of yield curve dynamics.
 
-\begin{itemize}
-    \item \textbf{Detailed Data Tables:} Include extensive tables of raw data, implied volatility surfaces, or specific swaption characteristics if they were too large or detailed for the main body of the text.
-    \item \textbf{Code Snippets or Repository Reference:} Provide key code segments, especially for the custom gradient implementation in TensorFlow or the neural network architecture. Alternatively, a link to a public code repository (e.g., GitHub) is highly recommended.
-    \item \textbf{Additional Figures/Graphs:} Present any extra visualizations of results, detailed calibration error plots, or parameter evolutions that support your main findings but were not critical for the core discussion.
-    \item \textbf{Mathematical Derivations:} Include any lengthy or complex mathematical derivations that were summarized or omitted from the main text to improve readability.
-    \item \textbf{Hyperparameter Details:} List specific hyperparameters used for your neural network model (e.g., number of hidden layers, number of neurons per layer, choice of activation functions, optimizer used, learning rate schedule, batch size, number of epochs, regularization techniques).
-    \item \textbf{Extensive Sensitivity Analysis Results:} If you conducted a comprehensive sensitivity analysis, the detailed findings and plots can be placed here.
-\end{itemize}
+\subsection{Hyperparameter Tuning}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/appendix/error_distribution_histogram.png}
+	\caption{Distribution of Final Validation RMSE for Top 5\% of Models from Hyperparameter Search.}
+	\label{fig:error_distribution_histogram}
+\end{figure}
+The distribution of the final validation Root Mean Squared Error (RMSE) for the top 5\% of models evaluated during the hyperparameter search is shown in figure (\ref{fig:error_distribution_histogram}), with a kernel density estimate overlaid to illustrate the shape of the distribution. Validation errors within this elite subset range from approximately 4.6 to 5.5, and the distribution is roughly unimodal and bell-shaped. The highest frequency of models achieves an RMSE between 5.3 and 5.4, while a tail of lower-frequency, higher-performing models extends toward an RMSE of 4.6. This indicates that although multiple hyperparameter configurations can achieve high performance, the majority of well-performing models are concentrated in the 5.0–5.4 RMSE range. The left-hand tail represents a small number of exceptionally well-configured models, highlighting that achieving top-tier performance is sensitive and requires a precise combination of hyperparameters.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/appendix/distribution_activation.png}
+	\caption{Distribution of Activation Functions in Top 5\% of Models from Hyperparameter Search.}
+	\label{fig:distribution_activation}
+\end{figure}
+The distribution of activation functions across all hidden layers in the top-performing models is shown in figure \ref{fig:distribution_activation}, comparing the usage of the ReLU (Rectified Linear Unit) and tanh (Hyperbolic Tangent) functions. Among the top 5\% of models, the choice of activation function is evenly split, with ReLU and tanh each employed in 25 of the top 50 models. This finding indicates that, for this specific modeling task, the selection between ReLU and tanh does not significantly impact model performance. Both functions appear equally capable of enabling the network to learn the complex mapping required, suggesting that performance is more sensitive to other architectural and training hyperparameters.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/appendix/distribution_dropout_rate.png}
+	\caption{Distribution of Dropout Rate in Top 5\% of Models from Hyperparameter Search.}
+	\label{fig:distribution_dropout}
+\end{figure}
+The distribution of dropout rates among the top-performing models with dropout enabled is illustrated in figure \ref{fig:distribution_dropout}, with the x-axis representing the fraction of neurons deactivated during training. The distribution is multi-modal, exhibiting notable peaks in the ranges of 0.10–0.15, 0.25–0.30, and 0.40–0.45, with the highest frequency occurring around 0.25–0.30. This pattern suggests that the optimal level of regularization is highly dependent on other hyperparameters, such as network depth and width. Larger or deeper networks may require more aggressive dropout, whereas smaller networks may perform better with lower dropout rates. Although the peak near 0.30 indicates a commonly effective configuration, the overall spread demonstrates that no single dropout rate serves as a universally optimal setting.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/appendix/distribution_learning_rate.png}
+	\caption{Distribution of Learning Rates in Top 5\% of Models from Hyperparameter Search.}
+	\label{fig:distribution_learning_rate}
+\end{figure}
+The distribution of learning rates among the top 5\% of models is shown in figure \ref{fig:distribution_learning_rate}, illustrating the frequency of different rates selected during the hyperparameter search. While learning rates are spread across the explored range, they are most heavily concentrated between 0.002 and 0.007, with a distinct peak in the 0.002–0.003 bin. Very high learning rates above 0.008 and very low rates below 0.002 occur infrequently. This pattern indicates that a moderately low learning rate is important for achieving optimal performance. Excessively high rates can cause unstable training and prevent convergence, whereas very low rates may result in excessively slow learning. The concentration within the moderate range suggests a well-defined "valley" in the loss landscape that can be effectively navigated with appropriately chosen learning rates.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/appendix/distribution_num_layers.png}
+	\caption{Distribution of Number of Hidden Layers in Top 5\% of Models from Hyperparameter Search.}
+	\label{fig:distribution_num_layers}
+\end{figure}
+The distribution of the total number of hidden layers among the top 5\% of models is shown in figure \ref{fig:distribution_num_layers}, with the x-axis representing the number of hidden layers. The distribution is strongly skewed towards deeper networks, with the most frequent configurations comprising three, four, or five hidden layers. Shallow networks with only two layers occur significantly less often among the top-performing models. This pattern indicates that network depth is a critical factor for effectively modeling the problem, suggesting that the relationships between the market data and the Hull-White parameters are hierarchical and complex, and require multiple layers of non-linear transformations to be captured accurately.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/appendix/distribution_use_dropout.png}
+	\caption{Distribution of Use of Dropout in Top 5\% of Models from Hyperparameter Search.}
+	\label{fig:distribution_use_dropout}
+\end{figure}
+The distribution of the "Use Dropout" hyperparameter among the top-performing models is presented in figure \ref{fig:distribution_use_dropout}, indicating whether a dropout layer was enabled or disabled for regularization. Among the top 50 models, a majority (30) employed dropout, while a substantial minority (20) did not. This suggests that dropout generally contributes to improved generalization on this dataset. However, the fact that a significant portion of top models performed best without dropout indicates that its effectiveness is not universal and likely depends on the specific architecture of the network.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/appendix/distribution_underestimation_penalty.png}
+	\caption{Distribution of Underestimation Penalty in Top 5\% of Models from Hyperparameter Search.}
+	\label{fig:distribution_underestimation_penalty}
+\end{figure}
+The distribution of the custom underestimation penalty hyperparameter among the top-performing models is shown in figure \ref{fig:distribution_underestimation_penalty}, where a value of 1.0 represents no additional penalty. The distribution is strongly right-skewed, with the majority of the best models employing a low penalty between 1.0 and 1.5. Higher penalty values occur infrequently among top models. This indicates that imposing a large penalty for underestimation is detrimental to performance when evaluated with a symmetric metric such as RMSE. While the penalty is financially motivated, excessive conservatism introduces systematic overestimation, increasing overall error. The most effective models capture the underlying distribution accurately using a balanced or only slightly asymmetric loss function.
+
+\subsection{Final Model Training}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/appendix/training_history.png}
+	\caption{Training History of Final Model using Best Hyperparameters.}
+	\label{fig:training_history}
+\end{figure}
+The training and validation loss history of the best-performing model over 59 epochs is illustrated in figure \ref{fig:training_history}, where the y-axis represents the Root Mean Squared Error (RMSE) in basis points and the x-axis represents the training epoch. The blue line denotes the weighted training RMSE, incorporating an asymmetric penalty for underestimation, while the red line shows the standard, unweighted validation RMSE. A vertical dashed line at epoch 39 indicates the point at which the model achieved its lowest validation error and was selected as the final model through early stopping.
+
+The training process exhibits several distinct phases. An initial rapid convergence occurs within the first ten epochs, during which both training and validation RMSE decrease sharply from over 12 bps to approximately 5--6 bps. This is followed by a plateau phase characterized by noisy fluctuations without a significant long-term downward trend. Throughout this phase, the validation RMSE consistently remains lower than the weighted training RMSE, reaching its global minimum at epoch 39. After this point, the validation error does not improve over the subsequent twenty epochs, triggering early stopping and restoring the model weights from epoch 39.
+
+The learning curve provides several insights into model behavior and the optimization landscape. The steep initial decrease indicates that the network architecture and learning rate effectively capture the principal patterns in the training data. The subsequent noisy yet stable plateau reflects the complex, non-convex loss surface typical of financial model calibration, which the stochastic optimizer successfully navigates without divergence. The persistent gap between training and validation RMSE is a direct consequence of the asymmetric loss function: the elevated training loss reflects the explicit penalty for underestimation, while the lower validation RMSE provides an unbiased measure of generalization. Finally, early stopping acts as an effective regularization mechanism, ensuring that the final model generalizes well to unseen data rather than overfitting, as evidenced by the stability of the validation curve and the model's robust predictive performance.
+
+\subsection{Pricing Comparison}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/appendix/plot2_rmse_distribution.png}
+	\caption{Distribution of RMSE between Neural Network and Levenberg-Marquardt.}
+	\label{fig:distribution_rmse_violin plot}
+\end{figure}
+The daily out-of-sample Root Mean Squared Error (RMSE) for the Neural Network (NN) and Levenberg-Marquardt (LM) calibration methods is presented using a violin plot (figure \ref{fig:distribution_rmse_violin plot}), where the width represents the frequency of each daily error and the inner box plot indicates the median and interquartile range. A clear separation between the two methods is observed. The NN's error distribution is centered at a lower level, with a median of approximately 6.5 bps, and is considerably more compact, with most daily errors between 5.5 and 7.5 bps. In contrast, the LM method exhibits a higher median of around 9.8 bps and a substantially wider dispersion, ranging from approximately 8 to 12 bps. Notably, the 75th percentile of the NN distribution is lower than the 25th percentile of the LM distribution.
+
+These results provide strong evidence of both the superior accuracy of the neural network approach. The consistently lower RMSE indicates that the NN generalizes more effectively to unseen market data, while the narrower distribution demonstrates more reliable and predictable performance, which is essential for practical risk management. The minimal overlap between the core distributions further emphasizes that the NN's worst-day performance typically exceeds the average performance of the LM method.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/appendix/plot9_error_by_volatility.png}
+	\caption{Distribution of RMSE between Neural Network and Levenberg-Marquardt by Swaption Volatility Quantiles.}
+	\label{fig:distribution_rmse_by_swaption_volatility_quantile}
+\end{figure}
+The instrument-level pricing errors, defined as the difference between model-implied and market-observed volatilities, are analyzed across three market volatility quantiles—Low (0–25\%), Mid (25–75\%), and High (75–100\%)—using a grouped box plot (figure \ref{fig:distribution_rmse_by_swaption_volatility_quantile}), with a dashed line at zero indicating perfect predictions. The Levenberg-Marquardt (LM) method exhibits large, systematic, and offsetting biases. In the low-volatility regime, it shows a strong positive bias, with a median error exceeding 10 bps, indicating overpricing, while in the high-volatility regime, the bias reverses to a median error of approximately -5 bps, indicating underpricing. In contrast, the Neural Network (NN) maintains a consistent and less biased profile across all volatility regimes, with median errors closer to zero and substantially smaller interquartile ranges, reflecting lower prediction variance.
+
+This analysis highlights a key limitation of the traditional LM optimizer: its inability to simultaneously fit instruments across the full volatility surface results in severe, systematic mispricings, overcompensating in one regime to correct errors in another. The Neural Network, however, learns a more flexible and robust mapping that generalizes effectively across the volatility spectrum. Its consistently lower bias and variance demonstrate a superior capacity to capture the complex dynamics of the market, making it a more reliable tool for pricing and risk management.
+
+\subsection{SHAP Values}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.5\textwidth]{images/appendix/SHAP_importance_a_1.png}
+	\caption{SHAP Feature Importance for $\alpha$.}
+	\label{fig:shap_importance_a_1}
+\end{figure}
+\foreach \i in {1,...,7}{
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.5\textwidth]{images/appendix/SHAP_importance_sigma_\i.png}
+        \caption{SHAP Feature Importance for $\sigma_\i$.}
+        \label{fig:shap_importance_sigma_\i}
+    \end{figure}
+}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.5\textwidth]{images/appendix/SHAP_summary_a_1.png}
+	\caption{SHAP Feature Summary for $\alpha$.}
+	\label{fig:shap_summary_a_1}
+\end{figure}
+\foreach \i in {1,...,7}{
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.5\textwidth]{images/appendix/SHAP_summary_sigma_\i.png}
+        \caption{SHAP Feature Importance for $\sigma_\i$.}
+        \label{fig:shap_summary_sigma_\i}
+    \end{figure}
+}
+
+The model's feature importance and SHAP analyses provide a detailed view of the input-output relationships learned by the neural network. The SHAP feature importance plots (\ref{fig:shap_importance_a_1} to \ref{fig:shap_importance_sigma_7}) rank input features based on their mean absolute contribution to each predicted parameter, offering a high-level overview of which factors dominate predictions. Complementarily, the SHAP value summary (beeswarm) plots reveal the distribution of feature effects across individual predictions, with the horizontal axis indicating the magnitude and direction of impact, and the color scale representing the original feature value.
+
+For the mean-reversion parameter \(a_1\), the curvature of the long end of the yield curve (curvature\_10y20y30y) emerges as the most influential feature, followed by yield curve slope measures (slope\_3m10y, slope\_5y30y). High curvature and steep slope values consistently produce negative SHAP values for \(a_1\), indicating that a more pronounced long-end curvature and steeper yield curve lead to a lower predicted mean-reversion rate. This is economically intuitive, as heightened curvature and steep slopes signal expectations of future rate changes, reducing the tendency of the short rate to revert to its long-term mean.
+
+Across the piecewise volatility parameters \(\sigma_1\) through \(\sigma_7\), curvature\_10y20y30y is also the dominant driver, highlighting the neural network’s recognition of long-end yield curve shape as the primary indicator of systemic interest rate uncertainty. Secondary features vary by volatility tenor, demonstrating the model's nuanced understanding: short-term volatilities (\(\sigma_1, \sigma_2\)) are influenced by immediate yield curve characteristics such as PC\_Curvature and slopes, whereas long-term volatility (\(\sigma_7\)) is strongly impacted by the MOVE\_VIX\_Ratio, capturing cross-asset market stress effects.
+
+Beeswarm plots (\ref{fig:shap_summary_a_1} to \ref{fig:shap_summary_sigma_7}) further illustrate the model’s capacity to capture non-linear and regime-dependent relationships. For example, high MOVE\_VIX\_Ratio values consistently reduce predicted long-term volatility, reflecting phenomena such as flight-to-quality or central bank intervention during periods of acute stress. Principal component features (PC\_Level, PC\_Slope, PC\_Curvature) exhibit consistent, financially coherent effects: higher PC\_Level generally increases volatility predictions, confirming that the model leverages these distilled factors effectively.
+
+Overall, the analyses reveal a sophisticated and economically interpretable decision-making process. The network relies universally on long-end curvature while adjusting secondary features according to the specific parameter being predicted, demonstrating its ability to integrate complex market signals and capture the hierarchical and regime-dependent dynamics of interest rates and volatility.

@@ -1484,6 +1484,51 @@
       \field{title}{Reinforcement Learning: An Introduction}
       \field{year}{2015}
     \endentry
+    \entry{vollrath2009calibration}{article}{}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=0aa24ecf39829b11dcdc49a51201ef81}{%
+           family={Vollrath},
+           familyi={V\bibinitperiod},
+           given={Ian},
+           giveni={I\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=e651632458f5caab025b91caf408acf4}{%
+           family={Wendland},
+           familyi={W\bibinitperiod},
+           given={Juergen},
+           giveni={J\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{0942010d065574a3cdfa66d0971b163b}
+      \strng{fullhash}{0942010d065574a3cdfa66d0971b163b}
+      \strng{fullhashraw}{0942010d065574a3cdfa66d0971b163b}
+      \strng{bibnamehash}{0942010d065574a3cdfa66d0971b163b}
+      \strng{authorbibnamehash}{0942010d065574a3cdfa66d0971b163b}
+      \strng{authornamehash}{0942010d065574a3cdfa66d0971b163b}
+      \strng{authorfullhash}{0942010d065574a3cdfa66d0971b163b}
+      \strng{authorfullhashraw}{0942010d065574a3cdfa66d0971b163b}
+      \field{sortinit}{V}
+      \field{sortinithash}{afb52128e5b4dc4b843768c0113d673b}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{SSRN Electronic Journal}
+      \field{month}{3}
+      \field{note}{Available at SSRN: \url{https://ssrn.com/abstract=1367502}}
+      \field{title}{Calibration of Interest Rate and Option Models Using Differential Evolution}
+      \field{year}{2009}
+      \verb{doi}
+      \verb 10.2139/ssrn.1367502
+      \endverb
+      \verb{urlraw}
+      \verb https://ssrn.com/abstract=1367502
+      \endverb
+      \verb{url}
+      \verb https://ssrn.com/abstract=1367502
+      \endverb
+    \endentry
     \entry{zheng2018feature}{book}{}{}
       \name{author}{2}{}{%
         {{un=0,uniquepart=base,hash=c13fb4f803b58840c527774ac5c341cf}{%
@@ -2991,6 +3036,51 @@
       \field{edition}{2nd}
       \field{title}{Reinforcement Learning: An Introduction}
       \field{year}{2015}
+    \endentry
+    \entry{vollrath2009calibration}{article}{}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=0aa24ecf39829b11dcdc49a51201ef81}{%
+           family={Vollrath},
+           familyi={V\bibinitperiod},
+           given={Ian},
+           giveni={I\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=e651632458f5caab025b91caf408acf4}{%
+           family={Wendland},
+           familyi={W\bibinitperiod},
+           given={Juergen},
+           giveni={J\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{0942010d065574a3cdfa66d0971b163b}
+      \strng{fullhash}{0942010d065574a3cdfa66d0971b163b}
+      \strng{fullhashraw}{0942010d065574a3cdfa66d0971b163b}
+      \strng{bibnamehash}{0942010d065574a3cdfa66d0971b163b}
+      \strng{authorbibnamehash}{0942010d065574a3cdfa66d0971b163b}
+      \strng{authornamehash}{0942010d065574a3cdfa66d0971b163b}
+      \strng{authorfullhash}{0942010d065574a3cdfa66d0971b163b}
+      \strng{authorfullhashraw}{0942010d065574a3cdfa66d0971b163b}
+      \field{sortinit}{V}
+      \field{sortinithash}{afb52128e5b4dc4b843768c0113d673b}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{SSRN Electronic Journal}
+      \field{month}{3}
+      \field{note}{Available at SSRN: \url{https://ssrn.com/abstract=1367502}}
+      \field{title}{Calibration of Interest Rate and Option Models Using Differential Evolution}
+      \field{year}{2009}
+      \verb{doi}
+      \verb 10.2139/ssrn.1367502
+      \endverb
+      \verb{urlraw}
+      \verb https://ssrn.com/abstract=1367502
+      \endverb
+      \verb{url}
+      \verb https://ssrn.com/abstract=1367502
+      \endverb
     \endentry
     \entry{zheng2018feature}{book}{}{}
       \name{author}{2}{}{%

@@ -19,6 +19,7 @@
 \usepackage{titlesec}
 \usepackage{csquotes}
 \usepackage{caption}
+\usepackage{pgffor}
 \usepackage[style=apa,backend=biber]{biblatex}
 \addbibresource{references.bib}
 
@@ -120,9 +121,14 @@
 \input{chapters/4_results}
 \newpage
 
+\section{Limitations}
+\label{limitations}
+\input{chapters/5_limitations}
+\newpage
+
 \section{Conclusion}
 \label{conclusion}
-\input{chapters/5_conclusion}
+\input{chapters/6_conclusion}
 \newpage
 
 \printbibliography
@@ -167,6 +173,6 @@
 \newpage
 
 \section{Affidavit}
-\input{chapters/6_affidavit}
+\input{chapters/7_affidavit}
 
 \end{document}
