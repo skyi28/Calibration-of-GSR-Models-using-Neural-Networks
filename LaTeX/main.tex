@@ -20,6 +20,7 @@
 \usepackage{csquotes}
 \usepackage{caption}
 \usepackage{pgffor}
+\usepackage{acro}
 \usepackage[style=apa,backend=biber]{biblatex}
 \addbibresource{references.bib}
 
@@ -42,6 +43,83 @@
   breaklines=true,
   captionpos=b,
   language=Python
+}
+
+\DeclareAcronym{atm}{
+    short={ATM},
+    long={at-the-money}
+}
+\DeclareAcronym{otm}{
+    short={OTM},
+    long={out-of-the-money}
+}
+\DeclareAcronym{itm}{
+    short={ITM},
+    long={in-the-money}
+}
+\DeclareAcronym{otc}{
+    short={OTC},
+    long={over-the-counter}
+}
+\DeclareAcronym{hw}{
+  short={HW},
+  long={Hull-White}
+}
+\DeclareAcronym{nn}{
+  short={NN},
+  long={Neural Network}
+}
+\DeclareAcronym{lmm}{
+  short={LMM},
+  long={Libor Market Model}
+}
+\DeclareAcronym{lm}{
+    short={LM},
+    long={Levenberg-Marquardt}
+}
+\DeclareAcronym{sde}{
+  short={SDE},
+  long={Stochastic Differential Equation}
+}
+\DeclareAcronym{rsme}{
+    short={RSME},
+    long={Root Squared Mean Error}
+}
+\DeclareAcronym{eur}{
+    short={EUR},
+    long={Euro}
+}
+\DeclareAcronym{usd}{
+    short={USD},
+    long={United States Dollar}
+}
+\DeclareAcronym{vix}{
+    short={VIX},
+    long={Volatility Index}
+}
+\DeclareAcronym{move}{
+    short={MOVE},
+    long={Merrill Lynch Option Volatility Estimate}
+}
+\DeclareAcronym{pca}{
+    short={PCA},
+    long={Principal Component Analysis}
+}
+\DeclareAcronym{bps}{
+    short={bps},
+    long={Basis Points}
+}
+\DeclareAcronym{euribor}{
+    short={EURIBOR},
+    long={Euro Interbank Offer Rate}
+}
+\DeclareAcronym{fra}{
+    short={FRA},
+    long={Forward Rate Agreement}
+}
+\DeclareAcronym{stddev}{
+    short={Std. Dev.},
+    long={Standard Deviation}
 }
 
 \begin{document}
@@ -98,6 +176,10 @@
 \tableofcontents
 \clearpage
 \newpage
+
+\printacronyms
+\newpage
+
 \listoffigures
 \newpage
 
