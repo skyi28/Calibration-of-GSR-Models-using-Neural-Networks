@@ -463,6 +463,56 @@
       \verb https://doi.org/10.2139/ssrn.1514192
       \endverb
     \endentry
+    \entry{hagan2002managingsmilerisk}{article}{}{}
+      \name{author}{4}{}{%
+        {{un=0,uniquepart=base,hash=9dfb3635d220159ddf73f8b2d9edce35}{%
+           family={Hagan},
+           familyi={H\bibinitperiod},
+           given={Patrick},
+           giveni={P\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=97a1c5d37b57bdcbd149069650b92de3}{%
+           family={Kumar},
+           familyi={K\bibinitperiod},
+           given={Deep},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=1241e477fcfab0c73cd1e975c8243ad9}{%
+           family={Lesniewski},
+           familyi={L\bibinitperiod},
+           given={Andrew},
+           giveni={A\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=09efc1f833803879900d0e3d326bd3f0}{%
+           family={Woodward},
+           familyi={W\bibinitperiod},
+           given={Diana},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{143b27e3f61ced0125a8d4f8ca71cfda}
+      \strng{fullhash}{c39d3d76ae3345cf9892d6c04b8a600b}
+      \strng{fullhashraw}{c39d3d76ae3345cf9892d6c04b8a600b}
+      \strng{bibnamehash}{c39d3d76ae3345cf9892d6c04b8a600b}
+      \strng{authorbibnamehash}{c39d3d76ae3345cf9892d6c04b8a600b}
+      \strng{authornamehash}{143b27e3f61ced0125a8d4f8ca71cfda}
+      \strng{authorfullhash}{c39d3d76ae3345cf9892d6c04b8a600b}
+      \strng{authorfullhashraw}{c39d3d76ae3345cf9892d6c04b8a600b}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Wilmott Magazine}
+      \field{month}{01}
+      \field{title}{Managing Smile Risk}
+      \field{volume}{1}
+      \field{year}{2002}
+      \field{pages}{84\bibrangedash 108}
+      \range{pages}{25}
+    \endentry
     \entry{hernandez2016model}{article}{}{}
       \name{author}{1}{}{%
         {{un=0,uniquepart=base,hash=2b6f434529ec9cb0b33d2b3746bc5125}{%
@@ -2015,6 +2065,56 @@
       \verb{url}
       \verb https://doi.org/10.2139/ssrn.1514192
       \endverb
+    \endentry
+    \entry{hagan2002managingsmilerisk}{article}{}{}
+      \name{author}{4}{}{%
+        {{un=0,uniquepart=base,hash=9dfb3635d220159ddf73f8b2d9edce35}{%
+           family={Hagan},
+           familyi={H\bibinitperiod},
+           given={Patrick},
+           giveni={P\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=97a1c5d37b57bdcbd149069650b92de3}{%
+           family={Kumar},
+           familyi={K\bibinitperiod},
+           given={Deep},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=1241e477fcfab0c73cd1e975c8243ad9}{%
+           family={Lesniewski},
+           familyi={L\bibinitperiod},
+           given={Andrew},
+           giveni={A\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=09efc1f833803879900d0e3d326bd3f0}{%
+           family={Woodward},
+           familyi={W\bibinitperiod},
+           given={Diana},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{143b27e3f61ced0125a8d4f8ca71cfda}
+      \strng{fullhash}{c39d3d76ae3345cf9892d6c04b8a600b}
+      \strng{fullhashraw}{c39d3d76ae3345cf9892d6c04b8a600b}
+      \strng{bibnamehash}{c39d3d76ae3345cf9892d6c04b8a600b}
+      \strng{authorbibnamehash}{c39d3d76ae3345cf9892d6c04b8a600b}
+      \strng{authornamehash}{143b27e3f61ced0125a8d4f8ca71cfda}
+      \strng{authorfullhash}{c39d3d76ae3345cf9892d6c04b8a600b}
+      \strng{authorfullhashraw}{c39d3d76ae3345cf9892d6c04b8a600b}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Wilmott Magazine}
+      \field{month}{01}
+      \field{title}{Managing Smile Risk}
+      \field{volume}{1}
+      \field{year}{2002}
+      \field{pages}{84\bibrangedash 108}
+      \range{pages}{25}
     \endentry
     \entry{hernandez2016model}{article}{}{}
       \name{author}{1}{}{%

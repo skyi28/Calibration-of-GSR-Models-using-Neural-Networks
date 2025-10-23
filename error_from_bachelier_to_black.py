@@ -269,16 +269,9 @@ def convert_normal_to_black_for_date(
     normal_error_bps: float,
     zero_curve_folder: str,
     vol_cube_folder: str
-) -> Optional[float]:
-    # Construct file paths for the given date
+) -> Optional[Tuple[float, float]]:
     """
-    Calculates the Black volatility error for a given date using the provided normal error.
-
-    The function loads the zero curve and volatility cube data for the given date, constructs
-    the QuantLib financial objects, and then processes all the swaptions in the cube.
-    For each swaption, it calculates the individual Black volatility error and the associated vega,
-    and then weights the individual errors by their corresponding respective vegas. The final portfolio-level
-    Black volatility error is calculated as the total weighted error divided by the total vega.
+    Calculates the vega-weighted and simple average Black volatility errors.
 
     Args:
         eval_date (datetime.date): The evaluation date.
@@ -287,7 +280,8 @@ def convert_normal_to_black_for_date(
         vol_cube_folder (str): The folder containing the volatility cube data files.
 
     Returns:
-        Optional[float]: The portfolio-level Black volatility error if the calculation was successful, or None otherwise.
+        Optional[Tuple[float, float]]: A tuple containing (vega_weighted_error, simple_average_error),
+                                       or None if calculation fails.
     """
     date_str = eval_date.strftime('%d.%m.%Y')
     zero_path = os.path.join(zero_curve_folder, f"{date_str}.csv")
@@ -305,21 +299,29 @@ def convert_normal_to_black_for_date(
         swaptions_to_process = get_swaption_details_from_cube(vol_cube_df)
         
         total_weighted_error = 0.0
+        total_simple_error = 0.0
         total_vega = 0.0
+        valid_swaption_count = 0
         
         for swaption in swaptions_to_process:
             result = calculate_vega_and_black_error(eval_date, swaption, yield_curve_handle, normal_error_bps)
             if result:
                 individual_black_vol_error, normal_vega = result
+                # Accumulate for simple average
+                total_simple_error += individual_black_vol_error
+                valid_swaption_count += 1
+                # Accumulate for vega-weighted average
                 total_weighted_error += individual_black_vol_error * normal_vega
                 total_vega += normal_vega
 
-        if total_vega == 0:
-            return None # Avoid division by zero if no valid vegas were found
+        if total_vega == 0 or valid_swaption_count == 0:
+            return None # Avoid division by zero
 
-        # Calculate and return the final portfolio-level Black volatility error.
-        portfolio_black_vol_error = total_weighted_error / total_vega
-        return portfolio_black_vol_error
+        # Calculate the final portfolio-level errors
+        vega_weighted_error = total_weighted_error / total_vega
+        simple_average_error = total_simple_error / valid_swaption_count
+        
+        return vega_weighted_error, simple_average_error
 
     except Exception as e:
         print(f"Warning: An unexpected error occurred while processing date {eval_date}: {e}")
@@ -343,8 +345,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # --- 2. Process Each Date in the DataFrame ---
-    black_vols_nn = []
-    black_vols_lm = []
+    black_vols_nn_weighted, black_vols_lm_weighted = [], []
+    black_vols_nn_simple, black_vols_lm_simple = [], []
     
     print("\n--- Processing each date to convert Normal volatility errors to Black ---")
     # Use tqdm for a progress bar over the DataFrame rows.
@@ -355,35 +357,42 @@ if __name__ == "__main__":
         rmse_nn_bps = row['RMSE_NN_OutOfSample']
         rmse_lm_bps = row['RMSE_LM_OutOfSample']
         
-        # Convert the NN model error.
-        black_vol_nn = convert_normal_to_black_for_date(eval_date, rmse_nn_bps, FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES)
-        black_vols_nn.append(black_vol_nn)
-        
-        # Convert the LM model error.
-        black_vol_lm = convert_normal_to_black_for_date(eval_date, rmse_lm_bps, FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES)
-        black_vols_lm.append(black_vol_lm)
+        # Convert the NN model error
+        nn_results = convert_normal_to_black_for_date(eval_date, rmse_nn_bps, FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES)
+        if nn_results:
+            black_vols_nn_weighted.append(nn_results[0])
+            black_vols_nn_simple.append(nn_results[1])
+        else:
+            black_vols_nn_weighted.append(None)
+            black_vols_nn_simple.append(None)
+
+        # Convert the LM model error
+        lm_results = convert_normal_to_black_for_date(eval_date, rmse_lm_bps, FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES)
+        if lm_results:
+            black_vols_lm_weighted.append(lm_results[0])
+            black_vols_lm_simple.append(lm_results[1])
+        else:
+            black_vols_lm_weighted.append(None)
+            black_vols_lm_simple.append(None)
 
     # --- 3. Store Results and Save Output ---
     print("\n--- Aggregating results and saving output file ---")
     
-    # Add the new lists as columns to the DataFrame.
     # The results are multiplied by 100 to express them in percentage points (%).
-    df['BlackVol_NN'] = [vol * 100 if vol is not None else np.nan for vol in black_vols_nn]
-    df['BlackVol_LM'] = [vol * 100 if vol is not None else np.nan for vol in black_vols_lm]
+    df['BlackVol_NN_Vega_Weighted'] = [vol * 100 if vol is not None else np.nan for vol in black_vols_nn_weighted]
+    df['BlackVol_LM_Vega_Weighted'] = [vol * 100 if vol is not None else np.nan for vol in black_vols_lm_weighted]
+    df['BlackVol_NN_Simple_Avg'] = [vol * 100 if vol is not None else np.nan for vol in black_vols_nn_simple]
+    df['BlackVol_LM_Simple_Avg'] = [vol * 100 if vol is not None else np.nan for vol in black_vols_lm_simple]
 
     # Perform basic error handling and summary.
-    processed_count = df['BlackVol_NN'].notna().sum()
+    processed_count = df['BlackVol_NN_Vega_Weighted'].notna().sum()
     if processed_count == 0:
         print("\nCRITICAL WARNING: No dates could be processed.")
-        print("Please check that the dates in the CSV match the filenames in the data folders.")
-        print(f"Example expected file path for first date ({df['Date'].iloc[0]}):")
-        print(f"  {os.path.join(FOLDER_ZERO_CURVES, df['Date'].iloc[0].strftime('%d.%m.%Y') + '.csv')}")
     else:
         print(f"\nSuccessfully processed {processed_count} out of {len(df)} dates.")
         
     # Save the updated DataFrame to a new CSV file.
     try:
-        # Ensure the output directory exists
         output_dir = os.path.dirname(OUTPUT_CSV_PATH)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)

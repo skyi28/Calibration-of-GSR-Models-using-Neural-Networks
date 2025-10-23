@@ -172,9 +172,8 @@ def plot_daily_rmse_black(df: pd.DataFrame, save_path: str):
     """
     Plot: Daily Out-of-Sample RMSE Over Time (Black Volatility)
 
-    Plots the daily out-of-sample RMSE for both the Neural Network and
-    Levenberg-Marquardt models, where the error is measured in log-normal
-    (Black) volatility.
+    Plots the daily out-of-sample RMSE for both models, showing both the
+    vega-weighted and simple average errors in log-normal (Black) volatility terms.
 
     Parameters
     ----------
@@ -187,9 +186,18 @@ def plot_daily_rmse_black(df: pd.DataFrame, save_path: str):
     -------
     None
     """
-    fig, ax = plt.subplots(figsize=(14, 7))
-    ax.plot(df['Date'], df['BlackVol_NN'], label='Neural Network', color=NN_COLOR, marker='o', linestyle='-', markersize=4)
-    ax.plot(df['Date'], df['BlackVol_LM'], label='Levenberg-Marquardt', color=LM_COLOR, marker='x', linestyle='--', markersize=5)
+    fig, ax = plt.subplots(figsize=(14, 8))
+
+    ax.plot(df['Date'], df['BlackVol_NN_Vega_Weighted'], label='Neural Network (Vega Weighted)',
+            color=NN_COLOR, marker='o', linestyle='-', markersize=4)
+    ax.plot(df['Date'], df['BlackVol_LM_Vega_Weighted'], label='Levenberg-Marquardt (Vega Weighted)',
+            color=LM_COLOR, marker='o', linestyle='-', markersize=4)
+
+    ax.plot(df['Date'], df['BlackVol_NN_Simple_Avg'], label='Neural Network (Simple Average)',
+            color=NN_COLOR, linestyle=':', marker=None)
+    ax.plot(df['Date'], df['BlackVol_LM_Simple_Avg'], label='Levenberg-Marquardt (Simple Average)',
+            color=LM_COLOR, linestyle=':', marker=None)
+
     ax.set_title('Daily Out-of-Sample RMSE Over Time (Black Volatility)', fontsize=16)
     ax.set_xlabel('Date', fontsize=12)
     ax.set_ylabel('RMSE (Black Volatility) in %', fontsize=12)

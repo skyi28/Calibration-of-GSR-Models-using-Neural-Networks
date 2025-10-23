@@ -1,17 +1,17 @@
-This chapter provides a detailed, step-by-step blueprint of the research design and analytical framework used to compare the traditional and machine learning-based calibration methods. The process begins with a thorough description of the dataset, which includes European ATM swaptions, the underlying EUR swap curves, and key external market indicators like the VIX and MOVE indices.
+This chapter provides a detailed, step-by-step blueprint of the research design and analytical framework used to compare the traditional and machine learning-based calibration methods. The process begins with a thorough description of the dataset, which includes European \ac{atm} swaptions, the underlying \ac{eur} swap curves, and key external market indicators like the \ac{vix} and \ac{move} indices.
 
-From this raw data, a sophisticated set of features is engineered through a multi-stage preprocessing pipeline. This includes bootstrapping zero-coupon curves, handling non-trading days, and using Principal Component Analysis (PCA) to distill the yield curve's primary drivers—level, slope, and curvature—into a compact and uncorrelated feature set.
+From this raw data, a sophisticated set of features is engineered through a multi-stage preprocessing pipeline. This includes bootstrapping zero-coupon curves, handling non-trading days, and using \ac{pca} to distill the yield curve's primary drivers, level, slope, and curvature, into a compact and uncorrelated feature set.
 
-The core of the methodology is the end-to-end machine learning pipeline. This section details the neural network's residual architecture, the systematic hyperparameter optimization conducted via the Hyperband algorithm, and the implementation of a custom, asymmetric loss function designed to penalize the underestimation of volatility. Furthermore, it addresses the significant technical challenge of integrating the differentiable TensorFlow framework with the non-differentiable QuantLib pricing engine through the use of custom gradients and parallelized computation.
+The core of the methodology is the end-to-end machine learning pipeline. This section details the \ac{nn}'s residual architecture, the systematic hyperparameter optimization conducted via the Hyperband algorithm, and the implementation of a custom, asymmetric loss function designed to penalize the underestimation of volatility. Furthermore, it addresses the significant technical challenge of integrating the differentiable TensorFlow framework with the non-differentiable QuantLib pricing engine through the use of custom gradients and parallelized computation.
 
-Crucially, the chapter concludes by defining the rigorous experimental protocol established for the final comparison. It details the unique "Intra-Day Hold-Out Set" framework, which was specifically designed to ensure a scientifically valid and fair out-of-sample evaluation for both the predictive neural network and the in-sample Levenberg-Marquardt optimizer, thereby addressing a fundamental methodological challenge in comparing these two distinct approaches.
+Crucially, the chapter concludes by defining the rigorous experimental protocol established for the final comparison. It details the unique "Intra-Day Hold-Out Set" framework, which was specifically designed to ensure a scientifically valid and fair out-of-sample evaluation for both the predictive \ac{nn} and the in-sample \ac{lm} optimizer, thereby addressing a fundamental methodological challenge in comparing these two distinct approaches.
 
 \subsection{Dataset}
 \subsubsection{Time Period}
-The market data used for the calibration of the one-factor Hull–White model covers a continuous time span of 92 calendar days, from June 1, 2025, to August 31, 2025. Observations are available for each calendar day within this period; weekends and public holidays are not excluded. The dataset therefore represents a high-frequency sample of daily market conditions. All market snapshots were collected at a daily frequency, ensuring a consistent temporal resolution across the entire observation window.
+The market data used for the calibration of the one-factor \ac{hw} model covers a continuous time span of 92 calendar days, from June 1, 2025, to August 31, 2025. Observations are available for each calendar day within this period; weekends and public holidays are not excluded. All market snapshots were collected at a daily frequency, ensuring a consistent temporal resolution across the entire observation window.
 
 \subsubsection{Swaptions}
-The calibration is based on a comprehensive panel of European at-the-money (ATM) payer and receiver swaptions quoted in the Euro (EUR) market. Each daily market snapshot consists of a complete normal volatility surface containing 228 distinct volatility points, derived from combinations of option maturities and underlying swap tenors.
+The calibration is based on a comprehensive panel of European \ac{atm} payer and receiver swaptions quoted in the \ac{eur} market. Each daily market snapshot consists of a complete normal volatility surface containing 228 distinct volatility points, derived from combinations of option maturities and underlying swap tenors.
 
 The set of option maturities includes:
 1 month, 3 months, 9 months, 1 year, 2 years, 3 years, 4 years, 5 years, 6 years, 7 years, 8 years, 9 years, 10 years, 12 years, 15 years, 20 years, 25 years, and 30 years.
@@ -19,32 +19,32 @@ The set of option maturities includes:
 The corresponding underlying swap tenors are:
 1 year, 2 years, 3 years, 4 years, 5 years, 7 years, 10 years, 12 years, 15 years, 20 years, 25 years, and 30 years.
 
-The floating leg of each underlying swap resets on a semiannual (6-month) basis. Volatilities are quoted in normal (Bachelier) terms, expressed in basis points (bps) of the underlying swap rate, and represent the mid-market levels (average of bid and ask quotes). Only ATM swaptions are considered in the calibration.
+The floating leg of each underlying swap resets on a semiannual (6-month) basis. Volatilities are quoted in normal (Bachelier) terms, expressed in \ac{bps} of the underlying swap rate, and represent the mid-market levels (average of bid and ask quotes). Only \ac{atm} swaptions are considered in the calibration.
 
-All swaption data were obtained from Bloomberg using the \texttt{VCUB} function with \texttt{BVOL} as the source. Due to the university's Bloomberg license restrictions, direct data downloads were not permitted; therefore, the data were captured via screenshots and subsequently converted into Excel format for processing. Bloomberg employs the EUR OIS (ESTR) discounting curve, identified as \texttt{(514) EUR OIS (ESTR)}, and the EUR swap curve \texttt{(45) Euro} for the construction of the volatility cube. This ensures internal consistency between the volatility and yield curve data used in the Hull–White model calibration.
+All swaption data were obtained from Bloomberg using the \texttt{VCUB} function with \texttt{BVOL} as the source. Due to the university's Bloomberg license restrictions, direct data downloads were not permitted; therefore, the data were captured via screenshots and subsequently converted into Excel format for processing. Bloomberg employs the \ac{eur} OIS (ESTR) discounting curve, identified as \texttt{(514) \ac{eur} OIS (ESTR)}, and the \ac{eur} swap curve \texttt{(45) Euro} for the construction of the volatility cube. This ensures internal consistency between the volatility and yield curve data used in the \ac{hw} model calibration.
 
 \subsubsection{Swap Curves}
-The initial yield curves employed for the Hull–White model calibration are derived from the EUR (vs. 6M EURIBOR) Swap / Projection Curve, identified in Bloomberg as \texttt{45}. This curve represents a forward (projection) curve used to generate 6-month EURIBOR forward rates for pricing and valuation. The discounting is performed using the EUR OIS (ESTR) curve (\texttt{Bloomberg ID 514}), consistent with the multi-curve framework applied in current market practice.
+The initial yield curves employed for the \ac{hw} model calibration are derived from the \ac{eur} (vs. 6M \ac{euribor}) Swap / Projection Curve, identified in Bloomberg as \texttt{45}. This curve represents a forward (projection) curve used to generate 6-month \ac{euribor} forward rates for pricing and valuation. The discounting is performed using the \ac{eur} OIS (ESTR) curve (\texttt{Bloomberg ID 514}), consistent with the multi-curve framework applied in current market practice.
 
 The market instruments used in the bootstrapping of the projection curve include:
 \begin{itemize}
 	\item Cash deposits: Overnight to 12-month maturities, anchoring the short end of the curve.
-	\item Forward Rate Agreements (FRAs): Typically spanning 1×7 to 9×15 months, bridging the short and medium-term maturities.
-	\item Interest-rate swaps: Par fixed-vs-6M EURIBOR swaps from 1 year up to 30 years, forming the long end of the term structure.
+	\item \ac{fra}: Typically spanning 1×7 to 9×15 months, bridging the short and medium-term maturities.
+	\item Interest-rate swaps: Par fixed-vs-6M \ac{euribor} swaps from 1 year up to 30 years, forming the long end of the term structure.
 \end{itemize}
 
 Day-count conventions follow market standards: ACT/360 for short and medium maturities and 30U/360 for the long end. All market quotes correspond to mid (bid/ask midpoint) levels. The market data source is the Bloomberg Generic (BGN) composite, which aggregates dealer contributions to provide representative market levels.
 
-The curve is bootstrapped sequentially from cash deposits through FRAs to interest-rate swaps, producing a continuous zero-rate and forward-rate term structure. The interpolation is typically performed in a log-linear fashion on either discount factors or zero rates. Within the Bloomberg volatility cube environment (\texttt{VCUB}), this curve appears as \texttt{Swap Curve (45) Euro} and provides consistent forward-rate inputs for the calibration of EUR 6M swaption volatilities.
+The curve is bootstrapped sequentially from cash deposits through \ac{fra}s to interest-rate swaps, producing a continuous zero rate and forward rate term structure. The interpolation is typically performed in a log-linear fashion on either discount factors or zero rates. Within the Bloomberg volatility cube environment (\texttt{VCUB}), this curve appears as \texttt{Swap Curve (45) Euro} and provides consistent forward rate inputs for the calibration of EUR 6M swaption volatilities.
 
-\subsubsection{MOVE Index}
-The MOVE index represents the Treasury market's implied volatility and serves as a primary external indicator of interest rate uncertainty. Daily open values of the MOVE index were collected from Yahoo Finance to capture the most up-to-date measure of market-implied interest rate volatility at the start of each trading day. By using the open rather than closing values, the neural network is able to predict Hull–White model parameters early in the day, leveraging the most recent available information without waiting for end-of-day data. The MOVE index is particularly relevant as it captures expected fluctuations in interest rates, which directly influence the calibration of the Hull–White model.
+\subsubsection{\ac{move} Index}
+The \ac{move} index represents the treasury market's implied volatility and serves as a primary external indicator of interest rate uncertainty. Daily open values of the \ac{move} index were collected from Yahoo Finance to capture the most up-to-date measure of market-implied interest rate volatility at the start of each trading day. By using the open rather than closing values, the \ac{nn} is able to predict \ac{hw} model parameters early in the day, leveraging the most recent available information without waiting for end-of-day data. The \ac{move} index is particularly relevant as it captures expected fluctuations in interest rates, which directly influence the calibration of the \ac{hw} model.
 
-\subsubsection{VIX Index}
-The VIX index provides a widely recognized measure of equity market implied volatility and serves as a general gauge of market fear and risk appetite. Daily open values of the VIX were downloaded from Yahoo Finance to reflect the initial market sentiment for each trading day. High VIX levels, indicative of a "risk-off" environment, can have spillover effects on bond and swap markets, thereby indirectly affecting European interest rates. Including VIX open values in the dataset allows the neural network to incorporate contemporaneous equity market volatility into the prediction of Hull–White parameters, potentially improving model responsiveness to market stress conditions.
+\subsubsection{Volatility Index}
+The \ac{vix} provides a widely recognized measure of equity market implied volatility and serves as a general gauge of market fear and risk appetite. Daily open values of the \ac{vix} were downloaded from Yahoo Finance to reflect the initial market sentiment for each trading day. High \ac{vix} levels, indicative of a "risk-off" environment, can have spillover effects on bond and swap markets, thereby indirectly affecting European interest rates. Including \ac{vix} open values in the dataset allows the \ac{nn} to incorporate contemporaneous equity market volatility into the prediction of \ac{hw} parameters, potentially improving model responsiveness to market stress conditions.
 
 \subsubsection{EUR/USD Exchange Rate}
-The EUR/USD exchange rate reflects the relative economic and monetary conditions between the Eurozone and the United States. Daily open prices were obtained from Yahoo Finance to capture the most current cross-currency market information at the start of each trading day. Large movements in the EUR/USD rate may indicate capital flows or diverging monetary policy actions between the European Central Bank and the Federal Reserve, which have direct implications for European interest rates. By including the open EUR/USD rate in the feature set, the neural network can incorporate up-to-date FX market dynamics when predicting Hull–White model parameters.
+The EUR/USD exchange rate reflects the relative economic and monetary conditions between the Eurozone and the United States. Daily open prices were obtained from Yahoo Finance to capture the most current cross-currency market information at the start of each trading day. Large movements in the EUR/USD rate may indicate capital flows or diverging monetary policy actions between the European Central Bank and the Federal Reserve, which have direct implications for European interest rates. By including the open EUR/USD rate in the feature set, the \ac{nn} can incorporate up-to-date foreign exchange market dynamics when predicting \ac{hw} model parameters.
 
 \subsection{Descriptive Analysis of Market and Model Inputs}
 This section provides a detailed examination of the key figures illustrating the underlying financial data and model inputs used in this study. Each figure is analyzed with respect to its economic interpretation and its implications for the modeling framework.
@@ -56,7 +56,7 @@ This section provides a detailed examination of the key figures illustrating the
 	\label{fig:external_data_time_series}
 \end{figure}
 
-Figure~\ref{fig:external_data_time_series} depicts the evolution of key market indicators between June and late August 2025. The overall market environment during this period is characterized by a notable decrease in volatility across major asset classes. The \textit{VIX Index}, representing equity market volatility, begins near a relatively elevated level of 20 before declining sharply in late June and stabilizing within a range of 14–17. This pattern suggests a reduction in perceived equity market risk. Similarly, the \textit{MOVE Index}, a measure of Treasury market volatility, exhibits an even more pronounced decline—from approximately 100 to below 80—indicating a substantial calming of interest rate expectations. Concurrently, the \textit{EUR/USD} exchange rate shows a strengthening of the Euro against the U.S. Dollar, peaking near 1.18 in mid-July before a modest correction. These co-evolving patterns reflect a broad reduction in cross-asset risk and uncertainty.
+Figure~\ref{fig:external_data_time_series} depicts the evolution of key market indicators between June and late August 2025. The overall market environment during this period is characterized by a notable decrease in volatility across major asset classes. The \textit{VIX}, representing equity market volatility, begins near a relatively elevated level of 20 before declining sharply in late June and stabilizing within a range of 14-17. This pattern suggests a reduction in perceived equity market risk. Similarly, the \textit{MOVE Index}, a measure of treasury market volatility, exhibits an even more pronounced decline, from approximately 100 to below 80, indicating a substantial calming of interest rate expectations. Concurrently, the \textit{EUR/USD} exchange rate shows a strengthening of the Euro against the \ac{usd}, peaking near 1.18 in mid-July before a modest correction. These co-evolving patterns reflect a broad reduction in cross-asset risk and uncertainty.
 
 % --- TABLE 1 INSERTED HERE ---
 \begin{table}[H]
@@ -68,20 +68,20 @@ Figure~\ref{fig:external_data_time_series} depicts the evolution of key market i
 			\toprule
 			\textbf{Factor} & \textbf{Mean} & \textbf{Median} & \textbf{Std. Dev.} & \textbf{Skewness} & \textbf{Kurtosis} \\
 			\midrule
-			VIX Index       & 17.05         & 16.71           & 1.89               & 0.89              & 0.34              \\
-			MOVE Index      & 86.29         & 86.02           & 6.12               & 0.10              & -1.10             \\
+			\ac{vix}        & 17.05         & 16.71           & 1.89               & 0.89              & 0.34              \\
+			\ac{move} Index & 86.29         & 86.02           & 6.12               & 0.10              & -1.10             \\
 			EUR/USD Rate    & 1.162         & 1.164           & 0.011              & -0.57             & -0.54             \\
 			\bottomrule
 		\end{tabular}
 		\begin{tablenotes}
 			\footnotesize
-			\item  A summary of the key external market factors over the analysis period. The positive skew in the VIX index and the non-zero kurtosis across all factors suggest deviations from a normal distribution.
+			\item  A summary of the key external market factors over the analysis period. The positive skew in the \ac{vix} and the non-zero kurtosis across all factors suggest deviations from a normal distribution.
 		\end{tablenotes}
 	\end{threeparttable}
 \end{table}
 
 
-Table~\ref{tab:external_summary} provides a quantitative summary of the external market factors depicted in Figure~\ref{fig:external_data_time_series}. The statistics confirm the visual analysis, detailing the central tendency and dispersion of each series. Notably, the VIX Index exhibits significant positive skewness (0.89), indicating that upward spikes in volatility are more pronounced than downward movements. Conversely, the EUR/USD rate shows a negative skew (-0.57). The kurtosis values, which deviate from the zero value of a mesokurtic distribution, provide further numerical evidence that these financial time series are not normally distributed, a crucial consideration for the modeling approach.
+Table~\ref{tab:external_summary} provides a quantitative summary of the external market factors depicted in Figure~\ref{fig:external_data_time_series}. The statistics confirm the visual analysis, detailing the central tendency and dispersion of each series. Notably, the \ac{vix} exhibits significant positive skewness (0.89), indicating that upward spikes in volatility are more pronounced than downward movements. Conversely, the EUR/USD rate shows a negative skew (-0.57). The kurtosis values, which deviate from the zero value of a mesokurtic distribution, provide further numerical evidence that these financial time series are not normally distributed, a crucial consideration for the modeling approach.
 
 \begin{figure}[H]
 	\centering
@@ -90,16 +90,16 @@ Table~\ref{tab:external_summary} provides a quantitative summary of the external
 	\label{fig:yield_curve_selected_tenors}
 \end{figure}
 
-Figure~\ref{fig:yield_curve_selected_tenors} illustrates the time series of yields across selected maturities. The yield curve retains its normal, upward-sloping shape throughout the observation window. A gradual upward shift is visible across all tenors, indicating a moderate tightening of monetary conditions. The largely parallel movement across maturities implies that changes are predominantly driven by a “level” factor. Minor deviations in spreads, however, suggest that “slope” and “curvature” components contribute modestly to the curve’s dynamics.
+Figure~\ref{fig:yield_curve_selected_tenors} illustrates the time series of yields across selected maturities. The yield curve retains its normal, upward-sloping shape throughout the observation window. A gradual upward shift is visible across all tenors, indicating a moderate tightening of monetary conditions. The largely parallel movement across maturities implies that changes are predominantly driven by a “level” factor. Minor deviations in spreads, however, suggest that “slope” and “curvature” components contribute modestly to the curve's dynamics.
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=1\textwidth]{images/descriptive_data_analysis/vol_surface_coterminal_series.png}
-	\caption{Time Series of Co-Terminal Swaption Volatilities}
+	\caption{Time Series of Coterminal Swaption Volatilities}
 	\label{fig:vol_surface_coterminal_series}
 \end{figure}
 
-Figure~\ref{fig:vol_surface_coterminal_series} presents the evolution of the co-terminal swaption volatility term structure. The curve is generally downward sloping, with shorter maturities exhibiting higher volatility levels than longer maturities. The short-term (2-year) volatility declines sharply from over 74~bps to approximately 63~bps, whereas the long-term (10-year) volatility remains comparatively stable. This differential behavior leads to a pronounced flattening of the volatility term structure—a key empirical feature that any robust model should accurately capture.
+Figure~\ref{fig:vol_surface_coterminal_series} presents the evolution of the coterminal swaption volatility term structure. The curve is generally downward sloping, with shorter maturities exhibiting higher volatility levels than longer maturities. The short-term (2-year) volatility declines sharply from over 74~\ac{bps} to approximately 63~\ac{bps}, whereas the long-term (10-year) volatility remains comparatively stable. This differential behavior leads to a pronounced flattening of the volatility term structure-a key empirical feature that any robust model should accurately capture.
 
 \begin{figure}[H]
 	\centering
@@ -110,7 +110,6 @@ Figure~\ref{fig:vol_surface_coterminal_series} presents the evolution of the co-
 
 Figure~\ref{fig:yield_curve_2d_snapshots} visualizes static yield curve snapshots at different points in time. The yield curve consistently displays a concave, upward-sloping shape, typical for stable economic environments. The entire curve shifts upward from June to August, reinforcing the observed trend of rising interest rates. Moreover, the curvature appears to increase slightly over time, suggesting subtle changes in the underlying term structure dynamics.
 
-% --- TABLE 2 INSERTED HERE ---
 \begin{table}[H]
 	\centering
 	\begin{threeparttable}
@@ -133,7 +132,6 @@ Figure~\ref{fig:yield_curve_2d_snapshots} visualizes static yield curve snapshot
 	\end{threeparttable}
 \end{table}
 
-
 Table~\ref{tab:yield_curve_summary} quantifies the characteristics of the yield curve by presenting descriptive statistics for key benchmark tenors. The increasing mean rate with tenor numerically confirms the upward-sloping nature of the term structure. A particularly important finding is the behavior of the standard deviation, which increases from 0.05\% for the 1-year rate to 0.12\% for the 30-year rate. This demonstrates that the long end of the yield curve is substantially more volatile in absolute terms, a stylized fact that is further explored in Figure~\ref{fig:yield_curve_std_by_tenor}.
 
 \begin{figure}[H]
@@ -143,7 +141,7 @@ Table~\ref{tab:yield_curve_summary} quantifies the characteristics of the yield 
 	\label{fig:vol_surface_3d_snapshots}
 \end{figure}
 
-Figure~\ref{fig:vol_surface_3d_snapshots} provides a three-dimensional representation of the swaption volatility surface. The surface exhibits pronounced structure, with the highest volatilities concentrated in short-expiry, short-tenor instruments. Volatility decreases along both the expiry and tenor dimensions, forming a characteristic “hump” at the short end. This structural complexity underscores the necessity of employing non-linear modeling approaches—such as neural networks—to accurately capture the surface’s intricate shape and temporal dynamics.
+Figure~\ref{fig:vol_surface_3d_snapshots} provides a three-dimensional representation of the swaption volatility surface. The surface exhibits pronounced structure, with the highest volatilities concentrated in short-expiry, short-tenor instruments. Volatility decreases along both the expiry and tenor dimensions, forming a characteristic “hump” at the short end. This structural complexity underscores the necessity of employing non-linear modeling approaches-such as \ac{nn}s-to accurately capture the surface's intricate shape and temporal dynamics.
 
 \begin{figure}[H]
 	\centering
@@ -152,7 +150,7 @@ Figure~\ref{fig:vol_surface_3d_snapshots} provides a three-dimensional represent
 	\label{fig:yield_curve_std_by_tenor}
 \end{figure}
 
-Figure~\ref{fig:yield_curve_std_by_tenor} shows the distribution of yield volatility across maturities. Volatility is lowest at the short end, increases moderately in the 1–2 year range, and rises significantly for longer maturities beyond 10 years. This pattern highlights that long-term yields exhibit the greatest absolute variability, a crucial consideration for risk management and model calibration.
+Figure~\ref{fig:yield_curve_std_by_tenor} shows the distribution of yield volatility across maturities. Volatility is lowest at the short end, increases moderately in the 1-2 year range, and rises significantly for longer maturities beyond 10 years. This pattern highlights that long-term yields exhibit the greatest absolute variability, a crucial consideration for risk management and model calibration.
 
 \begin{figure}[H]
 	\centering
@@ -161,13 +159,12 @@ Figure~\ref{fig:yield_curve_std_by_tenor} shows the distribution of yield volati
 	\label{fig:vol_surface_std_heatmap}
 \end{figure}
 
-Figure~\ref{fig:vol_surface_std_heatmap} displays the standard deviation of swaption volatilities across expiry and tenor dimensions. The highest volatility—represented by the most intense red shading—is concentrated in the short-expiry, short-tenor region. This indicates that the front end of the surface is particularly unstable, while the long end remains relatively static. A well-performing model must therefore excel at capturing the pronounced temporal variability in this region.
+Figure~\ref{fig:vol_surface_std_heatmap} displays the standard deviation of swaption volatilities across expiry and tenor dimensions. The highest volatility, represented by the most intense red shading, is concentrated in the short-expiry, short-tenor region. This indicates that the front end of the surface is particularly unstable, while the long end remains relatively static. A well-performing model must therefore excel at capturing the pronounced temporal variability in this region.
 
-% --- TABLE 3 INSERTED HERE ---
 \begin{table}[H]
 	\centering
 	\begin{threeparttable}
-		\caption{Standard Deviation of Swaption Volatilities (in basis points)}
+		\caption{Standard Deviation of Swaption Volatilities (in \ac{bps})}
 		\label{tab:vol_std_summary}
 		\begin{tabular}{lcccc}
 			\toprule
@@ -181,13 +178,12 @@ Figure~\ref{fig:vol_surface_std_heatmap} displays the standard deviation of swap
 		\end{tabular}
 		\begin{tablenotes}
 			\footnotesize
-			\item  Standard deviation of daily swaption volatilities, measured in basis points (bps). The table shows the absolute volatility for key points on the expiry-tenor grid.
+			\item  Standard deviation of daily swaption volatilities, measured in \ac{bps}. The table shows the absolute volatility for key points on the expiry-tenor grid.
 		\end{tablenotes}
 	\end{threeparttable}
 \end{table}
 
-
-Table~\ref{tab:vol_std_summary} provides a quantitative counterpart to the heatmap in Figure~\ref{fig:vol_surface_std_heatmap}, detailing the magnitude of instability across the volatility surface. The data confirms that the highest volatility is located at the front end, with the 1-year expiry, 1-year tenor swaption exhibiting a standard deviation of 4.93 bps. This value is nearly an order of magnitude larger than the 0.54 bps standard deviation observed for the 30-year expiry, 30-year tenor swaption. This sharp gradient in instability underscores the modeling challenge: the neural network must learn to produce highly dynamic outputs for the front end of the surface while generating stable outputs for the back end.
+Table~\ref{tab:vol_std_summary} provides a quantitative counterpart to the heatmap in Figure~\ref{fig:vol_surface_std_heatmap}, detailing the magnitude of instability across the volatility surface. The data confirms that the highest volatility is located at the front end, with the 1-year expiry, 1-year tenor swaption exhibiting a standard deviation of 4.93~\ac{bps}. This value is nearly an order of magnitude larger than the 0.54~\ac{bps} standard deviation observed for the 30-year expiry, 30-year tenor swaption. This sharp gradient in instability underscores the modeling challenge: the \ac{nn} must learn to produce highly dynamic outputs for the front end of the surface while generating stable outputs for the back end.
 
 \begin{figure}[H]
 	\centering
@@ -205,19 +201,19 @@ Figure~\ref{fig:yield_curve_daily_changes_histogram} compares empirical histogra
 	\label{fig:vol_surface_daily_changes_histogram}
 \end{figure}
 
-Figure~\ref{fig:vol_surface_daily_changes_histogram} presents the distribution of daily changes in swaption volatilities. Similar to yield changes, the data exhibit significant leptokurtosis and fat tails, confirming the non-normal nature of the underlying process. A mild positive skew is particularly evident in the 5-year tenor (skew = 0.50), indicating that large volatility spikes are more frequent than declines. Together with the findings from Figure~\ref{fig:yield_curve_daily_changes_histogram}, this evidence supports the use of non-parametric, data-driven models—such as neural networks—that can flexibly capture these empirical deviations from normality.
+Figure~\ref{fig:vol_surface_daily_changes_histogram} presents the distribution of daily changes in swaption volatilities. Similar to yield changes, the data exhibit significant leptokurtosis and fat tails, confirming the non-normal nature of the underlying process. A mild positive skew is particularly evident in the 5-year tenor (skew = 0.50), indicating that large volatility spikes are more frequent than declines. Together with the findings from Figure~\ref{fig:yield_curve_daily_changes_histogram}, this evidence supports the use of non-parametric, data-driven models-such as \ac{nn}s-that can flexibly capture these empirical deviations from normality.
 
 \subsection{Data Preprocessing}
 \subsubsection{Bootstrapping Zero-Curves}
-The implementation of the one-factor Hull–White model in \texttt{QuantLib} requires zero-coupon curves as input for both discounting and forward-rate generation. Consequently, the EUR swap curves obtained from Bloomberg were bootstrapped into continuous zero-rate term structures following the procedure outlined in subsection~\ref{subsec:bootstrap_zero_curve}. This ensures compatibility with the \texttt{QuantLib} framework and provides a consistent foundation for pricing swaptions and calibrating the model parameters.
+The implementation of the one-factor \ac{hw} model in \texttt{QuantLib} requires zero-coupon curves as input for both discounting and forward rate generation. Consequently, the \ac{eur} swap curves obtained from Bloomberg were bootstrapped into continuous zero rate term structures following the procedure outlined in subsection~\ref{subsec:bootstrap_zero_curve}. This ensures compatibility with the \texttt{QuantLib} framework and provides a consistent foundation for pricing swaptions and calibrating the model parameters.
 
 \subsubsection{Handling Non-Trading Days in External Data}
-The external market data obtained from Yahoo Finance, including the MOVE index, VIX index, and EUR/USD exchange rate, is only available for trading days. In contrast, the swaption and swap curve datasets contain values for all calendar days, including weekends and public holidays. To ensure temporal consistency across all features used for Hull–White model calibration, the external data were reindexed to cover the entire daily date range of the analysis period.
+The external market data obtained from Yahoo Finance, including the \ac{move} index, \ac{vix}, and EUR/USD exchange rate, is only available for trading days. In contrast, the swaption and swap curve datasets contain values for all calendar days, including weekends and public holidays. To ensure temporal consistency across all features used for \ac{hw} model calibration, the external data were reindexed to cover the entire daily date range of the analysis period.
 
-Missing values corresponding to non-trading days were filled using a combination of forward-filling and {backward-filling. Forward-filling propagates the most recent available value to subsequent missing days, while backward-filling assigns the nearest subsequent available value to preceding missing days. This procedure ensures that every day within the observation window has a corresponding value for each external variable, resulting in a continuous dataset that can be used by the neural network without introducing gaps or inconsistencies.
+Missing values corresponding to non-trading days were filled using a combination of forward-filling and backward-filling. Forward-filling propagates the most recent available value to subsequent missing days, while backward-filling assigns the nearest subsequent available value to preceding missing days. This procedure ensures that every day within the observation window has a corresponding value for each external variable, resulting in a continuous dataset that can be used by the \ac{nn} without introducing gaps or inconsistencies.
 
 \subsubsection{Feature Engineering for the Neural Network}
-In addition to the raw market data, several engineered features were created to enhance the neural network's ability to predict Hull–White model parameters. These features capture the shape of the yield curve, relationships between external market indicators, and underlying latent structures via dimensionality reduction. Each feature was designed with a clear economic or statistical justification for its relevance to the model parameters: the volatility \(\sigma\) and the mean-reversion speed \(a\).
+In addition to the raw market data, several engineered features were created to enhance the \ac{nn}'s ability to predict \ac{hw} model parameters. These features capture the shape of the yield curve, relationships between external market indicators, and underlying latent structures via dimensionality reduction. Each feature was designed with a clear economic or statistical justification for its relevance to the model parameters: the volatility \(\sigma\) and the mean-reversion speed \(a\).
 
 \paragraph{Features Engineered from the Yield Curve}
 These features explicitly describe the shape and dynamics of the zero-coupon interest rate term structure. Let \(\text{Rate}(T)\) denote the zero-coupon rate for a given tenor \(T\) (e.g., \(\text{Rate}(10\text{Y})\) is the 10-year rate).
@@ -259,14 +255,14 @@ High curvature indicates significant uncertainty in medium-term rates, aiding pr
 \end{equation}
 This feature captures nuanced market regimes where slope and curvature provide complementary information. It allows the network to distinguish between different economic environments and predict both \(\sigma\) and \(a\) more accurately.
 
-\textit{MOVE-to-VIX Ratio:}
+\textit{\ac{move}-to-\ac{vix} Ratio:}
 \begin{equation}
-	\text{MOVE\_VIX\_Ratio} = \frac{\text{MOVE\_Open}}{\text{VIX\_Open}}
+	\text{\ac{move}\_\ac{vix}\_Ratio} = \frac{\text{\ac{move}\_Open}}{\text{\ac{vix}\_Open}}
 \end{equation}
 A high ratio indicates stress concentrated in the bond market, signaling a higher \(\sigma\) specific to interest rates. It also implies uncertainty about central bank policy, potentially reducing \(a\). This feature helps the network separate general market panics from fixed-income-specific volatility.
 
 \paragraph{Features Engineered via Dimensionality Reduction}
-Instead of feeding all individual zero-coupon rates directly into the neural network, the yield curve was transformed using Principal Component Analysis (PCA). The reason for this choice lies in the fact that individual rates on the curve are highly correlated — a move in the 5-year rate is almost always accompanied by similar movements in the 7-year and 10-year rates as visible in figure \ref{fig:feature_correlation_prePCA}. Using these raw, correlated rates introduces several problems: multicollinearity, redundant information, and an increased risk of overfitting.
+Instead of feeding all individual zero-coupon rates directly into the \ac{nn}, the yield curve was transformed using \ac{pca}. The reason for this choice lies in the fact that individual rates on the curve are highly correlated - a move in the 5-year rate is almost always accompanied by similar movements in the 7-year and 10-year rates as visible in figure \ref{fig:feature_correlation_prePCA}. Using these raw, correlated rates introduces several problems: multicollinearity, redundant information, and an increased risk of overfitting.
 
 \begin{figure}[H]
 	\centering
@@ -275,13 +271,13 @@ Instead of feeding all individual zero-coupon rates directly into the neural net
 	\label{fig:feature_correlation_prePCA}
 \end{figure}
 
-Multicollinearity causes instability in the learned weights of the neural network. When input features contain overlapping information, the model struggles to assign stable importance to each feature. It may assign large, offsetting weights to features that move together, resulting in unstable and unreliable predictions \parencite[p.~2]{chan2022multicollinearity}.
+Multicollinearity causes instability in the learned weights of the \ac{nn}. When input features contain overlapping information, the model struggles to assign stable importance to each feature. It may assign large, offsetting weights to features that move together, resulting in unstable and unreliable predictions \parencite[p.~2]{chan2022multicollinearity}.
 
-Redundant information makes the learning process inefficient and typically leads to poor test performance \parencite[p.~3]{sildir2020redudantfeatures}. Most daily movements in the yield curve are dominated by a single pattern — a parallel shift. Feeding the model all the raw rates forces it to re-learn this shared structure repeatedly instead of focusing on economically meaningful dynamics such as slope or curvature changes.
+Redundant information makes the learning process inefficient and typically leads to poor test performance \parencite[p.~3]{sildir2020redudantfeatures}. Most daily movements in the yield curve are dominated by a single pattern - a parallel shift. Feeding the model all the raw rates forces it to re-learn this shared structure repeatedly instead of focusing on economically meaningful dynamics such as slope or curvature changes.
 
-High dimensionality further increases the complexity of the model, encouraging overfitting. With too many correlated features, the neural network risks memorizing noise instead of generalizable relationships, which harms out-of-sample performance \parencite[p.~3]{sildir2020redudantfeatures}.
+High dimensionality further increases the complexity of the model, encouraging overfitting. With too many correlated features, the \ac{nn} risks memorizing noise instead of generalizable relationships, which harms out-of-sample performance \parencite[p.~3]{sildir2020redudantfeatures}.
 
-PCA directly resolves these issues by transforming the vector of rates
+\ac{pca} directly resolves these issues by transforming the vector of rates
 \[
 	R = [\text{Rate}(1\text{Y}), \text{Rate}(2\text{Y}), \dots, \text{Rate}(30\text{Y})]
 \]
@@ -303,19 +299,19 @@ These three “super-features” capture nearly all the meaningful variation of 
 	\item PC\_Curvature captures the non-linear “bow” of the curve, aiding the model in learning term-structure effects in the piecewise $\sigma$ and mean-reversion dynamics $\alpha$.
 \end{itemize}
 
-After applying PCA to the engineered features, the resulting correlation matrix exhibits a significant reduction in the highest correlations. The originally strong dependencies between individual yield curve rates and other features are largely removed as visible in figure \ref{fig:feature_correlation_postPCA}, demonstrating that the principal components provide a set of largely uncorrelated, independent features for the neural network.
+After applying \ac{pca} to the engineered features, the resulting correlation matrix exhibits a significant reduction in the highest correlations. The originally strong dependencies between individual yield curve rates and other features are largely removed as visible in figure \ref{fig:feature_correlation_postPCA}, demonstrating that the principal components provide a set of largely uncorrelated, independent features for the \ac{nn}.
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=1\textwidth]{images/features/feature_correlation_matrixPost-PCA.png}
-	\caption{Correlation matrix of the engineered features after applying PCA.}
+	\caption{Correlation matrix of the engineered features after applying \ac{pca}.}
 	\label{fig:feature_correlation_postPCA}
 \end{figure}
 
-By reducing the dimensionality from roughly ten correlated rate inputs to three independent components, PCA provides a stable, interpretable, and compact representation of the yield curve. This significantly improves the neural network’s training efficiency, robustness, and generalization performance.
+By reducing the dimensionality from roughly ten correlated rate inputs to three independent components, \ac{pca} provides a stable, interpretable, and compact representation of the yield curve. This significantly improves the \ac{nn}'s training efficiency, robustness, and generalization performance.
 
 \subsubsection{Feature Scaling}
-Prior to being fed into the neural network, all input features are scaled using the \texttt{StandardScaler} from the \texttt{scikit-learn} library. This process, also known as standardization or Z-score normalization, ensures that each feature has a mean of zero and a standard deviation of one \parencite[pp.~31--32]{zheng2018feature}.
+Prior to being fed into the \ac{nn}, all input features are scaled using the \texttt{StandardScaler} from the \texttt{scikit-learn} library. This process, also known as standardization or Z-score normalization, ensures that each feature has a mean of zero and a standard deviation of one \parencite[pp.~31--32]{zheng2018feature}.
 
 The scaling process consists of two main steps:
 
@@ -344,40 +340,39 @@ From a computational perspective, normalization is necessary to manage issues ar
 
 The application of scaling directly addresses the optimization landscape of the training problem, leading to more efficient convergence. Normalizing the input is known to accelerate convergence during the optimization of linear models. Linear scale transformations, especially those that compress the search space, reduce the distance the backpropagation algorithm must cover in each iteration \parencite{sola1997importancedatanormalization}. This improved conditioning, where normalization helps ensure the covariance matrix of the layer input $\sum{}x$ is well-conditioned, is crucial for faster learning and aids the optimization algorithm in locating local minima \parencite{huang2020normalizationtechniquestrainingdnns}. Consequently, an adequate normalization protocol can significantly reduce calculation and training time, with studies showing that estimation errors can be reduced by a factor of 5 to 10 and the time required to achieve such results reduced by an order of magnitude \parencite{sola1997importancedatanormalization}.
 
-Ultimately, the primary result of standardization is an improvement in the neural network's quality and training stability. Data transformation is frequently used for improved learning, and normalization techniques are considered essential for accelerating the training and enhancing the generalization of deep neural networks (DNNs). Networks trained on standardized data generally yield better overall results, leading to a higher classification rate and a smaller Mean Square Error (MSE) in regression problems, where a smaller MSE indicates a higher quality solution \parencite{shanker1996effectdatastandardization}. The performance of a network, including the number of training iterations required and the final error attained, is enhanced as the input variable ranges are 'equalized' by the normalization process. This contributes to scale-invariant learning, which is important for stabilizing training and has been shown to be useful for adaptively adjusting the learning rate. In some cases, standardization is not merely a best practice but a formal prerequisite due to specific algorithm requirements \parencite{huang2020normalizationtechniquestrainingdnns}.
+Ultimately, the primary result of standardization is an improvement in the \ac{nn}'s quality and training stability. Data transformation is frequently used for improved learning, and normalization techniques are considered essential for accelerating the training and enhancing the generalization of deep \ac{nn}s. \ac{nn} trained on standardized data generally yield better overall results, leading to a higher classification rate and a smaller \ac{mse} in regression problems, where a smaller \ac{mse} indicates a higher quality solution \parencite{shanker1996effectdatastandardization}. The performance of a network, including the number of training iterations required and the final error attained, is enhanced as the input variable ranges are 'equalized' by the normalization process. This contributes to scale-invariant learning, which is important for stabilizing training and has been shown to be useful for adaptively adjusting the learning rate. In some cases, standardization is not merely a best practice but a formal prerequisite due to specific algorithm requirements \parencite{huang2020normalizationtechniquestrainingdnns}.
 
-By applying \texttt{StandardScaler}, the neural network receives a well-conditioned, standardized input, which improves training stability, and convergence speed of the resulting model.
+By applying \texttt{StandardScaler}, the \ac{nn} receives a well-conditioned, standardized input, which improves training stability, and convergence speed of the resulting model.
 
 \subsection{Hyperparameter Optimization}
 \label{subsec:hyperparameter_optimization}
 
-The predictive performance and stability of neural networks depend critically on an appropriate choice of hyperparameters. To identify an optimal configuration, a structured hyperparameter optimization process was conducted using the Hyperband algorithm, as described in Subsection~\ref{subsec:hyperband_algorithm}. This algorithm efficiently allocates computational resources to explore a broad hyperparameter space while focusing on the most promising configurations.
+The predictive performance and stability of \ac{nn}s depend critically on an appropriate choice of hyperparameters. To identify an optimal configuration, a structured hyperparameter optimization process was conducted using the Hyperband algorithm, as described in section~\ref{subsec:hyperband_algorithm}. This algorithm efficiently allocates computational resources to explore a broad hyperparameter space while focusing on the most promising configurations.
 
 The core settings for the Hyperband tuner were configured as follows:
 \begin{itemize}
-	\item Maximum Epochs per Trial (\texttt{max\_epochs}): A total of 1000 epochs were allocated as the maximum budget for training any single hyperparameter configuration.
+	\item Maximum Epochs per Trial (\texttt{max\_epochs}): A total of 1,000 epochs were allocated as the maximum budget for training any single hyperparameter configuration.
 	\item Reduction Factor (\texttt{factor}): A factor of 3 was used, meaning that after each round of training within a bracket, the number of configurations is reduced by a factor of 3, retaining only the top-performing third.
-	\item Objective: The optimization objective was the minimization of the root mean squared error on the validation set.
+	\item Objective: The optimization objective was the minimization of the \ac{rmse} on the validation set.
 \end{itemize}
 
-The hyperparameters tuned in this study can be divided into two categories: those defining the neural network architecture and those related to the training process and loss function. Hyperparameters related to the architecture are:
+The hyperparameters tuned in this study can be divided into two categories: those defining the \ac{nn} architecture and those related to the training process and loss function. Hyperparameters related to the architecture are:
 \begin{itemize}
-	\item Number of Hidden Layers: This parameter determines the depth of the neural network. A deeper network has greater representational power and can capture more complex nonlinear relationships in the data, but it also increases the risk of overfitting and computational cost. \newline
+	\item Number of Hidden Layers: This parameter determines the depth of the \ac{nn}. A deeper \ac{nn} has greater representational power and can capture more complex nonlinear relationships in the data, but it also increases the risk of overfitting and computational cost. \newline
 	      \textit{Search Space:} Integer between 1 and 5
 	\item Number of Neurons per Layer: The width of each hidden layer, determined by the number of neurons, controls the capacity of the model. Larger layers allow for more detailed pattern recognition but can lead to overfitting if excessive. \newline
 	      \textit{Search Space:} Integer between 16 and 128, in steps of 16, for each hidden layer
-	\item The activation function introduces non-linearity into the network, enabling it to model complex relationships between input features and outputs. \newline
-	      \textit{Search Space:} Choice between \texttt{relu} and \texttt{tanh}.
+	\item The activation function introduces non-linearity into the \ac{nn}, enabling it to model complex relationships between input features and outputs. \newline
+	      \textit{Search Space:} Choice between \texttt{\ac{relu}} and \texttt{\ac{tanh}}.
 	\item Dropout is a regularization technique that randomly deactivates a fraction of neurons during training to prevent overfitting by discouraging co-adaptation among neurons. \newline
 	      \textit{Search Space:} Boolean choice between \texttt{True} and \texttt{False}.
 	\item Dropout Rate: If dropout is used, this parameter determines the fraction of neurons dropped during each training iteration. \newline
 	      \textit{Search Space:} Floating-point value between 0.1 and 0.5 (only active if \texttt{use\_dropout = True}) in steps of 0.1.
-
 \end{itemize}
 
 Tuneable hyperparameters which cover the training and the loss functions are:
 \begin{itemize}
-	\item Learning Rate: The learning rate governs the step size used by the optimizer when updating the model’s weights. A high learning rate may lead to instability or divergence, whereas a very low one results in slow convergence. To capture effective values across orders of magnitude, the search was conducted on a logarithmic scale. \newline
+	\item Learning Rate: The learning rate governs the step size used by the optimizer when updating the \ac{nn} weights. A high learning rate may lead to instability or divergence, whereas a very low one results in slow convergence. To capture effective values across orders of magnitude, the search was conducted on a logarithmic scale. \newline
 	      \textit{Search Space:} Floating-point value between 0.0001 and 0.01, sampled logarithmically.
 
 	\item Underestimation Penalty: This custom hyperparameter is designed to address the asymmetric cost of forecasting errors in financial volatility modeling. Underestimating volatility poses a greater financial risk than overestimating it. Therefore, this penalty increases the loss when the model underpredicts volatility, encouraging more conservative estimates. \newline
@@ -386,11 +381,11 @@ Tuneable hyperparameters which cover the training and the loss functions are:
 
 \subsection{Loss Function and Error Metric}
 \label{subsec:loss_function_and_error_metric}
-The objective of the neural network is to determine the optimal set of weights W and biases b such that the predicted Hull--White parameters minimize the discrepancy between model-implied swaption volatilities and their market-observed counterparts. The neural network acts as a function
+The objective of the \ac{nn} is to determine the optimal set of weights $W$ and biases $b$ such that the predicted \ac{hw} parameters minimize the discrepancy between model-implied swaption volatilities and their market-observed counterparts. The \ac{nn} acts as a function
 \begin{equation}
 	\text{NN} : x \mapsto \theta(x; W, b),
 \end{equation}
-where $x \in \mathbb{R}^d$ is the input feature vector containing scaled and PCA-transformed market data (yield curve levels, slopes, curvatures, etc.) for a given day, and $\theta$ denotes the vector of Hull--White model parameters to be predicted. The network employs a residual architecture: instead of predicting $\theta$ directly, it predicts a deviation $\Delta z$ from a fixed initial guess $z_0$:
+where $x \in \mathbb{R}^d$ is the input feature vector containing scaled and \ac{pca}-transformed market data (yield curve levels, slopes, curvatures, etc.) for a given day, and $\theta$ denotes the vector of \ac{hw} model parameters to be predicted. The \ac{nn} employs a residual architecture: instead of predicting $\theta$ directly, it predicts a deviation $\Delta z$ from a fixed initial guess $z_0$:
 \begin{equation}
 	\Delta z = \text{NN}(x; W, b), \quad
 	z = z_0 + \Delta z.
@@ -405,21 +400,21 @@ The predicted parameters $\theta$ are subsequently used within the QuantLib libr
 	\hat{\sigma} = V_{\text{QL}}(\theta, M_j) = \{\hat{\sigma}_1, \hat{\sigma}_2, \dots, \hat{\sigma}_n\}.
 \end{equation}
 
-The predictive accuracy of the network is quantified using the root mean squared error (RMSE), which measures the average magnitude of deviation between model-implied and market-observed volatilities, expressed in basis points (bps):
+The predictive accuracy of the network is quantified using the \ac{rmse}, which measures the average magnitude of deviation between model-implied and market-observed volatilities, expressed in \ac{bps}:
 \begin{equation}
-	\text{RMSE} = \sqrt{\frac{1}{n}\sum_{i=1}^{n}(\hat{\sigma}_i - \sigma_i)^2} \times 10000.
+	\text{\ac{rmse}} = \sqrt{\frac{1}{n}\sum_{i=1}^{n}(\hat{\sigma}_i - \sigma_i)^2} \times 10000.
 \end{equation}
 
 \begin{table}[H]
 	\centering
-	\caption{Notation used in the RMSE formula}
+	\caption{Notation used in the \ac{rmse} formula}
 	\begin{tabular}{lp{12cm}}
 		\toprule
-		Symbol           & Meaning                                                                                                                            \\
+		Symbol           & Meaning                                                                                                                 \\
 		\midrule
-		$n$              & Total number of swaptions in the evaluation dataset                                                                                \\
-		$\hat{\sigma}_i$ & Implied volatility predicted by the Hull--White model using the parameters generated by the neural network for the $i$-th swaption \\
-		$\sigma_i$       & Market-observed implied volatility for the $i$-th swaption                                                                         \\
+		$n$              & Total number of swaptions in the evaluation dataset                                                                     \\
+		$\hat{\sigma}_i$ & Implied volatility predicted by the \ac{hw} model using the parameters generated by the \ac{nn} for the $i$-th swaption \\
+		$\sigma_i$       & Market-observed implied volatility for the $i$-th swaption                                                              \\
 		\bottomrule
 	\end{tabular}
 \end{table}
@@ -436,7 +431,7 @@ where the weight $w_i$ accounts for underestimation penalties:
 		1, & \text{if } \hat{\sigma}_i \geq \sigma_{j,i} \quad \text{(overestimation)}.
 	\end{cases}
 \end{equation}
-Here, $P>1$ is the underestimation penalty, treated as a hyperparameter optimized using the Hyperband algorithm. This asymmetric weighting is applied exclusively during training to encourage conservative predictions, while evaluation on validation and test sets uses the standard (unweighted) RMSE to assess predictive accuracy objectively.
+Here, $P>1$ is the underestimation penalty, treated as a hyperparameter optimized using the Hyperband algorithm. This asymmetric weighting is applied exclusively during training to encourage conservative predictions, while evaluation on validation and test sets uses the standard (unweighted) \ac{rmse} to assess predictive accuracy objectively.
 
 The overall training objective is to identify network parameters $(W^*, b^*)$ that minimize the expected daily loss over the distribution of training data $D$:
 \begin{equation}
@@ -456,7 +451,7 @@ Under the Bachelier (normal) model, the forward rate \( F_t \) evolves according
 \begin{equation}
 	dF_t = \sigma_N \, dW_t,
 \end{equation}
-where \( \sigma_N \) denotes the normal volatility and \( W_t \) is a standard Brownian motion. In this framework, the forward rate can take both positive and negative values, making the model particularly suitable for low or negative interest rate environments. The option price under the Bachelier model is linear in volatility, and \( \sigma_N \) represents an absolute volatility level (for example, 0.0050 corresponds to 50 basis points).
+where \( \sigma_N \) denotes the normal volatility and \( W_t \) is a standard Brownian motion. In this framework, the forward rate can take both positive and negative values, making the model particularly suitable for low or negative interest rate environments. The option price under the Bachelier model is linear in volatility, and \( \sigma_N \) represents an absolute volatility level (for example, 0.0050 corresponds to 50 \ac{bps}).
 
 In contrast, the Black (lognormal) model assumes that the forward rate follows a lognormal diffusion process,
 \begin{equation}
@@ -464,7 +459,7 @@ In contrast, the Black (lognormal) model assumes that the forward rate follows a
 \end{equation}
 where \( \sigma_B \) represents the lognormal or Black volatility. Here, the volatility is expressed in relative terms (e.g., 0.20 corresponds to 20\%), and the forward rate is strictly positive. The lognormal assumption is particularly useful when modeling multiplicative dynamics in markets with positive rates.
 
-For at-the-money (ATM) swaptions, where the strike \( K \) equals the forward rate \( F \), the two pricing frameworks yield nearly equivalent option values if the volatilities satisfy the following approximate relationship:
+For \ac{atm} swaptions, where the strike \( K \) equals the forward rate \( F \), the two pricing frameworks yield nearly equivalent option values if the volatilities satisfy the following approximate relationship \parencite{hagan2002managingsmilerisk}:
 \begin{equation}
 	\sigma_N \approx \sigma_B F.
 \end{equation}
@@ -472,25 +467,29 @@ Rearranging this yields an approximation for converting normal volatility to log
 \begin{equation}
 	\sigma_B \approx \frac{\sigma_N}{F}.
 \end{equation}
-This relationship provides an accurate first-order approximation for ATM instruments and is commonly applied in market practice for fast conversions between volatility conventions.
-\label{subsubsec:conversion_normal_to_black_vol_errors}
+This relationship provides an accurate first-order approximation for \ac{atm} instruments and is commonly applied in market practice for fast conversions between volatility conventions.
+
 When assessing model calibration performance, the model error expressed in normal volatility terms, denoted by \( \varepsilon_N \), can therefore be converted into an equivalent Black volatility error for each swaption \( i \) with forward rate \( F_i \) as
 \begin{equation}
 	\varepsilon_{B,i} = \frac{\varepsilon_N}{F_i}.
 \end{equation}
 This conversion enables a consistent comparison with benchmark results, such as those reported in studies or market data expressed in Black volatility terms.
 
-However, aggregating these individual instrument errors to obtain a portfolio-level measure requires careful weighting, as swaptions exhibit varying sensitivities to changes in volatility. The sensitivity of the price \( V_i \) of a swaption \( i \) with respect to volatility is given by its vega,
+However, aggregating these individual instrument errors to obtain a portfolio-level measure requires careful consideration. A simple average of volatility errors, while statistically valid, would be financially naive, as it assumes that a one-basis-point error has the same significance for every swaption. In practice, the financial impact of a volatility misestimation varies dramatically across instruments, depending on their sensitivity to volatility.
+
+This sensitivity is precisely quantified by the instrument's vega. As established in foundational derivatives literature, the first-order approximation for the change in an option's price (\(\Delta V\)) due to a change in volatility (\(\Delta \sigma\)) is given by the relationship \( \Delta V \approx \nu \cdot \Delta \sigma \) \parencite[pp.~415-417]{hull2015optionsfutures}. In the context of this analysis, the model's normal volatility error, \( \varepsilon_N \), represents the \( \Delta \sigma \) term. Consequently, the pricing error, or P\&L impact, for a given swaption \( i \) is approximately \( \nu_i \cdot \varepsilon_N \). The vega for swaption \( i \) is formally defined as:
 \begin{equation}
 	\nu_i = \frac{\partial V_i}{\partial \sigma_N}.
 \end{equation}
-In the present context, vegas are computed under the Bachelier model, consistent with the representation of the input errors in normal volatility terms. The vega quantifies the marginal effect of volatility changes on the swaption price and thus serves as a natural weighting factor for aggregating volatility errors.
+In the present context, vegas are computed under the Bachelier model, consistent with the representation of the input errors in normal volatility terms. The scientific rationale for weighting individual errors by vega is grounded in the fundamental principles of differential calculus as applied to derivative pricing. A model's error in the volatility dimension, \(\varepsilon_N\), does not translate uniformly to pricing error across all instruments. Instead, the first-order approximation of the pricing error, \(\Delta V\), is directly proportional to the volatility error, scaled by the instrument's vega: \( \Delta V \approx \nu \cdot \varepsilon_N \).
 
-To obtain a single representative portfolio-level Black volatility error, a vega-weighted average is computed across all \( n \) swaptions within the volatility cube. The aggregated Black volatility error \( \bar{\varepsilon}_B \) is then given by
+Vega therefore acts as a linear sensitivity coefficient, converting an abstract error measured in basis points of volatility into a tangible error measured in monetary units. An unweighted average of volatility errors would be statistically valid but financially naive, as it would implicitly assume that a one-basis-point error on a swaption with high vega has the same financial significance as the same error on a swaption with low vega. To construct a portfolio-level error metric that accurately reflects the aggregate financial impact of individual mispricings, it is therefore necessary to weight each volatility error by its corresponding vega. This ensures the resulting metric moves beyond a simple statistical average to provide a more robust and financially meaningful assessment of the model's performance, which is essential for its utility in risk management and hedging.
+
+Using the swaption vegas as weighting factors is the direct implementation of this principle. To obtain a single, representative portfolio-level Black volatility error, a vega-weighted average is computed across all \( n \) swaptions. This ensures that instruments with a higher price sensitivity to volatility contribute proportionally more to the aggregate measure. The aggregated Black volatility error \( \bar{\varepsilon}_B \) is given by:
 \begin{equation}
 	\bar{\varepsilon}_B = \frac{\sum_{i=1}^{n} \varepsilon_{B,i} \nu_i}{\sum_{i=1}^{n} \nu_i}.
 \end{equation}
-Substituting the expression for \( \varepsilon_{B,i} \) yields
+Substituting the expression for \( \varepsilon_{B,i} \) yields:
 \begin{equation}
 	\bar{\varepsilon}_B = \frac{\sum_{i=1}^{n} \left( \frac{\varepsilon_N}{F_i} \nu_i \right)}{\sum_{i=1}^{n} \nu_i}.
 \end{equation}
@@ -498,106 +497,100 @@ Since the normal-volatility-based model error \( \varepsilon_N \) is constant ac
 \begin{equation}
 	\bar{\varepsilon}_B = \varepsilon_N \frac{\sum_{i=1}^{n} \frac{\nu_i}{F_i}}{\sum_{i=1}^{n} \nu_i}.
 \end{equation}
-This formula represents the vega-weighted average conversion from normal to lognormal volatility on the portfolio level. It ensures that instruments with higher price sensitivity to volatility contribute proportionally more to the aggregate measure. Conceptually, this approach yields a portfolio-consistent transformation of model errors between the two volatility conventions, allowing for robust comparison of calibration quality under different modeling frameworks.
+This formula represents the vega-weighted average conversion from normal to lognormal volatility on the portfolio level. Conceptually, this approach yields a portfolio-consistent transformation of model errors that is grounded in financial reality, allowing for a robust comparison of calibration quality under different modeling frameworks.
 
 Having established the input structure and metrics, the next step outlines the full end-to-end workflow.
 
 \subsection{Methodology Workflow}
-The subsequent section delineates the comprehensive, step-by-step workflow implemented for the calibration of the Hull-White model, as depicted by the provided source code. The process is designed as an end-to-end pipeline, commencing with raw data ingestion and culminating in model evaluation, adaptive retraining, and interpretability analysis.
+The subsequent section delineates the comprehensive, step-by-step workflow implemented for the calibration of the \ac{hw} model, as depicted by the provided source code. The process is designed as an end-to-end pipeline, commencing with raw data ingestion and culminating in model evaluation, adaptive retraining, and interpretability analysis.
 
 \begin{enumerate}
 	\item \textbf{Data Ingestion and Preprocessing:}
-	      The initial phase involves loading raw EUR swap curve data, provided in Excel format. For each historical date, the mid-market rate is computed from the bid and ask quotes. These raw swap curves are then processed and transformed into a standardized format. Subsequently, the \texttt{QuantLib} library is employed to bootstrap these swap curves, yielding the corresponding zero-coupon yield curves for each valuation date. This bootstrapping process utilizes a \texttt{PiecewiseLogLinearDiscount} methodology to construct a term structure of zero rates from the observed market swap rates.
+	      The initial phase involves loading raw \ac{eur} swap curve data, provided in Excel format. For each historical date, the mid-market rate is computed from the bid and ask quotes. These raw swap curves are then processed and transformed into a standardized format. Subsequently, the \texttt{QuantLib} library is employed to bootstrap these swap curves, yielding the corresponding zero-coupon yield curves for each valuation date. This bootstrapping process utilizes a \texttt{PiecewiseLogLinearDiscount} methodology to construct a term structure of zero rates from the observed market swap rates.
 
 	\item \textbf{External Market Data Integration:}
-	      To enrich the feature set, external market data is loaded. This includes the ICE BofA MOVE Index (MOVE), which measures US Treasury rate volatility; the CBOE Volatility Index (VIX), which measures equity market volatility; and the EUR/USD foreign exchange rate. This data is sourced via the \texttt{yfinance} library. A complete time series is ensured by forward- and back-filling any missing daily values, providing a consistent set of external features for every yield curve date.
+	      To enrich the feature set, external market data is loaded. This includes the \ac{move} index, \ac{vix} and the EUR/USD foreign exchange rate. This data is sourced via the \texttt{yfinance} library. A complete time series is ensured by forward- and back-filling any missing daily values, providing a consistent set of external features for every yield curve date.
 
 	\item \textbf{Chronological Data Splitting:}
 	      Given the time-series nature of the financial data, a strict chronological split is enforced to prevent look-ahead bias. The dataset of available daily yield curves is divided into a training set (the initial 50\%), a validation set (the following 20\%), and a final out-of-sample testing set (the remaining 30\%). This ensures that the model is trained on past data, validated on more recent data, and finally tested on unseen future data.
 
 	\item \textbf{Feature Engineering and Dimensionality Reduction:}
-	      For each yield curve, a comprehensive feature vector is engineered. This vector includes not only the zero rates at key tenors (1Y to 30Y) but also derived features such as various yield curve slopes (e.g., 10Y-2Y), curvatures (e.g., $(2 \times 5\text{Y}) - 2\text{Y} - 10\text{Y}$), and the external market indicators. To address the high multicollinearity inherent in yield curve rates, Principal Component Analysis (PCA) is performed exclusively on the rate-based features of the training data. The first three principal components, which typically correspond to the level, slope, and curvature of the yield curve, are retained. This reduces dimensionality while preserving the most significant sources of variance. The complete feature set, comprising these principal components and the other engineered features, is then standardized using Scikit-learn's \texttt{StandardScaler}, which is also fitted solely on the training data.
+	      For each yield curve, a comprehensive feature vector is engineered. This vector includes not only the zero rates at key tenors (1Y to 30Y) but also derived features such as various yield curve slopes (e.g., 10Y-2Y), curvatures (e.g., $(2 \times 5\text{Y}) - 2\text{Y} - 10\text{Y}$), and the external market indicators. To address the high multicollinearity inherent in yield curve rates, \ac{pca} is performed exclusively on the rate-based features of the training data. The first three principal components, are retained. This reduces dimensionality while preserving the most significant sources of variance. The complete feature set, comprising these principal components and the other engineered features, is then standardized using Scikit-learn's \texttt{StandardScaler}, which is also fitted solely on the training data.
 
 	\item \textbf{Hyperparameter Optimization:}
-	      A rigorous hyperparameter tuning process is conducted using the Hyperband algorithm, implemented via the \texttt{Keras Tuner} library. The search space includes critical model architecture parameters (number of layers, neurons per layer, activation function, dropout usage and rate), optimization parameters (learning rate), and a custom hyperparameter for an asymmetric loss function (underestimation penalty). The objective function for the tuner is the minimization of the root mean squared error (RMSE) on the validation set.
+	      A rigorous hyperparameter tuning process is conducted using the Hyperband algorithm, implemented via the \texttt{Keras Tuner} library. The search space includes critical model architecture parameters (number of layers, neurons per layer, activation function, dropout usage and rate), optimization parameters (learning rate), and a custom hyperparameter for an asymmetric loss function (underestimation penalty). The objective function for the tuner is the minimization of the \ac{rmse} on the validation set.
 
 	\item \textbf{Model Training and Early Stopping:}
-	      Upon identifying the optimal set of hyperparameters, the final model is retrained from scratch on the entire training set. A key architectural choice is the \texttt{ResidualParameterModel}, which does not predict the Hull-White parameters directly but rather learns a residual correction to a predefined initial guess. Training is performed over a set number of epochs, but an early stopping mechanism is employed. The model's performance on the validation set is monitored after each epoch. If the validation RMSE does not improve for a predefined number of consecutive epochs (patience), the training is halted, and the model weights from the epoch with the lowest validation RMSE are restored. This prevents overfitting to the training data.
+	      Upon identifying the optimal set of hyperparameters, the final model is retrained from scratch on the entire training set. A key architectural choice is the \texttt{ResidualParameterModel}, which does not predict the \ac{hw} parameters directly but rather learns a residual correction to a predefined initial guess. Training is performed over a set number of epochs, but an early stopping mechanism is employed. The model's performance on the validation set is monitored after each epoch. If the validation \ac{rmse} does not improve for a predefined number of consecutive epochs (patience), the training is halted, and the model weights from the epoch with the lowest validation \ac{rmse} are restored. This prevents overfitting to the training data.
 
-	\item \textbf{Out-of-Sample Evaluation and Adaptive Retraining:}
-	      The trained model is evaluated on the unseen testing set in a forward-moving, chronological sequence. For each day in the test set, the model predicts the Hull-White parameters, and the resulting calibration error (RMSE) is calculated. This out-of-sample error stream is monitored by the ADWIN (ADaptive WINdowing) algorithm to detect concept drift—a statistically significant degradation in model performance. If ADWIN detects a drift, or if the daily error exceeds a predefined absolute threshold, a retraining event is triggered. In this event, all historical data up to the point of the trigger (original training, validation, and the processed portion of the test set) is used to form a new, larger training set, and the entire workflow from step 4 onwards is repeated. This rolling approach allows the model to adapt to changing market regimes.
+	\item \textbf{Out-of-Sample Evaluation:}
+	      The trained model is evaluated on the unseen testing set in a forward-moving, chronological sequence. For each day in the test set, the model predicts the \ac{hw} parameters, and the resulting calibration error (\ac{rmse}) is calculated.
 
-	\item \textbf{Model Explainability with SHAP:}
-	      To ensure transparency and interpretability of the final trained model, a post-hoc analysis is conducted using SHAP (SHapley Additive exPlanations). A \texttt{DeepExplainer} is utilized to compute SHAP values for the model's predictions on the test set. This analysis quantifies the contribution of each input feature (e.g., PC Level, MOVE Index) to the prediction of each output Hull-White parameter. The results are visualized through summary and feature importance plots, providing crucial insights into the model's decision-making process.
+	\item \textbf{Model Explainability with \ac{shap}:}
+	      To ensure transparency and interpretability of the final trained model, a post-hoc analysis is conducted using \ac{shap}. A \texttt{DeepExplainer} is utilized to compute \ac{shap} values for the model's predictions on the test set. This analysis quantifies the contribution of each input feature (e.g., PC Level, \ac{move} index) to the prediction of each output \ac{hw} parameter. The results are visualized through summary and feature importance plots, providing crucial insights into the model's decision-making process.
 \end{enumerate}
 
-\subsection{Used Model Architecture \& Setup}
-\begin{itemize}
-	\item Description of how the actual used model is setup, trained and other technical details
-	\item Model does not directly predict the parameters of the Hull-White model but predicts the correction of an initial guess e.g. the parameters from the last calibration (for example yesterday) or the parameters determined by the traditional calibration (hybrid approach)
-\end{itemize}
-
 \subsection{Calibration Strategy}
-The calibration methodology implemented in this thesis aligns with the \textit{simultaneous optimization} strategy discussed in section \ref{calibration} This choice is evident from the design of the neural network and its training process. The model is configured to concurrently optimize all dynamic parameters of the Hull-White model within a single, unified optimization routine.
+The calibration methodology implemented in this thesis aligns with the \textit{simultaneous optimization} strategy discussed in section \ref{calibration}. The \ac{nn} is configured to concurrently optimize all dynamic parameters of the \ac{hw} model within a single, unified optimization routine.
 
-Specifically, the approach treats the mean-reversion parameter, $\alpha$, as a single constant value and the volatility parameter, $\sigma(t)$, as a piecewise-constant function with seven distinct time segments. The neural network's output layer predicts the complete set of these eight parameters. During the training loop, the custom gradient calculation within the \texttt{\_perform\_training\_step} function computes the gradients of the loss function with respect to all eight parameters simultaneously. The optimizer then updates all model weights to jointly minimize the pricing error, thereby fitting both $\alpha$ and $\sigma(t)$ at the same time. This is in contrast to a two-step approach where parameters are estimated sequentially or a fixed mean-reversion approach where $\alpha$ is not optimized at all.
+Specifically, the approach treats the mean-reversion parameter, $\alpha$, as a single constant value and the volatility parameter, $\sigma(t)$, as a piecewise-constant function with seven distinct time segments. The \ac{nn}'s output layer predicts the complete set of these eight parameters. During the training loop, the custom gradient calculation within the \texttt{\_perform\_training\_step} function computes the gradients of the loss function with respect to all eight parameters simultaneously. The optimizer then updates all model weights to jointly minimize the pricing error (\ac{rmse}), thereby fitting both $\alpha$ and $\sigma(t)$ at the same time. This is in contrast to a two-step approach where parameters are estimated sequentially or a fixed mean-reversion approach where $\alpha$ is not optimized at all.
 
 Furthermore, the calibration employs a \textit{global (full matrix) calibration} methodology with the exception of swaptions which have a maturity and tenor of less than 2 years. This global approach provides the model with a comprehensive view of the market, enabling it to achieve a more robust and stable fit across the entire volatility surface, as recommended for empirical analyses in section \ref{calibration}.
 
-\subsection{Comparison of Neural Network and Levenberg-Marquardt Calibration}
+\subsection{Comparison of \ac{nn} and \ac{lm} Calibration}
 \label{subsec:comparison_of_nn_and_lm}
-A robust experimental framework was designed and implemented to enable a scientifically valid comparison between the traditional Levenberg-Marquardt (LM) optimization and the Neural Network (NN) predictor. The primary objective of this framework was to address the fundamental methodological challenge of fairly comparing an in-sample fitter with an out-of-sample predictor.
+A robust experimental framework was designed and implemented to enable a scientifically valid comparison between the traditional \ac{lm} optimization and the \ac{nn} predictor. The primary objective of this framework was to address the fundamental methodological challenge of fairly comparing an in-sample fitter with an out-of-sample predictor.
 
-The core issue arises from the differing nature of the two models. The LM algorithm operates as an in-sample fitter: for a given day, it receives the complete set of that day's market-observed swaption volatilities and determines the Hull-White parameters $(a, \sigma)$ that minimize the pricing error for this exact set. Its performance metric, typically the Root Mean Squared Error (RMSE), is computed against the same data used for calibration, reflecting the model's goodness-of-fit. This approach is prone to overfitting, as the resulting parameters may capture noise and idiosyncrasies specific to the input data rather than generalizable features. In contrast, the NN is designed as an out-of-sample predictor. It is trained on historical data to learn a mapping from observable market features, such as yield curve shapes and volatility indices, to the corresponding optimal Hull-White parameters. On a test day, it receives only these market features and predicts parameters that are evaluated against the previously unseen swaption volatilities, making its error a measure of generalization ability.
+The core issue arises from the differing nature of the two models. The \ac{lm} algorithm operates as an in-sample fitter: for a given day, it receives the complete set of that day's market-observed swaption volatilities and determines the \ac{hw} parameters $(a, \sigma)$ that minimize the pricing error for this exact set. Its performance metric, typically the \ac{rmse}, is computed against the same data used for calibration, reflecting the model's goodness-of-fit. This approach is prone to overfitting, as the resulting parameters may capture noise and idiosyncrasies specific to the input data rather than generalizable features. In contrast, the \ac{nn} is designed as an out-of-sample predictor. It is trained on historical data to learn a mapping from observable market features, such as yield curve shapes and volatility indices, to the corresponding optimal \ac{hw} parameters. On a test day, it receives only these market features and predicts parameters that are evaluated against the previously unseen swaption volatilities, making its error a measure of generalization ability.
 
 To reconcile this methodological inconsistency, an \emph{Intra-Day Hold-Out Set} framework was employed. This protocol enforces a uniform out-of-sample evaluation for both models. Each day within the test period was processed as follows. First, all valid swaptions were assembled into a master list and partitioned into calibration and hold-out sets using stratified random sampling, with the swaption expiry date as the stratification variable. Within each expiry stratum, 80\% of the instruments were assigned to the calibration set and the remaining 20\% to the hold-out set. Single-instrument strata were assigned to the calibration set to ensure sufficient data for LM optimization, and the random sampling was controlled by a fixed seed to guarantee reproducibility.
 
-Once the data partitioning was completed, both models generated their Hull-White parameters under controlled conditions. The pre-trained NN produced its parameters via a forward pass using only the day’s market features, whereas the LM algorithm was restricted to the 80\% calibration set and iteratively optimized the parameters to fit this subset. Wall-clock times were recorded for both processes.
+Once the data partitioning was completed, both models generated their \ac{hw} parameters under controlled conditions. The pre-trained \ac{nn} produced its parameters via a forward pass using only the day's market features, whereas the \ac{lm} algorithm was restricted to the 80\% calibration set and iteratively optimized the parameters to fit this subset. Wall-clock times were recorded for both processes.
 
-Finally, both sets of parameters were evaluated on the identical 20\% hold-out set. Each model was used to price the hold-out swaptions, and the RMSE between model-implied volatilities and observed market volatilities was computed. This uniform evaluation enabled a direct and fair comparison of the NN’s predictive capabilities against the LM’s in-sample fitting performance, effectively quantifying their relative generalization power in unseen market conditions.
+Finally, both sets of parameters were evaluated on the identical 20\% hold-out set. Each model was used to price the hold-out swaptions, and the \ac{rmse} between model-implied volatilities and observed market volatilities was computed. This uniform evaluation enabled a direct and fair comparison of the \ac{nn}'s predictive capabilities against the \ac{lm}'s in-sample fitting performance, effectively quantifying their relative generalization power in unseen market conditions.
 
 \subsection{Technical Setup and Computational Optimization}
 \label{subsec:technical_setup}
-The implementation of the neural network–based Hull–White calibration framework was carried out in Python~3.12.3, employing TensorFlow~2.15 for the neural network architecture and QuantLib~1.34 for the financial modeling components. All experiments were conducted on a commercially available laptop equipped with 32~GB of RAM and an AMD~Ryzen~7~7840HS processor (16~cores, approximately 3.8~GHz), operating under Windows~11.
+The implementation of the \ac{nn}-based \ac{hw} calibration framework was carried out in Python~3.12.3, employing TensorFlow~2.15 for the \ac{nn} architecture and QuantLib~1.34 for the financial modeling components. All experiments were conducted on a commercially available laptop equipped with 32~GB of RAM and an AMD~Ryzen~7~7840HS processor (16~cores, approximately 3.8~GHz), operating under Windows~11.
 
 \subsubsection{Integration of TensorFlow and QuantLib}
-A central technical challenge of this research lies in the hybrid nature of the model architecture, which combines the differentiable TensorFlow framework with the non-differentiable pricing engines of QuantLib. Since QuantLib’s pricing routines are implemented in C++ and do not expose analytical gradients, the neural network cannot rely on TensorFlow’s automatic differentiation. To overcome this limitation, the QuantLib-based loss function was implemented within a function decorated by TensorFlow’s \texttt{@tf.custom\_gradient}. This mechanism allows the explicit definition of a custom backward pass, where the gradients are computed manually rather than automatically propagated by TensorFlow.
+A central technical challenge of this research lies in the hybrid nature of the model architecture, which combines the differentiable TensorFlow framework with the non-differentiable pricing engines of QuantLib. Since QuantLib's pricing routines are implemented in C++ and do not expose analytical gradients, the \ac{nn} cannot rely on TensorFlow's automatic differentiation. To overcome this limitation, the QuantLib-based loss function was implemented within a function decorated by TensorFlow's \texttt{@tf.custom\_gradient}. This mechanism allows the explicit definition of a custom backward pass, where the gradients are computed manually rather than automatically propagated by TensorFlow.
 
-The gradients with respect to the neural network outputs are approximated numerically using finite difference methods. For each model parameter, the loss function is evaluated twice — once with a positive and once with a negative perturbation — yielding an approximation of the partial derivatives. Consequently, each gradient step requires $2 \times (\text{number of parameters})$ complete QuantLib evaluations. This approach is computationally demanding but necessary to correctly propagate gradients through the non-differentiable pricing engine.
+The gradients with respect to the \ac{nn} outputs are approximated numerically using finite difference methods. For each model parameter, the loss function is evaluated twice - once with a positive and once with a negative perturbation - yielding an approximation of the partial derivatives. Consequently, each gradient step requires $2 \times (\text{number of parameters})$ complete QuantLib evaluations. This approach is computationally demanding but necessary to correctly propagate gradients through the non-differentiable pricing engine.
 
 \subsubsection{Parallelization and Hardware Considerations}
-To mitigate the computational cost associated with the numerical gradient computation, the implementation leverages Python’s \texttt{concurrent.futures.ThreadPoolExecutor} to parallelize function evaluations across the 16~available CPU cores. Thread-based parallelization is preferred over process-based parallelization because it introduces less communication overhead and efficiently shares memory among threads, which is particularly advantageous for memory-intensive but moderately CPU-bound pricing routines. In practice, this parallelization leads to a near-linear reduction in computation time with respect to the number of threads, thereby rendering the training process computationally feasible.
+To mitigate the computational cost associated with the numerical gradient computation, the implementation leverages Python's \texttt{concurrent.futures.ThreadPoolExecutor} to parallelize function evaluations across the 16~available CPU cores. Thread-based parallelization is preferred over process-based parallelization because it introduces less communication overhead and efficiently shares memory among threads, which is particularly advantageous for memory-intensive but moderately CPU-bound pricing routines. In practice, this parallelization leads to a near-linear reduction in computation time with respect to the number of threads, thereby rendering the training process computationally feasible.
 
-All training was executed on the CPU. This decision was motivated by the observation that the primary computational bottleneck lies not in the neural network’s forward propagation—which would benefit from GPU acceleration—but in the iterative, conditional, and sequential nature of QuantLib’s pricing algorithms. Such algorithms are inherently unsuited to GPU architectures, which excel in parallel matrix operations but perform poorly with branching control flow. Re-implementing QuantLib’s pricing models in a GPU-compatible framework would require prohibitive effort while yielding minimal performance benefits. Although frameworks such as \textit{TF-Quant-Finance} aim to provide GPU-compatible financial modeling tools, they currently lack active maintenance and do not support Gaussian short-rate (GSR) models with piecewise constant volatility—an essential feature for this research.
+All training was executed on the CPU. This decision was motivated by the observation that the primary computational bottleneck lies not in the \ac{nn}'s forward propagation-which would benefit from GPU acceleration-but in the iterative, conditional, and sequential nature of QuantLib's pricing algorithms. Such algorithms are inherently unsuited to GPU architectures, which excel in parallel matrix operations but perform poorly with branching control flow. Re-implementing QuantLib's pricing models in a GPU-compatible framework would require prohibitive effort while yielding minimal performance benefits. Although frameworks such as \textit{TF-Quant-Finance} aim to provide GPU-compatible financial modeling tools, they currently lack active maintenance and do not support \ac{gsr} models with piecewise constant volatility-an essential feature for this research.
 
 \subsubsection{Algorithmic and Numerical Efficiency}
 \label{subsubsec:algorithmic_and_numerical_efficiency}
-Further acceleration was achieved through algorithmic refinements and numerical efficiency improvements. The numerical derivative used in gradient computation can be approximated either by the forward difference or the central difference scheme. The forward difference requires only one additional model evaluation per parameter and is therefore approximately twice as fast as the central difference method, albeit with slightly higher numerical noise. A careful balance between computational efficiency and numerical precision was thus sought in practice.
+Further acceleration was achieved through algorithmic refinements and numerical efficiency improvements. The numerical derivative used in gradient computation can be approximated either by the forward difference or the central difference scheme. The forward difference requires only one additional model evaluation per parameter and is therefore approximately twice as fast as the central difference method, albeit with slightly higher numerical noise. Given the high computational cost of each QuantLib evaluation, the forward difference scheme was selected as the default method for gradient approximation. Empirical tests confirmed that the increased noise did not significantly impair training stability or convergence, making this a worthwhile trade-off for speed.
 
-Additionally, the precision of numerical integration within the QuantLib pricing engine was adjusted through the \texttt{pricing\_engine\_integration\_points} parameter, which controls the number of Gaussian quadrature points used by the \texttt{Gaussian1dSwaptionEngine}. Reducing the number of integration points lowers computational cost per pricing call but may introduce marginally higher numerical error. The chosen configuration represents a compromise between computational tractability and pricing stability.
+Additionally, the precision of numerical integration within the QuantLib pricing engine was adjusted through the \texttt{pricing\_engine\_integration\_points} parameter, which controls the number of Gaussian quadrature points used by the \texttt{Gaussian1dSwaptionEngine}. Reducing the number of integration points lowers computational cost per pricing call but may introduce marginally higher numerical error. The chosen configuration (32 integration points) represents a compromise between computational tractability and pricing stability.
 
 \subsubsection{Optimization of the Training Process}
-Several optimization strategies were applied to enhance convergence speed and stability. An \textit{early stopping} criterion monitors the validation root mean squared error (RMSE) after each epoch and terminates training once no improvement is observed over a predefined patience period. This approach prevents overfitting and avoids unnecessary computation.
+Several optimization strategies were applied to enhance convergence speed and stability. An \textit{early stopping} criterion monitors the validation \ac{rmse} after each epoch and terminates training once no improvement is observed over a predefined patience period (20 epochs). This approach prevents overfitting and avoids unnecessary computation.
 
-In addition, the concept of \textit{instrument batching} was introduced to reduce the computational burden per training iteration. Rather than evaluating all available swaptions at once, the loss function is computed on randomly selected subsets of instruments, controlled by the parameter \texttt{instrument\_batch\_size\_percentage}. This stochasticity not only accelerates each iteration but also introduces beneficial noise, which helps the optimizer escape local minima and improves generalization.
+In addition, the concept of \textit{instrument batching} was introduced to reduce the computational burden per training iteration. Rather than evaluating all available swaptions at once, the loss function is computed on randomly selected subsets of instruments, controlled by the parameter \texttt{instrument\_batch\_size\_percentage}. This stochasticity not only accelerates each iteration but also introduces beneficial noise, which helps the optimizer escape local minima and improves generalization. Due to the small size of the dataset, all instruments were used in each batch (100\%) for the final training run as well as for the hyperparameter tuning to ensure maximum information utilization.
 
 Hyperparameter optimization was conducted using the Hyperband algorithm (see Subsection~\ref{subsec:hyperband_algorithm}). Hyperband allocates computational resources adaptively by evaluating a large number of configurations for a limited number of epochs and retaining only the most promising candidates for further training. This method significantly reduces the computational time required for hyperparameter tuning while maintaining robustness in identifying high-performing parameter configurations.
 
 \subsubsection{Workflow-Level Enhancements and Model Design}
-To further enhance efficiency, all input data—such as bootstrapped zero curves and volatility cubes—were preloaded into system memory prior to model training. This design choice eliminates repeated disk input/output operations, minimizing latency and enabling smoother training iterations.
+To further enhance efficiency, all input data-such as bootstrapped zero curves and volatility cubes-were preloaded into system memory prior to model training. This design choice eliminates repeated disk input/output operations, minimizing latency and enabling smoother training iterations.
 
 Moreover, the preprocessing pipeline was designed modularly, allowing selective execution of computationally expensive routines. Boolean flags such as \texttt{PREPROCESS\_CURVES} and \texttt{BOOTSTRAP\_CURVES} allow bypassing redundant computations once intermediate data has been stored, thereby facilitating efficient experimentation and reproducibility during hyperparameter searches.
 
-Finally, the neural network was implemented as a residual model, predicting adjustments to an initial parameter estimate rather than the parameters directly. If the initial parameter vector is denoted by $\theta_{\text{initial}}$ and the predicted correction by $\Delta \theta_{\text{predicted}}$, the final parameter estimate is given by
+Finally, the \ac{nn} was implemented as a residual model, predicting adjustments to an initial parameter estimate rather than the parameters directly. If the initial parameter vector is denoted by $\theta_{\text{initial}}$ and the predicted correction by $\Delta \theta_{\text{predicted}}$, the final parameter estimate is given by
 \begin{equation}
 	\theta_{\text{final}} = \theta_{\text{initial}} + \Delta \theta_{\text{predicted}}.
 \end{equation}
-This residual formulation simplifies the learning task, as the network learns to approximate local corrections rather than the entire nonlinear mapping between market features and model parameters. Empirically, this leads to smoother loss surfaces, faster convergence, and improved numerical stability.
+This residual formulation simplifies the learning task, as the \ac{nn} learns to approximate local corrections rather than the entire nonlinear mapping between market features and model parameters. Empirically, this leads to smoother loss surfaces, faster convergence, and improved numerical stability.
 
 \begin{table}[H]
 	\centering
 	\begin{threeparttable}
-		\caption{Initial Guess Parameters for Neural Network Calibration of the Hull-White Model}
+		\caption{Initial Guess Parameters for \ac{nn} Calibration of the \ac{hw} Model}
 		\label{tab:hw_initial_guess}
 		\begin{tabular}{l c}
 			\hline
@@ -616,21 +609,21 @@ This residual formulation simplifies the learning task, as the network learns to
 	\end{threeparttable}
 \end{table}
 
-The initial parameter guess can be derived from various sources, such as the parameters from the previous trading day or those obtained from a traditional calibration method. This flexibility allows the model to leverage prior knowledge and enhances its adaptability to changing market conditions. In this study, the initial guess was set to fixed values based on a calibration of the first day in the training set using the Levenberg-Marquardt algorithm. Then, the values have been rounded to avoid that the neural network get "stucked" in the same local minimum as the Levenberg-Marquardt algorithm.
+The initial parameter guess can be derived from various sources, such as the parameters from the previous trading day or those obtained from a traditional calibration method. This flexibility allows the \ac{nn} to leverage prior knowledge and enhances its adaptability to changing market conditions. In this study, the initial guess was set to fixed values based on a calibration of the first day in the training set using the \ac{lm} algorithm. Then, the values have been rounded to avoid that the \ac{nn} get "stucked" in the same local minimum as the \ac{lm} algorithm.
 
-In summary, the proposed hybrid framework integrates TensorFlow’s differentiable learning capabilities with QuantLib’s high-fidelity financial pricing models through custom gradient definitions and parallelized numerical differentiation. Combined with algorithmic, workflow, and training-level optimizations, these measures ensure that the training process remains computationally feasible, stable, and reproducible on commercially available hardware.
+In summary, the proposed hybrid framework integrates TensorFlow's differentiable learning capabilities with QuantLib's high-fidelity financial pricing models through custom gradient definitions and parallelized numerical differentiation. Combined with algorithmic, workflow, and training-level optimizations, these measures ensure that the training process remains computationally feasible, stable, and reproducible on commercially available hardware.
 
-\subsection{Use of AI}
-Artificial intelligence (AI) was employed in the context of this master thesis to support the author in various auxiliary and editorial tasks. Its use was strictly limited to non-critical and non-confidential aspects of the research and writing process. The primary purpose of employing AI tools was to enhance the overall clarity, coherence, and grammatical accuracy of the text, ensuring a consistent academic writing style. Through text proposals and linguistic adjustments, the readability of the thesis was improved, allowing for a clearer communication of complex concepts to the reader. AI was additionally utilized for translation purposes between English and German, ensuring linguistic precision in both directions.
+\subsection{Use of \ac{ai}}
+\ac{ai} was employed in the context of this master thesis to support the author in various auxiliary and editorial tasks. Its use was strictly limited to non-critical and non-confidential aspects of the research and writing process. The primary purpose of employing \ac{ai} tools was to enhance the overall clarity, coherence, and grammatical accuracy of the text, ensuring a consistent academic writing style. Through text proposals and linguistic adjustments, the readability of the thesis was improved, allowing for a clearer communication of complex concepts to the reader. \ac{ai} was additionally utilized for translation purposes between English and German, ensuring linguistic precision in both directions.
 
-Furthermore, AI-assisted summarization techniques were employed to help the author better understand complex theoretical or methodological concepts by providing concise explanatory summaries. These summaries served solely as a comprehension aid and were not directly included in the final version of the thesis without the author’s verification and adaptation.
+Furthermore, \ac{ai}-assisted summarization techniques were employed to help the author better understand complex theoretical or methodological concepts by providing concise explanatory summaries. These summaries served solely as a comprehension aid and were not directly included in the final version of the thesis without the author's verification and adaptation.
 
-In the technical part of the thesis, AI was used to generate and refine Python code fragments, as well as to enhance existing code written by the author in terms of readability and computational efficiency. Code completion tools were occasionally used to accelerate programming during the development process. All generated or optimized code was manually integrated into the code base following review and validation by the author. AI tools were also employed for the generation of LaTeX table code structures, while the underlying content was entirely created by the author, and for querying specific LaTeX commands to ensure accurate formatting. In addition, AI was used to generate concise and descriptive Git commit messages for efficient version control and documentation of code changes.
+In the technical part of the thesis, \ac{ai} was used to generate and refine Python code fragments, as well as to enhance existing code written by the author in terms of readability and computational efficiency. Code completion tools were occasionally used to accelerate programming during the development process. All generated or optimized code was manually integrated into the code base following review and validation by the author. \ac{ai} tools were also employed for the generation of LaTeX table code structures, while the underlying content was entirely created by the author, and for querying specific LaTeX commands to ensure accurate formatting. In addition, \ac{ai} was used to generate concise and descriptive Git commit messages for efficient version control and documentation of code changes.
 
-At no point were personal data, business or trade secrets, or any proprietary data, particularly data downloaded from Bloomberg, processed or shared with any AI tool. The handling of such data remained entirely under the author’s control and within secure environments compliant with data protection and confidentiality standards.
+At no point were personal data, business or trade secrets, or any proprietary data, particularly data downloaded from Bloomberg, processed or shared with any \ac{ai} tool. The handling of such data remained entirely under the author's control and within secure environments compliant with data protection and confidentiality standards.
 
-All textual recommendations and code suggestions provided by AI tools were thoroughly reviewed and verified by the author for technical correctness and factual accuracy. This included empirical testing of all code outputs to ensure functionality and to prevent the inclusion of any erroneous or fabricated content, often referred to as “hallucinations.” The author assumes full responsibility for the correctness and validity of all content and code presented in this thesis.
+All textual recommendations and code suggestions provided by \ac{ai} tools were thoroughly reviewed and verified by the author for technical correctness and factual accuracy. This included empirical testing of all code outputs to ensure functionality and to prevent the inclusion of any erroneous or fabricated content, often referred to as “hallucinations.” The author assumes full responsibility for the correctness and validity of all content and code presented in this thesis.
 
-AI was explicitly not used beyond the purposes listed above. In particular, it was not involved in the conceptualization of the core logic of the calibration procedure for the neural network, the overall structure of the code as well as the written thesis, the scientific argumentation, or the generation of figures and visualizations. These elements were fully developed by the author without AI assistance.
+\ac{ai} was explicitly not used beyond the purposes listed above. In particular, it was not involved in the conceptualization of the core logic of the calibration procedure for the \ac{nn}, the overall structure of the code as well as the written thesis, the scientific argumentation, or the conceptualization of figures and visualizations.
 
-A comprehensive list of all AI tools used during the preparation of this thesis is provided in the references section \ref{list_of_ai_tools}.
+A comprehensive list of all \ac{ai} tools used during the preparation of this thesis is provided in the references section \ref{list_of_ai_tools}.

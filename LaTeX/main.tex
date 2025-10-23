@@ -73,6 +73,14 @@
   short={LMM},
   long={Libor Market Model}
 }
+\DeclareAcronym{cir}{
+    short={CIR},
+    long={Cox-Ingersoll-Ross}
+}
+\DeclareAcronym{gsr}{
+    short={GSR},
+    long={Gaussian Short Rate}
+}
 \DeclareAcronym{lm}{
     short={LM},
     long={Levenberg-Marquardt}
@@ -81,9 +89,13 @@
   short={SDE},
   long={Stochastic Differential Equation}
 }
-\DeclareAcronym{rsme}{
-    short={RSME},
-    long={Root Squared Mean Error}
+\DeclareAcronym{mse}{
+    short={MSE},
+    long={Mean Squared Error}
+}
+\DeclareAcronym{rmse}{
+    short={RMSE},
+    long={Root Mean Squared Error}
 }
 \DeclareAcronym{eur}{
     short={EUR},
@@ -113,13 +125,33 @@
     short={EURIBOR},
     long={Euro Interbank Offer Rate}
 }
+\DeclareAcronym{libor}{
+    short={LIBOR},
+    long={London Interbank Offer Rate}
+}
 \DeclareAcronym{fra}{
     short={FRA},
     long={Forward Rate Agreement}
 }
-\DeclareAcronym{stddev}{
-    short={Std. Dev.},
-    long={Standard Deviation}
+\DeclareAcronym{shap}{
+    short={SHAP},
+    long={Shapley Additive Explanations}
+}
+\DeclareAcronym{ai}{
+    short={AI},
+    long={Artificial Intelligence}
+}
+\DeclareAcronym{relu}{
+    short={ReLU},
+    long={Rectified Linear Unit}
+}
+\DeclareAcronym{tanh}{
+    short={tanh},
+    long={Hyperbolic Tangent}
+}
+\DeclareAcronym{api}{
+    short={API},
+    long={Application Programming Interface}
 }
 
 \begin{document}
@@ -132,17 +164,14 @@
 
 	\vfill
 
-	% --- Title ---
 	{\Huge\bfseries A Comparison Between Traditional and Machine Learning Based Calibration of the One Factor Hull-White Model\par}
 
 	\vspace{1.5cm}
 
-	% --- Subtitle ---
 	{\Large Master's Thesis\par}
 
 	\vfill
 
-	% --- Author and Supervisor Details ---
 	\begin{minipage}{0.8\textwidth}
 		\large
 		\begin{tabular}{@{}ll}
@@ -156,7 +185,6 @@
 
 	\vfill
 
-	% --- Submission Date and University ---
 	{\large
 		ZHAW School of Management and Law\par
 		Submitted on: 18. November 2025\par
@@ -181,6 +209,9 @@
 \newpage
 
 \listoffigures
+\newpage
+
+\listoftables
 \newpage
 
 \section{Introduction}
@@ -215,9 +246,6 @@
 
 \printbibliography
 
-% ------------------------------------------------------------------------
-% Appendix: Overview of AI Tools Used (Not in LoT or ToC)
-% ------------------------------------------------------------------------
 \captionsetup{list=no} % Exclude from List of Tables (applies to subsequent floats)
 \begin{table}[H]
     \centering
