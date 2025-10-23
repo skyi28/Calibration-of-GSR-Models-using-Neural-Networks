@@ -5,17 +5,17 @@ The application of Principal Component Analysis (PCA) to the yield curve provide
 
 \begin{table}[H]
 	\centering
+	\caption{Explained Variance of the Principal Components}
 	\label{tab:pca_variance}
 	\begin{tabular}{lcc}
 		\toprule
 		Principal Component & Explained Variance (\%) & Cumulative Variance (\%) \\
 		\midrule
-		PC1 (Level)                  & 91.08                            & 91.08                             \\
-		PC2 (Slope)                  & 8.16                             & 99.24                             \\
-		PC3 (Curvature)              & 0.59                             & 99.84                             \\
+		PC1 (Level)         & 91.08                   & 91.08                    \\
+		PC2 (Slope)         & 8.16                    & 99.24                    \\
+		PC3 (Curvature)     & 0.59                    & 99.84                    \\
 		\bottomrule
 	\end{tabular}
-	\caption{Explained Variance of the Principal Components}
 \end{table}
 
 The first principal component (PC1) accounts for 91.08\% of the total variance and clearly emerges as the dominant driver of yield curve fluctuations. The loading plot of PC1 reveals positive loadings across all maturities, indicating that variations in this factor correspond to parallel shifts in the yield curve. In other words, changes in PC1 lead to simultaneous increases or decreases in yields across all tenors, representing the so-called level factor. This component captures broad-based movements in the general level of interest rates and is thus associated with macroeconomic influences such as monetary policy shifts and long-term inflation expectations.
@@ -28,30 +28,365 @@ The empirical findings are consistent with the theoretical and empirical literat
 
 The concentration of explanatory power within the first three components demonstrates the suitability of PCA for dimensionality reduction in yield curve modeling. Instead of modeling the dynamics of nine highly correlated interest rates, the analysis can be simplified to three orthogonal factors that capture nearly all relevant variation. This dimensionality reduction not only mitigates model complexity and overfitting risk but also enhances interpretability by linking statistical factors to economically meaningful concepts. Furthermore, such a factor-based representation supports practical applications in risk management, hedging, and scenario analysis, as the identified components correspond directly to the main sources of interest rate risk in the term structure.
 
-\begin{itemize}
-	\item \textbf{Calibration Performance Metrics:} Define and present the metrics used to quantify the "goodness of fit" for both traditional and ML-based calibration methods.
-	      \begin{itemize}
-		      \item Common metrics include Mean Squared Error (MSE), Root Mean Squared Error (RMSE), or Mean Absolute Error (MAE) between model-implied and market-observed swaption prices or implied volatilities.
-		      \item Discuss any percentage errors or relative errors used.
-	      \end{itemize}
-	\item \textbf{Comparison of Calibration Speed:} Quantitatively compare the computational efficiency of each method.
-	      \begin{itemize}
-		      \item Provide average calibration times for the traditional algorithms (e.g., Levenberg-Marquardt) per market snapshot.
-		      \item Detail the training time required for the neural network model.
-		      \item Report the inference or prediction time for the neural network once trained, when applied to new market data.
-		      \item Discuss the trade-offs, such as the initial higher computational cost of training the NN versus its potentially faster inference speed for subsequent calibrations.
-	      \end{itemize}
-	\item \textbf{Comparison of Accuracy and Robustness:} Analyze how accurately each method calibrated the Hull-White parameters and replicated observed market prices/volatilities.
-	      \begin{itemize}
-		      \item Present tables and graphs comparing model-implied swaption volatilities/prices against market values.
-		      \item Discuss how well each method captures the various features of the volatility surface (e.g., skew, smile, term structure).
-		      \item Evaluate the robustness of each method to noisy or incomplete market data, as well as its stability under different market regimes (e.g., high vs. low volatility periods).
-	      \end{itemize}
-	\item \textbf{Analysis of Hull-White Parameters:} Examine the derived mean reversion `a(t)` and volatility `$\sigma(t)$` parameters from both approaches.
-	      \begin{itemize}
-		      \item Use visualizations (e.g., time series plots or surface plots) to show how these parameters vary across time, option maturities, or swap tenors for each method.
-		      \item Offer an interpretation of these differences, linking them to the underlying assumptions and characteristics of each calibration technique and their financial implications.
-	      \end{itemize}
-	\item \textbf{Sensitivity Analysis (Optional):} Investigate how sensitive each model's calibration results are to changes in input data, initial parameter guesses, or hyperparameter choices.
-	\item \textbf{Comparison to \textcite{hernandez2016model}:} Compare the results obtained in this thesis with those reported by \textcite{hernandez2016model}, highlighting similarities and differences in findings, methodologies, and conclusions.
-\end{itemize}
+\subsection{Hyperparameter Tuning}
+To identify the most suitable model configuration, a comprehensive hyperparameter search was conducted using the Hyperband algorithm with a total of 1000 trials. Model performance was evaluated based on the unweighted Root Mean Square Error (RMSE) computed on the validation dataset (\textit{val\_rmse}). For subsequent analysis, only the top 5\% of all tested configurations were retained, resulting in a subset of 50 models that minimized the validation RMSE. Within this subset, Pearson correlation coefficients were calculated to quantify the linear dependencies among the numerical hyperparameters, as well as their individual relationships with the validation error. The resulting correlation matrix and correlation vector serve as diagnostic tools for assessing parameter interactions and their effects on model performance.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/hyperparameters/hyperparameter_correlation_heatmap.png}
+	\caption{Correlation between the optimized numerical hyperparameters.}
+	\label{fig:hyperparameter_correlation}
+\end{figure}
+
+The correlation matrix of numerical hyperparameters in figure \ref{fig:hyperparameter_correlation} reveals that most pairwise correlations are weak, as indicated by predominantly light blue and grey cells in the respective heatmap. This finding suggests that the search space of the best-performing models is not strongly restricted by interdependencies among parameters. Nevertheless, a moderate negative correlation of -0.34 between \textit{neurons\_2} and \textit{neurons\_3} can be observed, indicating that an increase in the capacity of the third hidden layer is often accompanied by a reduction in the fourth layer’s size. This pattern may reflect an implicit constraint on the overall capacity distribution across deeper layers. Furthermore, weak positive correlations were detected between \textit{neurons\_0} and both \textit{dropout\_rate} (0.28) and \textit{learning\_rate} (0.26), implying that larger initial layers might benefit from slightly higher regularization and more aggressive learning rates to achieve optimal performance.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/hyperparameters/error_feature_correlation_heatmap.png}
+	\caption{Correlation between the optimized numerical hyperparameters and the validation error.}
+	\label{fig:error_feature_correlation_heatmap}
+\end{figure}
+
+The correlation analysis provided in figure \ref{fig:error_feature_correlation_heatmap} between hyperparameters and model error provides additional insights into performance sensitivity. Since the objective is to minimize \textit{val\_rmse}, a negative correlation indicates an improvement in performance with increasing hyperparameter values, while a positive correlation suggests performance deterioration. The strongest observed relationship is a positive correlation of 0.46 for the \textit{underestimation\_penalty}, indicating that higher values of this penalty consistently degrade performance. Consequently, the optimal configuration for this parameter likely lies near zero. In contrast, a moderate negative correlation of -0.29 between \textit{num\_layers} and error suggests that deeper network architectures tend to yield superior performance within the top-tier models. Similarly, the parameters \textit{neurons\_0} (-0.22) and \textit{neurons\_3} (-0.15) exhibit weak negative correlations with error, indicating a slight preference for wider layers at specific network depths. The regularization term \textit{dropout\_rate} shows a mild positive correlation (0.13) with error, implying that excessive dropout may hinder learning even among the best configurations. Lastly, the parameter \textit{tuner/epochs} is negatively correlated with error (-0.14), confirming that extended training durations within the Hyperband framework generally improve convergence and validation performance.
+
+The architecture of the best-performing model reflects these findings. It consists of five hidden layers with 112, 48, 32, 112, and 48 neurons, respectively. All layers employ the Rectified Linear Unit (ReLU) activation function. Although a dropout rate of 0.4 was specified in the search space, dropout was disabled in this configuration. The model uses a learning rate of approximately 0.0033 and applies an underestimation penalty of 1.5, indicating the use of a customized loss formulation to control prediction asymmetry. The corresponding hyperparameter configuration is summarized in table~\ref{tab:best_hyperparameters}.
+
+\begin{table}[H]
+	\centering
+	\begin{threeparttable}
+		\caption{Hyperparameter Configuration of the Best-Performing Model}
+		\label{tab:best_hyperparameters}
+		\begin{tabular}{lcc}
+			\toprule
+			\textbf{Hyperparameter}  & \textbf{Description}        & \textbf{Value} \\
+			\midrule
+			num\_layers              & Number of hidden layers     & 5              \\
+			neurons\_0               & Neurons in layer 1          & 112            \\
+			neurons\_1               & Neurons in layer 2          & 48             \\
+			neurons\_2               & Neurons in layer 3          & 32             \\
+			neurons\_3               & Neurons in layer 4          & 112            \\
+			neurons\_4               & Neurons in layer 5          & 48             \\
+			activation               & Activation function         & ReLU           \\
+			use\_dropout             & Dropout enabled             & False          \\
+			dropout\_rate            & Dropout rate (inactive)     & 0.4            \\
+			learning\_rate           & Optimizer learning rate     & 0.0033         \\
+			underestimation\_penalty & Penalty for underestimation & 1.5            \\
+			\bottomrule
+		\end{tabular}
+		\begin{tablenotes}
+			\footnotesize
+			\item The table reports the optimal hyperparameter values obtained from the Hyperband search. Dropout was disabled in the final configuration, rendering the specified dropout rate inactive. The underestimation penalty indicates the inclusion of a custom asymmetric loss component.
+		\end{tablenotes}
+	\end{threeparttable}
+\end{table}
+
+\subsection{Out-of-Sample Performance}
+\subsubsection{Pricing Ability}
+Figure~\ref{fig:daily_rmse_comparison} depicts the daily out-of-sample Root Mean Squared Error (RMSE) for the Neural Network (NN) and the traditional Levenberg–Marquardt (LM) calibration methods over the test period from early August to early September 2025. The evaluation is conducted on a hold-out set of swaptions that were excluded from the LM optimization on each respective day, ensuring an unbiased comparison between the NN’s predictive capability and the LM’s in-sample fitting performance as described in section~\ref{subsec:comparison_of_nn_and_lm}.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/calibration_results/plot1_daily_rmse.png}
+	\caption{Comparison of daily out-of-sample RMSE between Neural Network and Levenberg–Marquardt calibration methods over the test period.}
+	\label{fig:daily_rmse_comparison}
+\end{figure}
+
+Across the entire test horizon, the Neural Network consistently achieves superior out-of-sample accuracy relative to the Levenberg–Marquardt algorithm. The RMSE of the NN remains persistently lower than that of the LM method, indicating a more accurate reproduction of market swaption volatilities on unseen data and reflecting the NN’s enhanced ability to generalize beyond the training sample. Table~\ref{tab:rmse_statistics} summarizes the descriptive statistics of the daily out-of-sample RMSE values for both calibration methods.
+
+\begin{table}[htbp]
+	\centering
+	\begin{threeparttable}
+		\caption{Out-of-Sample RMSE Statistics for Neural Network and Levenberg--Marquardt Calibration}
+		\label{tab:rmse_statistics}
+		\begin{tabular}{lccccc}
+			\toprule
+			\textbf{Method}      & \textbf{Mean} & \textbf{Std Dev} & \textbf{Median} & \textbf{Min} & \textbf{Max} \\
+			\midrule
+			Neural Network       & 6.53          & 0.73             & 6.47            & 5.04         & 8.53         \\
+			Levenberg--Marquardt & 10.11         & 1.10             & 9.79            & 7.67         & 12.37        \\
+			\bottomrule
+		\end{tabular}
+		\begin{tablenotes}
+			\footnotesize
+			\item \textit{Note:} The table reports summary statistics of daily out-of-sample Root Mean Squared Error (RMSE) values over the test period (August 2025) for the Neural Network and Levenberg--Marquardt calibration methods.
+		\end{tablenotes}
+	\end{threeparttable}
+\end{table}
+
+In addition to its lower average error, the Neural Network exhibits markedly higher stability in predictive performance. This is also reflected in its substantially lower standard deviation of RMSE values (0.73 bps) compared to the Levenberg–Marquardt algorithm (1.10 bps). While the LM algorithm shows higher volatility in its error profile, the NN consistently maintains a narrow error range , typically between 5 and 7 bps.
+
+To formally assess the statistical properties of the daily out-of-sample Root Mean Squared Error (RMSE) values for both calibration methods, a series of hypothesis tests were conducted. These include normality testing using the Shapiro–Wilk test, a non-parametric Mann–Whitney~U test to examine differences in central tendency, and Levene’s test to evaluate equality of variances. The results are summarized in Table~\ref{tab:stat_tests}.
+
+\begin{table}[htbp]
+	\centering
+	\begin{threeparttable}
+		\caption{Statistical Tests on Out-of-Sample RMSE Distributions}
+		\label{tab:stat_tests}
+		\begin{tabular}{lp{2.5cm}ccp{3.5cm}}
+			\toprule
+			\textbf{Test}   & \textbf{Method}      & \textbf{Statistic} & \textbf{p-value} & \textbf{Interpretation}                       \\
+			\midrule
+			Shapiro--Wilk   & Neural Network       & 0.9547             & 0.2588           & Errors are normally distributed               \\
+			Shapiro--Wilk   & Levenberg--Marquardt & 0.9263             & 0.0496           & Errors deviate from normality                 \\
+			Mann--Whitney~U & NN vs.\ LM           & 3.0000             & $<0.0001$        & Significant difference in error distributions \\
+			Levene’s        & NN vs.\ LM           & 1.9225             & 0.1713           & No significant difference in variances        \\
+			\bottomrule
+		\end{tabular}
+		\begin{tablenotes}
+			\footnotesize
+			\item \textit{Note:} Shapiro--Wilk tests assess normality of RMSE distributions. Mann--Whitney~U compares central tendency due to non-normality of LM errors. Levene’s test checks variance equality.
+		\end{tablenotes}
+	\end{threeparttable}
+\end{table}
+
+The Shapiro–Wilk test results indicate that the Neural Network errors (\(p=0.2588\)) do not significantly deviate from normality at any conventional significance level (\(\alpha \in \{0.01, 0.05, 0.1\}\)). In contrast, the Levenberg–Marquardt errors (\(p=0.0496\)) fail the normality assumption at \(\alpha=0.05\) and \(\alpha=0.1\), suggesting slight non-normal behavior.
+
+Given this, the Mann–Whitney~U test was used to evaluate whether the two error distributions differ in central tendency. The test statistic (\(U=3.00\), \(p<0.0001\)) strongly rejects the null hypothesis across all significance levels, confirming that the Neural Network’s errors are significantly lower than those of the Levenberg–Marquardt method.
+
+Finally, Levene’s test (\(p=0.1713\)) indicates no statistically significant difference in the variances of the two RMSE distributions, implying comparable dispersion. Combined, these results confirm that the Neural Network calibration achieves a statistically and economically meaningful improvement in accuracy without introducing greater variability.
+
+The magnitude of the observed performance difference is economically and statistically significant. On average, the Neural Network reduces the out-of-sample pricing error by 3.58~basis points compared to the LM calibration. During periods of elevated instability in the LM algorithm’s performance, this gap widens up to 4.57~basis points.
+
+The mean prediction errors, defined as the difference between model-implied volatilities and observed market volatilities (\(\text{Model Volatility} - \text{Market Volatility}\)) in basis points (bps), were analyzed for the Neural Network (NN) and Levenberg–Marquardt (LM) calibration methods across various swaption expiry and tenor bins. The corresponding heatmaps in figure~\ref{fig:error_heatmaps} visualize these errors, where red cells indicate overestimation, blue cells indicate underestimation, and neutral colors indicate a close fit to market data. An additional heatmap depicting the difference between LM and NN errors highlights the relative performance of the two approaches across the volatility surface.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/calibration_results/plot6_error_heatmaps.png}
+	\caption{Heatmaps of Mean Prediction Errors for Neural Network and Levenberg--Marquardt Calibration Methods, and Their Difference.}
+	\label{fig:error_heatmaps}
+\end{figure}
+
+The LM calibration exhibits pronounced, systematic pricing biases across the surface. At the short end of the surface, errors reach up to +13.75 bps, while at the long end, they are as high as +13.93 bps, indicating consistent overestimation of volatilities. Conversely, the LM model underestimates volatilities in the medium-expiry region, with errors down to -9.84 bps. This pattern demonstrates that the in-sample optimization struggles to identify a single set of parameters capable of simultaneously fitting the complex curvature of the entire volatility surface, resulting in large, offsetting errors.
+
+In contrast, the NN model produces a more balanced and less systematic error distribution. Although it slightly overestimates volatilities at the highly volatile short end (+14.51 bps), the errors elsewhere are smaller and more evenly distributed. The absence of large, contiguous regions of severe under- or overestimation, observed in the LM model, suggests that the NN captures a more flexible representation of the volatility surface, effectively generalizing across different expiry-tenor combinations.
+
+The error difference heatmap (LM error minus NN error) provides a direct comparison of model performance. Negative values (dark blue) in the medium-expiry region indicate a large negative difference between the error of up to -8.63 bps relative to the LM method. Similarly, positive values (red) at the long end highlight large positive differences of up to 10.64 bps.
+
+The relationship between model-implied volatilities and observed market volatilities was examined on an instrument-by-instrument basis for all swaptions in the hold-out sets over the entire test period. Scatter plots (figure~\ref{fig:scatter_comparison}) were constructed for both the Neural Network (NN) and Levenberg–Marquardt (LM) models, with the dashed \(y=x\) line representing a perfect fit, where model predictions exactly match market values. The proximity of the data points to this line provides a direct measure of each model's out-of-sample accuracy and predictive reliability.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/calibration_results/plot10_scatter_comparison.png}
+	\caption{Scatter Plot Comparison of Model-Implied vs.\ Market Swaption Volatilities for Neural Network and Levenberg--Marquardt Calibration Methods.}
+	\label{fig:scatter_comparison}
+\end{figure}
+
+The NN model demonstrates a markedly better goodness-of-fit. Its data points are more tightly clustered around the \(y=x\) line, exhibiting a strong positive correlation with market volatilities across the full range of observed values. This indicates that the NN consistently produces volatilities that closely align with unseen market data, confirming its ability to generalize beyond the calibration set.
+
+In contrast, the LM model exhibits substantial dispersion and a weaker correlation. Its data points form a diffuse cloud with significant vertical spread, meaning that for swaptions with similar market volatilities, the LM model can generate widely varying predicted volatilities. This highlights the method’s lack of robustness and reduced reliability in out-of-sample prediction.
+
+The LM scatter plot visually corroborates the systematic biases observed in the heatmap analysis. A majority of the points lie above the \(y=x\) line, indicating a persistent tendency to overestimate volatility. Conversely, the NN errors appear more symmetrically distributed around the perfect fit line, suggesting a more balanced prediction profile with minimal systematic bias.
+
+\subsubsection{Parameter Stability}
+This section examines the temporal behavior of the calibrated Hull–White model parameters—specifically the mean-reversion rate (\(\alpha\)) and the piecewise constant volatility term structure (\(\sigma_i\))—for both the Neural Network (NN) and Levenberg–Marquardt (LM) calibration methods. The analysis is based on daily recalibrations (LM approach) and the predicted parameters (NN) over the test period, with a focus on the stability  of the parameter trajectories. Parameter stability is of central importance, as erratic fluctuations can result in unstable hedging ratios, inconsistent pricing, and unreliable risk metrics.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/calibration_results/plot3_parameter_evolution.png}
+	\caption{Parameter Evolution for Neural Network and Levenberg--Marquardt Calibration Methods.}
+	\label{fig:parameter_evolution}
+\end{figure}
+
+At first inspection, both calibration techniques yield parameters that evolve smoothly over time without abrupt jumps or discontinuities. The magnitudes of the parameters appear economically plausible, with no extreme outliers observed. This visual stability suggests that both methods achieve a baseline level of temporal consistency in the estimated Hull--White parameters.
+
+A notable divergence arises in the behavior of the mean-reversion parameter. The LM method persistently drives \(\alpha\) toward values near zero (mean \(\approx 0.00002\)), with a correspondingly low standard deviation. Although statistically stable, this near-zero value effectively suppresses the mean-reversion mechanism of the model, thereby failing to capture an essential economic feature of interest rate dynamics. In contrast, the NN produces a stable and economically meaningful mean-reversion level (mean \(\approx 0.0109\)), reflecting a more realistic adjustment speed of short rates toward their long-term equilibrium.
+
+The volatility term structures (\(\sigma_i\)) estimated by the NN demonstrate a high degree of structural coherence. Across time, the piecewise volatilities retain their relative ordering, and the overall shape of the term structure evolves smoothly and predictably. This indicates that the NN calibration preserves the internal consistency of the model across maturities and dates. The resulting stability of the \(\sigma_i\) curves suggests that the NN effectively captures persistent features of the volatility surface while adapting flexibly to gradual market changes.
+
+Although the LM method exhibits slightly lower parameter standard deviations on an absolute scale, this apparent stability does not necessarily imply superior model robustness. The NN’s moderately higher parameter variance reflects meaningful responsiveness to evolving market conditions within a coherent and economically interpretable structure. Thus, the NN’s stability should be viewed as both statistical and structural—balancing smooth temporal evolution with sensitivity to genuine shifts in the underlying market environment.
+
+\subsubsection{Parameter Sensitivity Analysis}
+The sensitivity analysis highlights pronounced differences in the robustness and economic interpretability of the parameters estimated by the Neural Network (NN) and the traditional Levenberg–Marquardt (LM) method. Across all examined scenarios, the NN exhibits stable and economically consistent adjustments, whereas the LM method frequently produces erratic or extreme results, particularly regarding the estimation of the mean-reversion parameter. The following discussion presents a detailed examination of three distinct yield curve perturbations.
+
+\paragraph{Scenario 1: Parallel Yield Curve Shift Up (+50 bps)}
+This scenario reflects a market environment characterized by rising interest rates, such as during monetary tightening or increased inflation expectations. The NN responds by reducing the mean-reversion parameter \( a_1 \) by 22.38\%. This behavior is economically intuitive: as interest rates rise, the short rate becomes less strongly attracted to its long-term mean, implying a slower reversion speed. Regarding volatility, the NN exhibits a differentiated adjustment across maturities. Short-to-medium term volatilities (\( \sigma_1 \) to \( \sigma_4 \)) increase by 1.46\% to 8.66\%, reflecting greater short-term uncertainty, whereas long-term volatilities (\( \sigma_5 \) to \( \sigma_7 \)) decrease by 3.45\% to 5.47\%. This pattern suggests that the network associates persistent rate hikes with a more predictable long-term environment, consistent with the stabilizing influence of central bank policy.
+
+In contrast, the LM method produces unstable and economically implausible results. The mean-reversion parameter \( a_1 \) collapses by 99.997\%, effectively eliminating mean reversion from the model. This outcome does not represent an economic insight but rather a numerical artifact, reflecting the optimizer’s convergence to a degenerate local minimum. The volatility response is similarly simplistic: all parameters decrease uniformly by 2.41\% to 5.60\%, indicating that the LM optimizer finds a slightly smoother volatility surface that minimizes the fitting error without capturing any meaningful structural information.
+
+\paragraph{Scenario 2: Parallel Yield Curve Shift Down (-50 bps)}
+A parallel downward shift of 50 basis points captures an environment of monetary easing or a flight-to-quality, where rates decline broadly across maturities. In this context, the NN increases the mean-reversion parameter \( a_1 \) by 16.40\%, which is the logical counterpart to the previous scenario. Lower rates induce a stronger pull back toward the long-term mean, consistent with market expectations of normalization. The volatility adjustments are again complex: the short-term volatilities (\( \sigma_1, \sigma_2 \)) decrease, while medium- and long-term volatilities (\( \sigma_3 \) to \( \sigma_7 \)) rise by up to 9.87\%. This asymmetric reaction captures a common market feature, where declining rates heighten duration risk and uncertainty in the longer end of the curve.
+
+The LM method fails to produce a meaningful calibration under this scenario. The mean-reversion parameter explodes by 303,251.39\%, indicating a complete loss of numerical stability. This extreme value is economically meaningless and arises from the optimizer’s sensitivity to local minima in the parameter space. The volatility adjustments are erratic, lacking any coherent term-structure pattern. While most volatilities increase, the longest-tenor parameters (\( \sigma_6, \sigma_7 \)) decrease sharply by 10.45\% and 17.24\%, respectively. This inconsistency further demonstrates the inability of the LM approach to produce economically interpretable parameter dynamics under yield curve perturbations.
+
+\paragraph{Scenario 3: Yield Curve Twist (Steepening)}
+The final scenario models a steepening of the yield curve, representing a situation in which long-term rates rise relative to short-term rates due to improved growth or inflation expectations. The NN decreases the mean-reversion parameter \( a_1 \) moderately by 11.83\%, reflecting a realistic interpretation that a steeper curve reduces the immediate mean-reverting pressure on the short rate. The network also produces a measured increase in volatility across the term structure, with changes ranging from 0.65\% to 3.67\%. This restrained yet systematic response indicates that the NN captures the nuanced relationship between curve shape and rate uncertainty without overfitting to transient fluctuations.
+
+The LM method again exhibits numerical instability. The mean-reversion parameter \( a_1 \) collapses entirely, decreasing by 100.00\%, which effectively removes mean reversion from the model. This recurring pattern underscores the optimizer’s inability to handle non-parallel yield curve shifts in a stable manner. The volatility parameters uniformly decrease by 2.25\% to 5.08\%, mirroring the behavior observed in the upward shift scenario. Such uniform adjustments suggest that the LM method applies a rigid, non-adaptive response that fails to capture the dynamic interactions between curve shape and volatility, in stark contrast to the NN’s flexible and economically coherent interpretation.
+
+Overall, these scenario-based analyses demonstrate that the neural network not only yields stable parameter estimates but also captures economically meaningful dynamics consistent with macro-financial reasoning. The traditional LM optimizer, by contrast, repeatedly fails to produce reliable or interpretable results, highlighting the superiority of data-driven calibration in ensuring robustness and stability under varying market conditions.
+
+\begin{table}[H]
+  \centering
+  \setlength{\tabcolsep}{5pt} 
+  \caption{Scenario Analysis of NN Model Parameters}
+  \label{tab:scenario_analysis_part_nn}
+  \begin{threeparttable}
+    \begin{tabular}{l *{4}{rr}}
+      \toprule
+      & \multicolumn{2}{c}{$a_1$} & \multicolumn{2}{c}{$\sigma_1$} & \multicolumn{2}{c}{$\sigma_2$} & \multicolumn{2}{c}{$\sigma_3$} \\
+      \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
+      Scenario & \% $\delta$ & Abs. Value & \% $\delta$ & Abs. Value & \% $\delta$ & Abs. Value & \% $\delta$ & Abs. Value \\
+      \midrule
+      
+      Base Case    &           & 0.01136 &           & 0.00021 &           & 0.00027 &           & 0.00026 \\
+      Shift Up     &  -22.38   & 0.00881 &    1.46   & 0.00022 &    2.83   & 0.00028 &    4.43   & 0.00028 \\
+      Shift Down   &   16.40   & 0.01322 &   -7.11   & 0.00020 &   -2.92   & 0.00026 &    6.32   & 0.00028 \\
+      Twist        &  -11.83   & 0.01001 &    0.65   & 0.00021 &    1.49   & 0.00027 &    1.20   & 0.00027 \\
+      \bottomrule
+    \end{tabular}
+  \end{threeparttable}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \setlength{\tabcolsep}{5pt}
+  \begin{threeparttable}
+    \begin{tabular}{l *{4}{rr}}
+      & \multicolumn{2}{c}{$\sigma_4$} & \multicolumn{2}{c}{$\sigma_5$} & \multicolumn{2}{c}{$\sigma_6$} & \multicolumn{2}{c}{$\sigma_7$} \\
+      \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
+      Scenario & \% $\delta$ & Abs. Value & \% $\delta$ & Abs. Value & \% $\delta$ & Abs. Value & \% $\delta$ & Abs. Value \\
+      \midrule
+      
+      Base Case    &           & 0.00026 &           & 0.00018 &           & 0.00014 &           & 0.00016 \\
+      Shift Up     &    8.66   & 0.00028 &   -3.45   & 0.00018 &   -5.47   & 0.00013 &   -3.40   & 0.00015 \\
+      Shift Down   &    2.25   & 0.00027 &    9.87   & 0.00020 &    4.22   & 0.00014 &    2.25   & 0.00016 \\
+      Twist        &    3.67   & 0.00027 &   -0.48   & 0.00018 &   -2.17   & 0.00013 &   -0.02   & 0.00016 \\
+      \bottomrule
+    \end{tabular}
+  \end{threeparttable}
+\end{table}
+
+% Levenberg-Marquardt
+\begin{table}[H]
+  \centering
+  \setlength{\tabcolsep}{5pt} 
+  \caption{Scenario Analysis of LM Model Parameters}
+  \label{tab:scenario_analysis_part_lm}
+  \begin{threeparttable}
+    \begin{tabular}{l *{4}{rr}}
+      \toprule
+      & \multicolumn{2}{c}{$a_1$} & \multicolumn{2}{c}{$\sigma_1$} & \multicolumn{2}{c}{$\sigma_2$} & \multicolumn{2}{c}{$\sigma_3$} \\
+      \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
+      Scenario & \% $\delta$ & Abs. Value & \% $\delta$ & Abs. Value & \% $\delta$ & Abs. Value & \% $\delta$ & Abs. Value \\
+      \midrule
+      
+      Base Case          &             & 0.00009 &           & 0.00021 &           & 0.00021 &           & 0.00021 \\
+      Shift Up   &   -100.00   & 0.00000 &   -2.41   & 0.00020 &   -3.20   & 0.00020 &   -3.80   & 0.00020 \\
+      Shift Down & 303251.39   & 0.26543 &   -8.52   & 0.00019 &   -1.85   & 0.00020 &    1.32   & 0.00021 \\
+      Twist    &   -100.00   & 0.00000 &   -2.25   & 0.00020 &   -2.96   & 0.00020 &   -3.50   & 0.00020 \\
+      \bottomrule
+    \end{tabular}
+  \end{threeparttable}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \setlength{\tabcolsep}{5pt}
+  \begin{threeparttable}
+    \begin{tabular}{l *{4}{rr}}
+      & \multicolumn{2}{c}{$\sigma_4$} & \multicolumn{2}{c}{$\sigma_5$} & \multicolumn{2}{c}{$\sigma_6$} & \multicolumn{2}{c}{$\sigma_7$} \\
+      \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
+      Scenario & \% $\delta$ & Abs. Value & \% $\delta$ & Abs. Value & \% $\delta$ & Abs. Value & \% $\delta$ & Abs. Value \\
+      \midrule
+      
+      Base Case          &           & 0.00021 &           & 0.00022 &           & 0.00021 &           & 0.00020 \\
+      Shift Up   &   -3.60   & 0.00020 &   -5.60   & 0.00020 &   -2.27   & 0.00020 &   -0.51   & 0.00020 \\
+      Shift Down &    3.08   & 0.00022 &   -0.67   & 0.00021 &  -10.45   & 0.00018 &  -17.24   & 0.00017 \\
+      Twist    &   -3.30   & 0.00020 &   -5.08   & 0.00020 &   -2.00   & 0.00020 &   -0.36   & 0.00020 \\
+      \bottomrule
+    \end{tabular}
+  \end{threeparttable}
+\end{table}
+
+
+\subsubsection{Analysis of Computational Efficiency and Practical Applicability}
+The computational performance of the Neural Network (NN) and Levenberg–Marquardt (LM) calibration methods was evaluated to assess their practical suitability for real-world applications. Table~\ref{tab:comp_efficiency} summarizes the measured runtimes and variability for each approach, highlighting the substantial differences in computational efficiency.
+
+\begin{table}[H]
+	\centering
+	\begin{threeparttable}
+		\caption{Computational Efficiency of Neural Network and Levenberg–Marquardt Calibration Methods}
+		\label{tab:comp_efficiency}
+		\begin{tabular}{lcc}
+			\toprule
+			Method               & Mean Time (s) & Std Dev Time (s) \\
+			\midrule
+			Neural Network       & 0.0041        & 0.0019           \\
+			Levenberg--Marquardt & 91.87         & 23.52            \\
+			\bottomrule
+		\end{tabular}
+		\begin{tablenotes}
+			\footnotesize
+			\item \textit{Note:} The table reports average runtime and standard deviation for daily calibrations. The NN achieves an approximate speed-up of 22,555x compared to LM.
+		\end{tablenotes}
+	\end{threeparttable}
+\end{table}
+
+The NN exhibits a dramatic advantage in computational speed for daily calibration tasks. With an average runtime of just 4 milliseconds per calibration, it is approximately 22,555 times faster than the traditional LM method, which requires an average of 92 seconds. This multi-order-of-magnitude improvement fundamentally transforms the operational feasibility of high-frequency calibration workflows.
+
+This computational advantage arises from the methodological distinction between the two approaches. The NN incurs the majority of its computational cost during an offline training phase, including a one-time hyperparameter tuning (approx. 1 week) and a subsequent model training (approx. 1 hour). Once trained, the NN performs calibration via a near-instantaneous forward pass (inference). In contrast, the LM algorithm performs a fully iterative numerical optimization online for each new market snapshot, making it substantially slower and more resource-intensive in day-to-day operations.
+
+The initial offline cost of the NN is efficiently amortized over its operational lifetime. Optimal hyperparameters remain stable over time, requiring only periodic retraining (e.g., nightly or weekly) in approximately one hour. This allows thousands of real-time calibrations to be executed almost instantaneously, rendering the upfront investment highly cost-effective in a production environment.
+
+The sub-second runtime of the NN makes it suitable for applications that are infeasible with the LM method, including real-time risk management, pre-trade pricing of extensive derivative portfolios, and intraday recalibration in response to evolving market conditions. The 92-second average runtime of LM constitutes a significant bottleneck, restricting its use to end-of-day or batch-processing tasks.
+
+Beyond mean speed, the NN demonstrates highly predictable performance with a low standard deviation of execution time (0.0019 s), whereas the LM algorithm shows substantial variability (23.52 s) due to sensitivity to market-specific data and optimization paths. This predictability is critical for integration into time-sensitive production workflows, further emphasizing the NN's suitability for operational deployment.
+
+\subsection{Interpretability of the Neural Network via SHAP Values}
+The interpretability of the neural network was examined through SHAP (SHapley Additive exPlanations) values, which quantify the contribution of each input feature to the model's predictions for the Hull–White parameters. This analysis provides insight into the internal decision-making process of the neural network, allowing for a scientific understanding of how it generates parameter estimates from market data.
+
+The SHAP analysis validates the neural network as an interpretable model. The feature importance patterns reveal systematic and economically intuitive relationships, demonstrating that the model's predictions are grounded in financially relevant signals rather than being arbitrary or opaque. This dispels the perception of the network as an unexplainable "black box" and confirms that its outputs reflect meaningful market dynamics.
+
+A key finding is the dominant influence of the long-end yield curve shape, represented by the curvature\_10y20y30y feature, across nearly all output parameters, including the mean-reversion parameter (\(a_1\)) and the piecewise volatility terms (\(\sigma_i\)). This indicates that the neural network has learned that the long-end curvature of the yield curve is critical for determining both the long-term pull of interest rates and the overall volatility term structure. This is consistent with financial intuition, as long-end curvature captures market expectations regarding long-term economic uncertainty and monetary policy.
+
+The model further demonstrates sophistication through parameter-specific feature importance. The mean-reversion parameter (\(a_1\)) is primarily driven by short- and medium-term yield curve slopes (slope\_3m10y, slope\_5y30y), reflecting the theoretical notion that mean-reversion measures the speed at which interest rates revert to their long-term average. In contrast, the long-term volatility parameter (\(\sigma_7\)) is highly sensitive to the MOVE\_VIX\_Ratio, indicating that the network has learned that Treasury market-implied volatility is a key determinant of long-horizon rate uncertainty.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/calibration_results/SHAP_summary_sigma_7.png}
+	\caption{SHAP Summary Plot for the Long-Term Volatility Parameter \(\sigma_7\).}
+	\label{fig:shap_summary_sigma_7}
+\end{figure}
+
+Direct interpretation of the SHAP summary plot for \(\sigma_7\) (\ref{fig:shap_summary_sigma_7}) reveals a counter-intuitive financial relationship learned by the model. For the MOVE\_VIX\_Ratio feature, the neural network has identified an inverse relationship: high values of the ratio (red dots), indicating elevated Treasury volatility relative to equity volatility, lead the model to predict lower long-term volatility (\(\sigma_7\)), whereas low values of the ratio (blue dots) push predictions higher. This pattern may reflect a "flight to quality" effect, where extreme market stress, signaled by a high MOVE\_VIX\_Ratio, is associated with expectations of aggressive central bank interventions aimed at stabilizing long-term rates and suppressing volatility. The network appears to have captured that such stress episodes are often precursors to a calmer, lower-volatility regime over the long term.
+
+
+This SHAP-based interpretability analysis reinforces confidence in the neural network's predictions. It demonstrates that the model captures complex, non-linear relationships consistent with economic theory and market intuition, rather than fitting noise. Consequently, the neural network emerges not only as a computationally efficient and accurate calibration tool but also as a robust and transparent alternative to traditional Hull–White calibration methods.
+
+Note: All other plots regarding the SHAP values can be found at the appendix section.
+
+\subsection{Comparison with Hernandez (2016)}
+\textcite{hernandez2016model} investigated the calibration of a simplified one-factor Hull–White model characterized by a single mean-reversion parameter $\alpha$ and a single volatility parameter $\sigma$. His study was based on 156 GBP at-the-money (ATM) swaptions observed between 2013 and 2016. For the estimation task, he employed a feed-forward neural network with four hidden layers, trained to directly predict the parameters $(\alpha, \sigma)$ of the Hull--White model. In contrast, the neural network developed in the present thesis consists of five layers and utilizes a residual parameterization approach, in which the model learns to predict corrections to an initial guess of the parameters rather than the parameters themselves. This design choice aims to enhance numerical stability and convergence properties, particularly in non-linear calibration problems.
+
+The methodological distinction between both approaches is substantial. Hernandez’s neural network was trained using pre-calibrated parameter pairs obtained from a Levenberg–Marquardt (LM) optimization as target variables. The LM optimizer represented the traditional calibration benchmark in his study, providing a set of optimal parameters for each observation date. Conversely, the approach presented in this thesis does not rely on such precomputed targets. Instead, the predicted parameters are directly inserted into the QuantLib pricing engine, and the neural network is trained by minimizing the deviation between the model-implied and market-observed swaption volatilities. Formally, this corresponds to minimizing the loss function
+\[
+L(\theta) = \frac{1}{N} \sum_{i=1}^{N} \left( \sigma^{\text{model}}_i(\alpha(\theta), \sigma(\theta)) - \sigma^{\text{market}}_i \right)^2,
+\]
+where $\sigma^{\text{model}}_i$ and $\sigma^{\text{market}}_i$ denote model-implied and market-observed volatilities, respectively, and $\theta$ represents the neural network parameters (see sections \ref{calibration} and \ref{subsec:loss_function_and_error_metric}). This direct loss formulation allows the network to learn parameter mappings that minimize actual pricing errors rather than reproducing the outcomes of an external optimizer. However, the approach entails higher computational costs because QuantLib’s pricing routines are implemented in C++ and do not expose analytical gradients to TensorFlow’s automatic differentiation, making backpropagation computationally demanding (see section \ref{subsubsec:algorithmic_and_numerical_efficiency}).
+
+Regarding input representation, Hernandez incorporated both yield curve information and swaption data into the neural network’s feature vector. Specifically, he employed a 6-month tenor LIBOR curve discretized at 44 maturity points, ranging from 0 days to 50 years, including tenors of 0, 1, 2, 7, and 14 days; 1--24 months; 3--10 years; and 12, 15, 20, 25, 30, and 50 years. Principal component analysis (PCA) was subsequently applied to retain 99.5\% of the variance. Additionally, the 156 swaption volatilities formed a major component of the input vector. In contrast, the this thesis did not use swaption volatilities as input features but instead relied on alternative market information to ensure that the model’s predictive power stemmed from broader market dynamics rather than direct encoding of the target variable.
+
+Both studies calibrated their respective models to the full swaption volatility surface. To ensure comparability, the results obtained in this thesis, originally expressed in Bachelier (normal) volatilities, were converted to Black (lognormal) volatilities using the approach described in section \ref{subsec:conversion_from_normal_to_lognormal_errors}, consistent with the convention used by Hernandez.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/calibration_results/plot4_daily_rmse_black_vol.png}
+	\caption{Average Daily RMSEin Black Volatilities for Neural Network and Levenberg--Marquardt Calibration Methods.}
+	\label{fig:daily_rmse_black_vol}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/calibration_results/hernandez_calibration_results.png}
+	\caption{Hernandez's: Average Daily RMSE in Black Volatilities for Neural Network and Levenberg--Marquardt Calibration Methods. Source: \parencite[figure~3]{hernandez2016model}}
+	\label{fig:daily_rmse_black_vol}
+\end{figure}
+
+
+The traditional LM calibration methods in both studies exhibit comparable average relative errors of approximately 4.5\%. Nevertheless, the results obtained in this thesis indicate slightly lower errors, particularly in periods when Hernandez’s LM-based calibration demonstrated performance deterioration, such as from January 2016 onward. This improvement can be attributed to the higher flexibility of the Hull–White specification employed here, which allows for piecewise constant volatility parameters $\sigma(t)$ rather than a single constant parameter, thereby enabling a more accurate fit to the observed volatility surface.
+
+The performance difference becomes more pronounced when comparing the neural network–based calibration results. Hernandez’s neural network achieved an average calibration error similar to that of his LM optimizer, approximately 4.5\%, whereas the model developed in this thesis attained a significantly lower average error of around 2.5\%. Both studies were conducted under relatively stable market conditions, suggesting that the superior performance of the present model is primarily due to the direct optimization of pricing errors rather than the replication of pre-calibrated parameters. By learning the end-to-end mapping from market inputs to pricing-consistent model parameters, the proposed neural network achieves a better generalization to the true market dynamics underlying the volatility surface.
+
+A further difference between the studies lies in the temporal stability of the models. Hernandez reported a degradation in performance approximately six to twelve months after training, implying limited temporal generalization. Due to the restricted testing period of only one month in this thesis, no such degradation could be observed, and further analysis over a longer horizon would be required to assess long-term stability.
+
+It is important to note several limitations that constrain the comparability of both studies. First, Hernandez employed a simplified version of the Hull--White model with only one mean-reversion and one volatility parameter, inherently reducing its flexibility to fit complex swaption surfaces. Second, his neural network benefited from a substantially larger training dataset, as he synthetically generated approximately 150,000 samples, whereas the present thesis relied exclusively on empirical data, limiting both the temporal coverage and sample size. Consequently, while the lower calibration errors observed in this work indicate improved model fit, they must be interpreted cautiously given the differences in model complexity, data volume, and testing horizon.

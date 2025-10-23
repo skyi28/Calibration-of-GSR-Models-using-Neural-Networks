@@ -379,7 +379,7 @@ Tuneable hyperparameters which cover the training and the loss functions are:
 \end{itemize}
 
 \subsection{Loss Function and Error Metric}
-
+\label{subsec:loss_function_and_error_metric}
 The objective of the neural network is to determine the optimal set of weights W and biases b such that the predicted Hull--White parameters minimize the discrepancy between model-implied swaption volatilities and their market-observed counterparts. The neural network acts as a function
 \begin{equation}
 	\text{NN} : x \mapsto \theta(x; W, b),
@@ -442,6 +442,58 @@ In practice, this expectation is approximated by iterating over the training set
 \end{equation}
 where $\eta$ is the learning rate. Since $V_{\text{QL}}$ is a non-differentiable black-box function, gradients are computed numerically via finite differences using a tf.custom\_gradient implementation.
 
+\subsection{Conversion from Normal to Black Volatility Errors}
+\label{subsec:conversion_from_normal_to_lognormal_errors}
+In interest rate derivatives markets, two primary volatility conventions are employed for pricing and risk management: the normal (Bachelier) volatility and the lognormal (Black) volatility. The distinction between these conventions arises from the assumed stochastic dynamics of the underlying forward rate or price process. The conversion between both representations is essential when comparing model calibration errors or implied volatilities expressed under different modeling assumptions, as is the case in the present study.
+
+Under the Bachelier (normal) model, the forward rate \( F_t \) evolves according to a normal diffusion process,
+\begin{equation}
+	dF_t = \sigma_N \, dW_t,
+\end{equation}
+where \( \sigma_N \) denotes the normal volatility and \( W_t \) is a standard Brownian motion. In this framework, the forward rate can take both positive and negative values, making the model particularly suitable for low or negative interest rate environments. The option price under the Bachelier model is linear in volatility, and \( \sigma_N \) represents an absolute volatility level (for example, 0.0050 corresponds to 50 basis points).
+
+In contrast, the Black (lognormal) model assumes that the forward rate follows a lognormal diffusion process,
+\begin{equation}
+	dF_t = \sigma_B F_t \, dW_t,
+\end{equation}
+where \( \sigma_B \) represents the lognormal or Black volatility. Here, the volatility is expressed in relative terms (e.g., 0.20 corresponds to 20\%), and the forward rate is strictly positive. The lognormal assumption is particularly useful when modeling multiplicative dynamics in markets with positive rates.
+
+For at-the-money (ATM) swaptions, where the strike \( K \) equals the forward rate \( F \), the two pricing frameworks yield nearly equivalent option values if the volatilities satisfy the following approximate relationship:
+\begin{equation}
+	\sigma_N \approx \sigma_B F.
+\end{equation}
+Rearranging this yields an approximation for converting normal volatility to lognormal volatility:
+\begin{equation}
+	\sigma_B \approx \frac{\sigma_N}{F}.
+\end{equation}
+This relationship provides an accurate first-order approximation for ATM instruments and is commonly applied in market practice for fast conversions between volatility conventions.
+\label{subsubsec:conversion_normal_to_black_vol_errors}
+When assessing model calibration performance, the model error expressed in normal volatility terms, denoted by \( \varepsilon_N \), can therefore be converted into an equivalent Black volatility error for each swaption \( i \) with forward rate \( F_i \) as
+\begin{equation}
+	\varepsilon_{B,i} = \frac{\varepsilon_N}{F_i}.
+\end{equation}
+This conversion enables a consistent comparison with benchmark results, such as those reported in studies or market data expressed in Black volatility terms.
+
+However, aggregating these individual instrument errors to obtain a portfolio-level measure requires careful weighting, as swaptions exhibit varying sensitivities to changes in volatility. The sensitivity of the price \( V_i \) of a swaption \( i \) with respect to volatility is given by its vega,
+\begin{equation}
+	\nu_i = \frac{\partial V_i}{\partial \sigma_N}.
+\end{equation}
+In the present context, vegas are computed under the Bachelier model, consistent with the representation of the input errors in normal volatility terms. The vega quantifies the marginal effect of volatility changes on the swaption price and thus serves as a natural weighting factor for aggregating volatility errors.
+
+To obtain a single representative portfolio-level Black volatility error, a vega-weighted average is computed across all \( n \) swaptions within the volatility cube. The aggregated Black volatility error \( \bar{\varepsilon}_B \) is then given by
+\begin{equation}
+	\bar{\varepsilon}_B = \frac{\sum_{i=1}^{n} \varepsilon_{B,i} \nu_i}{\sum_{i=1}^{n} \nu_i}.
+\end{equation}
+Substituting the expression for \( \varepsilon_{B,i} \) yields
+\begin{equation}
+	\bar{\varepsilon}_B = \frac{\sum_{i=1}^{n} \left( \frac{\varepsilon_N}{F_i} \nu_i \right)}{\sum_{i=1}^{n} \nu_i}.
+\end{equation}
+Since the normal-volatility-based model error \( \varepsilon_N \) is constant across swaptions on a given day, it can be factored out:
+\begin{equation}
+	\bar{\varepsilon}_B = \varepsilon_N \frac{\sum_{i=1}^{n} \frac{\nu_i}{F_i}}{\sum_{i=1}^{n} \nu_i}.
+\end{equation}
+This formula represents the vega-weighted average conversion from normal to lognormal volatility on the portfolio level. It ensures that instruments with higher price sensitivity to volatility contribute proportionally more to the aggregate measure. Conceptually, this approach yields a portfolio-consistent transformation of model errors between the two volatility conventions, allowing for robust comparison of calibration quality under different modeling frameworks.
+
 \subsection{Methodology Workflow}
 The subsequent section delineates the comprehensive, step-by-step workflow implemented for the calibration of the Hull-White model, as depicted by the provided source code. The process is designed as an end-to-end pipeline, commencing with raw data ingestion and culminating in model evaluation, adaptive retraining, and interpretability analysis.
 
@@ -485,6 +537,7 @@ Specifically, the approach treats the mean-reversion parameter, $\alpha$, as a s
 Furthermore, the calibration employs a \textit{global (full matrix) calibration} methodology with the exception of swaptions which have a maturity and tenor of less than 2 years. This global approach provides the model with a comprehensive view of the market, enabling it to achieve a more robust and stable fit across the entire volatility surface, as recommended for empirical analyses in section \ref{calibration}.
 
 \subsection{Comparison of Neural Network and Levenberg-Marquardt Calibration}
+\label{subsec:comparison_of_nn_and_lm}
 A robust experimental framework was designed and implemented to enable a scientifically valid comparison between the traditional Levenberg-Marquardt (LM) optimization and the Neural Network (NN) predictor. The primary objective of this framework was to address the fundamental methodological challenge of fairly comparing an in-sample fitter with an out-of-sample predictor.  
 
 The core issue arises from the differing nature of the two models. The LM algorithm operates as an in-sample fitter: for a given day, it receives the complete set of that day's market-observed swaption volatilities and determines the Hull-White parameters $(a, \sigma)$ that minimize the pricing error for this exact set. Its performance metric, typically the Root Mean Squared Error (RMSE), is computed against the same data used for calibration, reflecting the model's goodness-of-fit. This approach is prone to overfitting, as the resulting parameters may capture noise and idiosyncrasies specific to the input data rather than generalizable features. In contrast, the NN is designed as an out-of-sample predictor. It is trained on historical data to learn a mapping from observable market features, such as yield curve shapes and volatility indices, to the corresponding optimal Hull-White parameters. On a test day, it receives only these market features and predicts parameters that are evaluated against the previously unseen swaption volatilities, making its error a measure of generalization ability.  
@@ -510,6 +563,7 @@ To mitigate the computational cost associated with the numerical gradient comput
 All training was executed on the CPU. This decision was motivated by the observation that the primary computational bottleneck lies not in the neural network’s forward propagation—which would benefit from GPU acceleration—but in the iterative, conditional, and sequential nature of QuantLib’s pricing algorithms. Such algorithms are inherently unsuited to GPU architectures, which excel in parallel matrix operations but perform poorly with branching control flow. Re-implementing QuantLib’s pricing models in a GPU-compatible framework would require prohibitive effort while yielding minimal performance benefits. Although frameworks such as \textit{TF-Quant-Finance} aim to provide GPU-compatible financial modeling tools, they currently lack active maintenance and do not support Gaussian short-rate (GSR) models with piecewise constant volatility—an essential feature for this research.
 
 \subsubsection{Algorithmic and Numerical Efficiency}
+\label{subsubsec:algorithmic_and_numerical_efficiency}
 Further acceleration was achieved through algorithmic refinements and numerical efficiency improvements. The numerical derivative used in gradient computation can be approximated either by the forward difference or the central difference scheme. The forward difference requires only one additional model evaluation per parameter and is therefore approximately twice as fast as the central difference method, albeit with slightly higher numerical noise. A careful balance between computational efficiency and numerical precision was thus sought in practice.
 
 Additionally, the precision of numerical integration within the QuantLib pricing engine was adjusted through the \texttt{pricing\_engine\_integration\_points} parameter, which controls the number of Gaussian quadrature points used by the \texttt{Gaussian1dSwaptionEngine}. Reducing the number of integration points lowers computational cost per pricing call but may introduce marginally higher numerical error. The chosen configuration represents a compromise between computational tractability and pricing stability.
