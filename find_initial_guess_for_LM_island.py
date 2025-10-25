@@ -220,7 +220,7 @@ if __name__ == '__main__':
     NUM_ISLANDS = multiprocessing.cpu_count()
     MIGRATION_INTERVAL = 15
     MIGRATION_COUNT = 2
-    TOTAL_POPULATION = 500  # Increased for higher dimensional space
+    TOTAL_POPULATION = 512  # Increased for higher dimensional space
     TOTAL_GENERATIONS = 150
     MUTATION_RATE = 0.9     # Higher mutation rate is often better for complex spaces
     TOURNAMENT_SIZE = 3
@@ -233,7 +233,7 @@ if __name__ == '__main__':
 
     PARAM_BOUNDS = {'a': (0.005, 0.05), 'sigma': (0.00001, 0.001)} # Sigma bounds apply to all 7 sigmas
     MIN_EXPIRY_YEARS, MIN_TENOR_YEARS = 2.0, 2.0
-    date_str = "01.06.2025"
+    date_str = "03.08.2025"
     eval_date = datetime.datetime.strptime(date_str, "%d.%m.%Y").date()
     
     print(f"--- Starting GA for Extended HW (1+7) model for {date_str} ---")
