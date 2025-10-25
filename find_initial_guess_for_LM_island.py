@@ -174,45 +174,6 @@ def evolve_island(args):
     
     return final_pop_with_fitness, fitness_cache
 
-# --- VISUALIZATION FUNCTIONS (ADAPTED FROM LM SCRIPT) ---
-def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date, save_dir: str):
-    plot_data = results_df.dropna(subset=['MarketVol', 'ModelVol', 'Difference_bps']).copy()
-    if plot_data.empty: return
-    X = plot_data['Expiry'].values
-    Y = plot_data['Tenor'].values
-    Z_market, Z_model, Z_diff = plot_data['MarketVol'].values, plot_data['ModelVol'].values, plot_data['Difference_bps'].values
-    
-    fig = plt.figure(figsize=(24, 8))
-    fig.suptitle(f'GA Hull-White Calibration Volatility Surfaces for {eval_date}', fontsize=16)
-    
-    ax1 = fig.add_subplot(1, 3, 1, projection='3d')
-    ax1.set_title('Observed Market Volatilities (bps)')
-    surf1 = ax1.plot_trisurf(X, Y, Z_market, cmap=cm.viridis, antialiased=True, linewidth=0.1)
-    ax1.set_xlabel('Expiry (Years)'); ax1.set_ylabel('Tenor (Years)'); ax1.set_zlabel('Volatility (bps)')
-    fig.colorbar(surf1, ax=ax1, shrink=0.5, aspect=10, pad=0.1)
-    ax1.view_init(elev=30, azim=-120)
-
-    ax2 = fig.add_subplot(1, 3, 2, projection='3d')
-    ax2.set_title('Model Implied Volatilities (bps)')
-    surf2 = ax2.plot_trisurf(X, Y, Z_model, cmap=cm.viridis, antialiased=True, linewidth=0.1)
-    ax2.set_xlabel('Expiry (Years)'); ax2.set_ylabel('Tenor (Years)'); ax2.set_zlabel('Volatility (bps)')
-    fig.colorbar(surf2, ax=ax2, shrink=0.5, aspect=10, pad=0.1)
-    ax2.set_zlim(np.nanmin(Z_market) * 0.9, np.nanmax(Z_market) * 1.1)
-    ax2.view_init(elev=30, azim=-120)
-
-    ax3 = fig.add_subplot(1, 3, 3, projection='3d')
-    ax3.set_title('Difference (Model - Market) (bps)')
-    surf3 = ax3.plot_trisurf(X, Y, Z_diff, cmap=cm.coolwarm, antialiased=True, linewidth=0.1)
-    ax3.set_xlabel('Expiry (Years)'); ax3.set_ylabel('Tenor (Years)'); ax3.set_zlabel('Difference (bps)')
-    fig.colorbar(surf3, ax=ax3, shrink=0.5, aspect=10, pad=0.1)
-    ax3.set_zlim(-np.nanmax(np.abs(Z_diff)), np.nanmax(np.abs(Z_diff)))
-    ax3.view_init(elev=30, azim=-120)
-
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig(os.path.join(save_dir, f'GA_CalibrationPlot_{eval_date}.png'))
-    plt.close(fig)
-    print(f"\nGA calibration surface plot saved to: {os.path.join(save_dir, f'GA_CalibrationPlot_{eval_date}.png')}")
-
 # --- MAIN WORKFLOW ---
 if __name__ == '__main__':
     # --- GA and Model Hyperparameters ---
@@ -361,7 +322,6 @@ if __name__ == '__main__':
                 'Difference_bps': model_vol_bps - market_vol_bps
             })
         results_df = pd.DataFrame(results_data)
-        plot_calibration_results(results_df, eval_date, OUTPUT_DIR)
         
     except Exception as e:
         import traceback
