@@ -790,6 +790,85 @@
       \field{title}{Options, Futures and Other Derivatives}
       \field{year}{2015}
     \endentry
+    \entry{izzo2012generalislandmodel}{inbook}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=877562dadfdad676dd1a70eb21f3556e}{%
+           family={Izzo},
+           familyi={I\bibinitperiod},
+           given={Dario},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=6bc539d1385e6127eb02e46c6e4af7a9}{%
+           family={Ruciński},
+           familyi={R\bibinitperiod},
+           given={Marek},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=8cd5135d7f5153bdfd5d13e63ef938f2}{%
+           family={Biscani},
+           familyi={B\bibinitperiod},
+           given={Francesco},
+           giveni={F\bibinitperiod},
+           givenun=0}}%
+      }
+      \name{editor}{3}{}{%
+        {{hash=74ca381740795a1eef229dd479ad3f3e}{%
+           family={Fernández\bibnamedelimb de\bibnamedelima Vega},
+           familyi={F\bibinitperiod\bibinitdelim d\bibinitperiod\bibinitdelim V\bibinitperiod},
+           given={Francisco},
+           giveni={F\bibinitperiod}}}%
+        {{hash=6597c990bae3cba8887987e090bc5b91}{%
+           family={Hidalgo\bibnamedelima Pérez},
+           familyi={H\bibinitperiod\bibinitdelim P\bibinitperiod},
+           given={José\bibnamedelima Ignacio},
+           giveni={J\bibinitperiod\bibinitdelim I\bibinitperiod}}}%
+        {{hash=243c545cee18ef13aa70568ad3df41cd}{%
+           family={Lanchares},
+           familyi={L\bibinitperiod},
+           given={Juan},
+           giveni={J\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Berlin, Heidelberg}%
+      }
+      \list{publisher}{1}{%
+        {Springer Berlin Heidelberg}%
+      }
+      \strng{namehash}{73ef4cae47b7dc18ddaa6a0ac14151d1}
+      \strng{fullhash}{69bb1ffbc87ca9620ab087cf9aa6c8dc}
+      \strng{fullhashraw}{69bb1ffbc87ca9620ab087cf9aa6c8dc}
+      \strng{bibnamehash}{69bb1ffbc87ca9620ab087cf9aa6c8dc}
+      \strng{authorbibnamehash}{69bb1ffbc87ca9620ab087cf9aa6c8dc}
+      \strng{authornamehash}{73ef4cae47b7dc18ddaa6a0ac14151d1}
+      \strng{authorfullhash}{69bb1ffbc87ca9620ab087cf9aa6c8dc}
+      \strng{authorfullhashraw}{69bb1ffbc87ca9620ab087cf9aa6c8dc}
+      \strng{editorbibnamehash}{5002558afd391a1fd6cd7efda7306f80}
+      \strng{editornamehash}{111b9bbd22a5b01b5ef54befc556785a}
+      \strng{editorfullhash}{5002558afd391a1fd6cd7efda7306f80}
+      \strng{editorfullhashraw}{5002558afd391a1fd6cd7efda7306f80}
+      \field{sortinit}{I}
+      \field{sortinithash}{8d291c51ee89b6cd86bf5379f0b151d8}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Parallel Architectures and Bioinspired Algorithms}
+      \field{isbn}{978-3-642-28789-3}
+      \field{title}{The Generalized Island Model}
+      \field{year}{2012}
+      \field{pages}{151\bibrangedash 169}
+      \range{pages}{19}
+      \verb{doi}
+      \verb 10.1007/978-3-642-28789-3_7
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1007/978-3-642-28789-3_7
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1007/978-3-642-28789-3_7
+      \endverb
+    \endentry
     \entry{jamshidian1989decomposition}{article}{}{}
       \name{author}{1}{}{%
         {{un=0,uniquepart=base,hash=990d74e89e238a4b693fd97ac6580de1}{%
@@ -2392,6 +2471,85 @@
       \field{isbn}{9780133456318}
       \field{title}{Options, Futures and Other Derivatives}
       \field{year}{2015}
+    \endentry
+    \entry{izzo2012generalislandmodel}{inbook}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=877562dadfdad676dd1a70eb21f3556e}{%
+           family={Izzo},
+           familyi={I\bibinitperiod},
+           given={Dario},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=6bc539d1385e6127eb02e46c6e4af7a9}{%
+           family={Ruciński},
+           familyi={R\bibinitperiod},
+           given={Marek},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=8cd5135d7f5153bdfd5d13e63ef938f2}{%
+           family={Biscani},
+           familyi={B\bibinitperiod},
+           given={Francesco},
+           giveni={F\bibinitperiod},
+           givenun=0}}%
+      }
+      \name{editor}{3}{}{%
+        {{hash=74ca381740795a1eef229dd479ad3f3e}{%
+           family={Fernández\bibnamedelimb de\bibnamedelima Vega},
+           familyi={F\bibinitperiod\bibinitdelim d\bibinitperiod\bibinitdelim V\bibinitperiod},
+           given={Francisco},
+           giveni={F\bibinitperiod}}}%
+        {{hash=6597c990bae3cba8887987e090bc5b91}{%
+           family={Hidalgo\bibnamedelima Pérez},
+           familyi={H\bibinitperiod\bibinitdelim P\bibinitperiod},
+           given={José\bibnamedelima Ignacio},
+           giveni={J\bibinitperiod\bibinitdelim I\bibinitperiod}}}%
+        {{hash=243c545cee18ef13aa70568ad3df41cd}{%
+           family={Lanchares},
+           familyi={L\bibinitperiod},
+           given={Juan},
+           giveni={J\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Berlin, Heidelberg}%
+      }
+      \list{publisher}{1}{%
+        {Springer Berlin Heidelberg}%
+      }
+      \strng{namehash}{73ef4cae47b7dc18ddaa6a0ac14151d1}
+      \strng{fullhash}{69bb1ffbc87ca9620ab087cf9aa6c8dc}
+      \strng{fullhashraw}{69bb1ffbc87ca9620ab087cf9aa6c8dc}
+      \strng{bibnamehash}{69bb1ffbc87ca9620ab087cf9aa6c8dc}
+      \strng{authorbibnamehash}{69bb1ffbc87ca9620ab087cf9aa6c8dc}
+      \strng{authornamehash}{73ef4cae47b7dc18ddaa6a0ac14151d1}
+      \strng{authorfullhash}{69bb1ffbc87ca9620ab087cf9aa6c8dc}
+      \strng{authorfullhashraw}{69bb1ffbc87ca9620ab087cf9aa6c8dc}
+      \strng{editorbibnamehash}{5002558afd391a1fd6cd7efda7306f80}
+      \strng{editornamehash}{111b9bbd22a5b01b5ef54befc556785a}
+      \strng{editorfullhash}{5002558afd391a1fd6cd7efda7306f80}
+      \strng{editorfullhashraw}{5002558afd391a1fd6cd7efda7306f80}
+      \field{sortinit}{I}
+      \field{sortinithash}{8d291c51ee89b6cd86bf5379f0b151d8}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Parallel Architectures and Bioinspired Algorithms}
+      \field{isbn}{978-3-642-28789-3}
+      \field{title}{The Generalized Island Model}
+      \field{year}{2012}
+      \field{pages}{151\bibrangedash 169}
+      \range{pages}{19}
+      \verb{doi}
+      \verb 10.1007/978-3-642-28789-3_7
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1007/978-3-642-28789-3_7
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1007/978-3-642-28789-3_7
+      \endverb
     \endentry
     \entry{jamshidian1989decomposition}{article}{}{}
       \name{author}{1}{}{%
