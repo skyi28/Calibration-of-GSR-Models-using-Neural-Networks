@@ -37,7 +37,7 @@ Day-count conventions follow market standards: ACT/360 for short and medium matu
 
 The curve is bootstrapped sequentially from cash deposits through \ac{fra}s to interest-rate swaps, producing a continuous zero rate and forward rate term structure. The interpolation is typically performed in a log-linear fashion on either discount factors or zero rates. Within the Bloomberg volatility cube environment (\texttt{VCUB}), this curve appears as \texttt{Swap Curve (45) Euro} and provides consistent forward rate inputs for the calibration of EUR 6M swaption volatilities.
 
-\subsubsection{\ac{move} Index}
+\subsubsection{MOVE Index}
 The \ac{move} index represents the treasury market's implied volatility and serves as a primary external indicator of interest rate uncertainty. Daily open values of the \ac{move} index were collected from Yahoo Finance to capture the most up-to-date measure of market-implied interest rate volatility at the start of each trading day. By using the open rather than closing values, the \ac{nn} is able to predict \ac{hw} model parameters early in the day, leveraging the most recent available information without waiting for end-of-day data. The \ac{move} index is particularly relevant as it captures expected fluctuations in interest rates, which directly influence the calibration of the \ac{hw} model.
 
 \subsubsection{Volatility Index}
@@ -81,7 +81,7 @@ Figure~\ref{fig:external_data_time_series} depicts the evolution of key market i
 \end{table}
 
 
-Table~\ref{tab:external_summary} provides a quantitative summary of the external market factors depicted in Figure~\ref{fig:external_data_time_series}. The statistics confirm the visual analysis, detailing the central tendency and dispersion of each series. Notably, the \ac{vix} exhibits significant positive skewness (0.89), indicating that upward spikes in volatility are more pronounced than downward movements. Conversely, the EUR/USD rate shows a negative skew (-0.57). The kurtosis values, which deviate from the zero value of a mesokurtic distribution, provide further numerical evidence that these financial time series are not normally distributed, a crucial consideration for the modeling approach.
+Table~\ref{tab:external_summary} provides a quantitative summary of the external market factors depicted in figure~\ref{fig:external_data_time_series}. The statistics confirm the visual analysis, detailing the central tendency and dispersion of each series. Notably, the \ac{vix} exhibits significant positive skewness (0.89), indicating that upward spikes in volatility are more pronounced than downward movements. Conversely, the EUR/USD rate shows a negative skew (-0.57). The kurtosis values, which deviate from the zero value of a mesokurtic distribution, provide further numerical evidence that these financial time series are not normally distributed, a crucial consideration for the modeling approach.
 
 \begin{figure}[H]
 	\centering
@@ -132,7 +132,7 @@ Figure~\ref{fig:yield_curve_2d_snapshots} visualizes static yield curve snapshot
 	\end{threeparttable}
 \end{table}
 
-Table~\ref{tab:yield_curve_summary} quantifies the characteristics of the yield curve by presenting descriptive statistics for key benchmark tenors. The increasing mean rate with tenor numerically confirms the upward-sloping nature of the term structure. A particularly important finding is the behavior of the standard deviation, which increases from 0.05\% for the 1-year rate to 0.12\% for the 30-year rate. This demonstrates that the long end of the yield curve is substantially more volatile in absolute terms, a stylized fact that is further explored in Figure~\ref{fig:yield_curve_std_by_tenor}.
+Table~\ref{tab:yield_curve_summary} quantifies the characteristics of the yield curve by presenting descriptive statistics for key benchmark tenors. The increasing mean rate with tenor numerically confirms the upward-sloping nature of the term structure. A particularly important finding is the behavior of the standard deviation, which increases from 0.05\% for the 1-year rate to 0.12\% for the 30-year rate. This demonstrates that the long end of the yield curve is substantially more volatile in absolute terms, a stylized fact that is further explored in figure~\ref{fig:yield_curve_std_by_tenor}.
 
 \begin{figure}[H]
 	\centering
@@ -183,7 +183,7 @@ Figure~\ref{fig:vol_surface_std_heatmap} displays the standard deviation of swap
 	\end{threeparttable}
 \end{table}
 
-Table~\ref{tab:vol_std_summary} provides a quantitative counterpart to the heatmap in Figure~\ref{fig:vol_surface_std_heatmap}, detailing the magnitude of instability across the volatility surface. The data confirms that the highest volatility is located at the front end, with the 1-year expiry, 1-year tenor swaption exhibiting a standard deviation of 4.93~\ac{bps}. This value is nearly an order of magnitude larger than the 0.54~\ac{bps} standard deviation observed for the 30-year expiry, 30-year tenor swaption. This sharp gradient in instability underscores the modeling challenge: the \ac{nn} must learn to produce highly dynamic outputs for the front end of the surface while generating stable outputs for the back end.
+Table~\ref{tab:vol_std_summary} provides a quantitative counterpart to the heatmap in figure~\ref{fig:vol_surface_std_heatmap}, detailing the magnitude of instability across the volatility surface. The data confirms that the highest volatility is located at the front end, with the 1-year expiry, 1-year tenor swaption exhibiting a standard deviation of 4.93~\ac{bps}. This value is nearly an order of magnitude larger than the 0.54~\ac{bps} standard deviation observed for the 30-year expiry, 30-year tenor swaption. This sharp gradient in instability underscores the modeling challenge: the \ac{nn} must learn to produce highly dynamic outputs for the front end of the surface while generating stable outputs for the back end.
 
 \begin{figure}[H]
 	\centering
@@ -205,7 +205,7 @@ Figure~\ref{fig:vol_surface_daily_changes_histogram} presents the distribution o
 
 \subsection{Data Preprocessing}
 \subsubsection{Bootstrapping Zero-Curves}
-The implementation of the one-factor \ac{hw} model in \texttt{QuantLib} requires zero-coupon curves as input for both discounting and forward rate generation. Consequently, the \ac{eur} swap curves obtained from Bloomberg were bootstrapped into continuous zero rate term structures following the procedure outlined in subsection~\ref{subsec:bootstrap_zero_curve}. This ensures compatibility with the \texttt{QuantLib} framework and provides a consistent foundation for pricing swaptions and calibrating the model parameters.
+The implementation of the one-factor \ac{hw} model in \texttt{QuantLib} requires zero-coupon curves as input for both discounting and forward rate generation. Consequently, the \ac{eur} swap curves obtained from Bloomberg were bootstrapped into continuous zero rate term structures following the procedure outlined in section~\ref{subsec:bootstrap_zero_curve}. This ensures compatibility with the \texttt{QuantLib} framework and provides a consistent foundation for pricing swaptions and calibrating the model parameters.
 
 \subsubsection{Handling Non-Trading Days in External Data}
 The external market data obtained from Yahoo Finance, including the \ac{move} index, \ac{vix}, and EUR/USD exchange rate, is only available for trading days. In contrast, the swaption and swap curve datasets contain values for all calendar days, including weekends and public holidays. To ensure temporal consistency across all features used for \ac{hw} model calibration, the external data were reindexed to cover the entire daily date range of the analysis period.
@@ -537,7 +537,7 @@ Specifically, the approach treats the mean-reversion parameter, $\alpha$, as a s
 
 Furthermore, the calibration employs a \textit{global (full matrix) calibration} methodology with the exception of swaptions which have a maturity and tenor of less than 2 years. This global approach provides the model with a comprehensive view of the market, enabling it to achieve a more robust and stable fit across the entire volatility surface, as recommended for empirical analyses in section \ref{calibration}.
 
-\subsection{Comparison of \ac{nn} and \ac{lm} Calibration}
+\subsection{Comparison of Neural Network and Levenberg-Marquardt Calibration}
 \label{subsec:comparison_of_nn_and_lm}
 A robust experimental framework was designed and implemented to enable a scientifically valid comparison between the traditional \ac{lm} optimization and the \ac{nn} predictor. The primary objective of this framework was to address the fundamental methodological challenge of fairly comparing an in-sample fitter with an out-of-sample predictor.
 
@@ -578,7 +578,7 @@ Several optimization strategies were applied to enhance convergence speed and st
 
 In addition, the concept of \textit{instrument batching} was introduced to reduce the computational burden per training iteration. Rather than evaluating all available swaptions at once, the loss function is computed on randomly selected subsets of instruments, controlled by the parameter \texttt{instrument\_batch\_size\_percentage}. This stochasticity not only accelerates each iteration but also introduces beneficial noise, which helps the optimizer escape local minima and improves generalization. Due to the small size of the dataset, all instruments were used in each batch (100\%) for the final training run as well as for the hyperparameter tuning to ensure maximum information utilization.
 
-Hyperparameter optimization was conducted using the Hyperband algorithm (see Subsection~\ref{subsec:hyperband_algorithm}). Hyperband allocates computational resources adaptively by evaluating a large number of configurations for a limited number of epochs and retaining only the most promising candidates for further training. This method significantly reduces the computational time required for hyperparameter tuning while maintaining robustness in identifying high-performing parameter configurations.
+Hyperparameter optimization was conducted using the Hyperband algorithm (see section~\ref{subsec:hyperband_algorithm}). Hyperband allocates computational resources adaptively by evaluating a large number of configurations for a limited number of epochs and retaining only the most promising candidates for further training. This method significantly reduces the computational time required for hyperparameter tuning while maintaining robustness in identifying high-performing parameter configurations.
 
 \subsubsection{Workflow-Level Enhancements and Model Design}
 To further enhance efficiency, all input data-such as bootstrapped zero curves and volatility cubes-were preloaded into system memory prior to model training. This design choice eliminates repeated disk input/output operations, minimizing latency and enabling smoother training iterations.
@@ -617,7 +617,7 @@ The initial parameter guess can be derived from various sources, such as the par
 
 In summary, the proposed hybrid framework integrates TensorFlow's differentiable learning capabilities with QuantLib's high-fidelity financial pricing models through custom gradient definitions and parallelized numerical differentiation. Combined with algorithmic, workflow, and training-level optimizations, these measures ensure that the training process remains computationally feasible, stable, and reproducible on commercially available hardware.
 
-\subsection{Use of \ac{ai}}
+\subsection{Use of Artificial Intelligence}
 \ac{ai} was employed in the context of this master thesis to support the author in various auxiliary and editorial tasks. Its use was strictly limited to non-critical and non-confidential aspects of the research and writing process. The primary purpose of employing \ac{ai} tools was to enhance the overall clarity, coherence, and grammatical accuracy of the text, ensuring a consistent academic writing style. Through text proposals and linguistic adjustments, the readability of the thesis was improved, allowing for a clearer communication of complex concepts to the reader. \ac{ai} was additionally utilized for translation purposes between English and German, ensuring linguistic precision in both directions.
 
 Furthermore, \ac{ai}-assisted summarization techniques were employed to help the author better understand complex theoretical or methodological concepts by providing concise explanatory summaries. These summaries served solely as a comprehension aid and were not directly included in the final version of the thesis without the author's verification and adaptation.

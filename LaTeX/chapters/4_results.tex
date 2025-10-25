@@ -128,7 +128,7 @@ In stark contrast, the \ac{lm} algorithm exhibits the opposite and more problema
 
 Finally, this analysis underscores the superior stability of the \ac{nn}. This is reflected in the standard deviation of its unweighted \ac{rmse} (0.73~\ac{bps}) and its even more stable vega-weighted \ac{rmse} (0.68~\ac{bps}). Conversely, the financial instability of the \ac{lm} method is highlighted by the substantial increase in volatility when moving from its unweighted (1.10~\ac{bps}) to its vega-weighted (1.95~\ac{bps}) error, confirming that its largest and most volatile errors occur on the instruments of highest financial importance.
 
-To formally assess the statistical properties of the daily out-of-sample \ac{rmse} values for both calibration methods, a series of hypothesis tests were conducted. These include normality testing using the Shapiro-Wilk test, a non-parametric Mann-Whitney~U test to examine differences in central tendency, and Levene's test to evaluate equality of variances. The results are summarized in Table~\ref{tab:stat_tests}.
+To formally assess the statistical properties of the daily out-of-sample \ac{rmse} values for both calibration methods, a series of hypothesis tests were conducted. These include normality testing using the Shapiro-Wilk test, a non-parametric Mann-Whitney~U test to examine differences in central tendency, and Levene's test to evaluate equality of variances. The results are summarized in table~\ref{tab:stat_tests}.
 
 \begin{table}[htbp]
 	\centering
@@ -160,7 +160,7 @@ Finally, Levene's test (\(p=0.1713\)) indicates no statistically significant dif
 
 The magnitude of the observed performance difference is economically and statistically significant. On average, the \ac{nn} reduces the out-of-sample pricing error by 3.58~\ac{bps} compared to the \ac{lm} calibration. During periods of elevated instability in the \ac{lm} algorithm's performance, this gap widens up to 4.57~\ac{bps}.
 
-The mean prediction errors, defined as the difference between model-implied volatilities and observed market volatilities (\(\text{Model Volatility} - \text{Market Volatility}\)) in basis points (\ac{bps}), were analyzed for the \ac{nn} and \ac{lm} calibration methods across various swaption expiry and tenor bins. The corresponding heatmaps in Figure~\ref{fig:error_heatmaps} visualize these unweighted statistical errors, where red cells indicate overestimation and blue cells indicate underestimation.
+The mean prediction errors, defined as the difference between model-implied volatilities and observed market volatilities (\(\text{Model Volatility} - \text{Market Volatility}\)) in basis points (\ac{bps}), were analyzed for the \ac{nn} and \ac{lm} calibration methods across various swaption expiry and tenor bins. The corresponding heatmaps in figure~\ref{fig:error_heatmaps} visualize these unweighted statistical errors, where red cells indicate overestimation and blue cells indicate underestimation.
 
 \begin{figure}[H]
 	\centering
@@ -171,7 +171,7 @@ The mean prediction errors, defined as the difference between model-implied vola
 
 The \ac{lm} calibration exhibits pronounced, systematic pricing biases across the surface. At the short end, errors reach up to +13.75~\ac{bps}, while at the long end, they are as high as +13.93~\ac{bps}. Conversely, the \ac{lm} model underestimates volatilities in the medium-expiry region, with errors down to -9.84 \ac{bps}. This pattern demonstrates that the in-sample optimization struggles to identify a single set of parameters capable of simultaneously fitting the complex curvature of the surface. In contrast, the \ac{nn} model produces a more balanced and less systematic error distribution. Although it slightly overestimates volatilities at the highly volatile short end (+14.51~\ac{bps}), the errors elsewhere are smaller and more evenly distributed.
 
-To deepen this analysis from a financial risk perspective, a second set of heatmaps was generated, as shown in Figure~\ref{fig:error_heatmaps_weighted}. These plots visualize the \textit{vega-weighted} mean errors, which represent the financial impact of the calibration inaccuracies. This metric highlights the regions of the volatility surface where the model's errors would cause the largest potential P\&L discrepancies.
+To deepen this analysis from a financial risk perspective, a second set of heatmaps was generated, as shown in figure~\ref{fig:error_heatmaps_weighted}. These plots visualize the \textit{vega-weighted} mean errors, which represent the financial impact of the calibration inaccuracies. This metric highlights the regions of the volatility surface where the model's errors would cause the largest potential P\&L discrepancies.
 
 \begin{figure}[H]
 	\centering
@@ -364,8 +364,8 @@ The sub-second runtime of the \ac{nn} makes it suitable for applications that ar
 
 Beyond mean speed, the \ac{nn} demonstrates highly predictable performance with a low standard deviation of execution time (0.0019 s), whereas the \ac{lm} algorithm shows substantial variability (23.52 s) due to sensitivity to market-specific data and optimization paths. This predictability is critical for integration into time-sensitive production workflows, further emphasizing the \ac{nn}'s suitability for operational deployment.
 
-\subsection{Interpretability of the \ac{nn} via \ac{shap} Values}
-The interpretability of the \ac{nn} was examined through \ac{shap} (SHapley Additive exPlanations) values, which quantify the contribution of each input feature to the model's predictions for the \ac{hw} parameters. This analysis provides insight into the internal decision-making process of the \ac{nn}, allowing for a scientific understanding of how it generates parameter estimates from market data.
+\subsection{Interpretability of the Neural Network via SHAP Values}
+The interpretability of the \ac{nn} was examined through \ac{shap} values, which quantify the contribution of each input feature to the model's predictions for the \ac{hw} parameters. This analysis provides insight into the internal decision-making process of the \ac{nn}, allowing for a scientific understanding of how it generates parameter estimates from market data.
 
 The \ac{shap} analysis validates the \ac{nn} as an interpretable model. The feature importance patterns reveal systematic and economically intuitive relationships, demonstrating that the model's predictions are grounded in financially relevant signals rather than being arbitrary or opaque. This dispels the perception of the network as an unexplainable "black box" and confirms that its outputs reflect meaningful market dynamics.
 

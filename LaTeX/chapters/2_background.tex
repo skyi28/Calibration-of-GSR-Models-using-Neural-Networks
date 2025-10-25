@@ -138,7 +138,7 @@ Further refinements include multi-factor extensions, such as the \ac{hw} two-fac
 
 Building upon the no-arbitrage framework that ensures consistency with the observed term structure, it is useful to further categorize models by the statistical nature of their short-rate dynamics leading to the class of \ac{gsr} models, which assume normally distributed interest-rate movements and offer valuable analytical tractability.
 
-\subsubsection{\ac{gsr} Models} \label{gaussian_short_rate_models}
+\subsubsection{Gaussian Short Rate Models} \label{gaussian_short_rate_models}
 \ac{gsr} models form a specific subclass within the broader family of short rate models in which the evolution of the short-term interest rate, or a transformation thereof, is governed by a stochastic process with normally distributed increments. The defining feature of these models is the assumption that the short rate $r_t$ (or its change) evolves under a Brownian motion $dz_t$ with constant or time-dependent volatility, leading to normally distributed outcomes \parencite[p.~53]{brigo2006interest}. As such, these models offer analytical tractability and closed-form solutions for bond prices and some derivative instruments. However, they also imply the theoretical possibility of negative interest rates, which may or may not be consistent with the prevailing market environment or the model's intended application \parencite[pp.~719--720]{hull2015optionsfutures}.
 
 Formally, a \ac{gsr} model is characterized by a \ac{sde}  of the general form:
@@ -155,8 +155,8 @@ Importantly, \ac{gsr} models stand in contrast to lognormal models such as the B
 
 This master thesis will focus in the following chapters on the one-factor \ac{hw} model, a prominent \ac{gsr} model that enhances the classical Vasicek formulation by introducing a time-dependent drift term to ensure an exact fit to the initial term structure of interest rates.
 
-\subsection{The One-Factor \ac{hw} Model}
-The one-factor \ac{hw} model represents a pivotal advancement in interest rate modeling, combining analytical tractability, empirical flexibility, and arbitrage-free consistency. As detailed in Hull and White's seminal 1990 paper \parencite{hull1990pricing}, the model extends the classical Vasicek framework by introducing time-dependent parameters, enabling exact calibration to the observed initial term structure of interest rates. As explained in Section~\ref{gaussian_short_rate_models}, the \ac{hw} model falls within the class of \ac{gsr} models due to its assumption of normally distributed short rate dynamics. Furthermore, as discussed in Section~\ref{no_arbitrage_models}, it enforces market consistency by incorporating a time-varying drift term.
+\subsection{The One-Factor Hull-White Model}
+The one-factor \ac{hw} model represents a pivotal advancement in interest rate modeling, combining analytical tractability, empirical flexibility, and arbitrage-free consistency. As detailed in Hull and White's seminal 1990 paper \parencite{hull1990pricing}, the model extends the classical Vasicek framework by introducing time-dependent parameters, enabling exact calibration to the observed initial term structure of interest rates. As explained in section~\ref{gaussian_short_rate_models}, the \ac{hw} model falls within the class of \ac{gsr} models due to its assumption of normally distributed short rate dynamics. Furthermore, as discussed in section~\ref{no_arbitrage_models}, it enforces market consistency by incorporating a time-varying drift term.
 
 The \ac{hw} model offers a favorable balance between model realism and computational tractability. Its ability to fit the observed term structure exactly, model time-varying volatilities, and provide analytic solutions for a wide class of derivatives positions it as a standard tool in fixed income modeling. It is particularly well-suited for applications such as: Pricing of swaptions, caps, and callable bonds, risk management and Value-at-Risk calculations and simulation of future interest rate scenarios for balance sheet modeling. The model's allowance for negative interest rates, due to its Gaussian nature, has become a point of practical relevance in recent years, as monetary policy in several advanced economies has driven rates below zero.
 
@@ -308,7 +308,7 @@ The full swaption price is obtained by summing the individual bond option prices
 
 Jamshidian's decomposition offers significant computational efficiency for one-factor models by reducing a complex multidimensional option pricing problem to a sequence of univariate bond option valuations. Moreover, this approach retains full analytical tractability under the \ac{hw} framework, allowing for fast and accurate pricing of European swaptions, a critical requirement in both risk management and market calibration contexts.
 
-\subsubsection{Calibration of the \ac{hw} Model}
+\subsubsection{Calibration of the Hull-White Model}
 \label{calibration}
 The calibration of the one-factor \ac{hw} model plays a central role in ensuring its effectiveness for interest rate derivative pricing and risk management. As established in previous sections, the \ac{hw} model provides analytical tractability and the ability to fit the initial yield curve exactly. However, to make the model reflect market-implied prices of interest rate derivatives, particularly caplets and swaptions, its dynamic parameters-mean reversion $a(t)$ and volatility $\sigma(t)$-must be appropriately calibrated.
 
