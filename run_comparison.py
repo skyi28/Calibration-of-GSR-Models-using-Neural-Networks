@@ -89,8 +89,8 @@ MODEL_SETTINGS = {
 # Settings for the traditional calibrator
 TRADITIONAL_CALIBRATION_SETTINGS = {
     "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True,
-    "initial_a": 0.02,
-    "initial_sigma": [0.0002, 0.0002, 0.00017, 0.00017, 0.00017, 0.00017, 0.00017],
+    "initial_a": 0.01821630830602023,
+    "initial_sigma": [0.00021102917641460398, 0.00026161313022069355, 0.0002433782032732618, 0.00023207666803595517, 0.00019547828248440554, 0.00013296374054782453, 0.0001745673951321553],
     "pricing_engine_integration_points": 32,
 }
 
