@@ -59,7 +59,7 @@ except ImportError:
 
 # --- 1. Model and Data Selection ---
 LATEST_MODEL_DIR = 'results/neural_network/models/model_20251021_004632'  # Set to None to auto-detect latest
-ANALYSIS_DATE_STR = "31.08.2025"
+ANALYSIS_DATE_STR = "04.08.2025"
 
 # --- 2. Model Structure (Must match the trained model) ---
 MODEL_PARAMETERS = {
@@ -75,11 +75,11 @@ TRADITIONAL_CALIBRATION_SETTINGS = {
     "num_a_segments": 1,
     "num_sigma_segments": 7,
     "optimize_a": True,
-    "initial_a": 0.02,
-    "initial_sigma": [0.0002] * 7, # A simple initial guess for sigma
+    "initial_a": 0.01821630830602023,
+    "initial_sigma": [0.00021102917641460398, 0.00026161313022069355, 0.0002433782032732618, 0.00023207666803595517, 0.00019547828248440554, 0.00013296374054782453, 0.0001745673951321553], # A simple initial guess for sigma
     "pricing_engine_integration_points": 32,
-    "min_expiry_years": 0.0,
-    "min_tenor_years": 0.0
+    "min_expiry_years": 2.0,
+    "min_tenor_years": 2.0
 }
 
 # --- 4. Scenario Definitions ---

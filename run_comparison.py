@@ -349,11 +349,39 @@ def perform_and_save_shap_analysis(
     print("--- SHAP Analysis Completed ---")
 
 
+def calculate_dynamic_weight(
+    previous_rmse: float,
+    min_error: float,
+    max_error: float,
+    w_min: float,
+    w_max: float
+) -> float:
+    """
+    Calculates a dynamic weight 'w' based on the previous day's RMSE.
+
+    A low RMSE results in a high weight (trusting the previous day's result),
+    while a high RMSE results in a low weight (reverting to the stable guess).
+    """
+    if np.isnan(previous_rmse):
+        # If the last run failed or is the first run, have minimum trust.
+        return w_min
+
+    # 1. Scale the error to a [0, 1] range
+    scaled_error = (previous_rmse - min_error) / (max_error - min_error)
+
+    # 2. Clamp the value to handle errors outside the defined range
+    scaled_error = np.clip(scaled_error, 0.0, 1.0)
+
+    # 3. Linearly interpolate to find the weight (inverse relationship)
+    dynamic_w = w_max - scaled_error * (w_max - w_min)
+    
+    return dynamic_w
+
 # --- MAIN EXPERIMENT ---
 if __name__ == '__main__':
     print("="*80)
     print(" Master Comparison of NN vs. LM for Hull-White Calibration ".center(80))
-    print(" Methodology: Intra-Day Stratified Hold-Out Set ".center(80))
+    print(" Methodology: Comparing 3 Distinct LM Initial Guess Strategies ".center(80))
     print("="*80)
 
     try:
@@ -385,49 +413,46 @@ if __name__ == '__main__':
         # --- 2. Main Experimental Loop ---
         daily_summary_results = []
         per_swaption_results = []
+        
+        # --- State Management for Strategies with Memory ---
+        # Strategy 2: Pure Rolling (prone to drift)
+        previous_pure_rolling_params = None
+        # Strategy 3: Adaptive Anchor
+        previous_adaptive_anchor_params = None
+        previous_adaptive_anchor_rmse = np.nan
+
+        # --- Hyperparameters for the Adaptive Anchor Strategy ---
+        MIN_ERROR_THRESHOLD = 6.0  # RMSE below this is considered "good"
+        MAX_ERROR_THRESHOLD = 12.0 # RMSE above this is considered "poor"
+        W_MAX_TRUST = 0.95         # Weight for good performance
+        W_MIN_TRUST = 0.15         # Weight for poor performance (strong anchor)
 
         print(f"\n--- Starting experiment on {len(test_files)} test days ---")
         for i, (eval_date, zero_path, vol_path) in enumerate(test_files):
             print(f"\nProcessing Day {i+1}/{len(test_files)}: {eval_date.strftime('%Y-%m-%d')}")
 
-            # a. Load daily data
+            # a. Load daily data and create hold-out set
             zero_df = pd.read_csv(zero_path, parse_dates=['Date'])
             vol_df = load_volatility_cube(vol_path)
             term_structure = create_ql_yield_curve(zero_df, eval_date)
             
             all_helpers_with_info = nn_prepare_helpers(vol_df, term_structure, MODEL_SETTINGS)
             if len(all_helpers_with_info) < 5:
-                print(f"  Skipping day {eval_date}: Insufficient valid swaptions ({len(all_helpers_with_info)}).")
+                print(f"  Skipping day {eval_date}: Insufficient valid swaptions.")
                 continue
 
-            # b. Stratified Random Sampling
             df_helpers = pd.DataFrame(all_helpers_with_info, columns=['helper', 'ExpiryStr', 'TenorStr'])
-            
-            expiry_counts = df_helpers['ExpiryStr'].value_counts()
-            single_member_strata = expiry_counts[expiry_counts < 2].index
-            df_helpers_multi = df_helpers[~df_helpers['ExpiryStr'].isin(single_member_strata)]
-            df_helpers_single = df_helpers[df_helpers['ExpiryStr'].isin(single_member_strata)]
-
-            if not df_helpers_multi.empty:
-                train_helpers_df_multi, holdout_helpers_df_multi = train_test_split(
-                    df_helpers_multi, test_size=0.20, random_state=42, stratify=df_helpers_multi['ExpiryStr']
-                )
-                train_helpers_df = pd.concat([train_helpers_df_multi, df_helpers_single])
-                holdout_helpers_df = holdout_helpers_df_multi
-            else:
-                train_helpers_df = df_helpers
-                holdout_helpers_df = pd.DataFrame(columns=df_helpers.columns)
-
+            train_helpers_df, holdout_helpers_df = train_test_split(df_helpers, test_size=0.20, random_state=42)
             calibration_set = [tuple(row) for row in train_helpers_df.itertuples(index=False)]
             holdout_set = [tuple(row) for row in holdout_helpers_df.itertuples(index=False)]
             
             if not holdout_set:
-                 print(f"  Skipping day {eval_date}: Hold-out set is empty after stratification.")
+                 print(f"  Skipping day {eval_date}: Hold-out set is empty after split.")
                  continue
 
             print(f"  Split complete: {len(calibration_set)} for calibration, {len(holdout_set)} for hold-out evaluation.")
 
-            # c. Generate NN Parameters
+            # b. Generate NN Parameters
             ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
             start_time_nn = time.perf_counter()
             feature_vector = prepare_nn_features(
@@ -438,48 +463,94 @@ if __name__ == '__main__':
             time_nn_sec = time.perf_counter() - start_time_nn
             print(f"  NN Prediction complete in {time_nn_sec:.6f} seconds.")
 
-            # d. Generate LM Parameters
-            start_time_lm = time.perf_counter()
-            params_lm_a, params_lm_sigma = calibrate_on_subset(
-                eval_date, zero_df, calibration_set, term_structure, **TRADITIONAL_CALIBRATION_SETTINGS
+            # --- c. Generate LM Parameters for all strategies ---
+
+            # --- STRATEGY 1: STATIC COLD START (The Baseline) ---
+            print("  Running LM Strategy 1: Static Cold Start...")
+            static_lm_settings = TRADITIONAL_CALIBRATION_SETTINGS.copy()
+            start_time_lm_static = time.perf_counter()
+            params_lm_static_a, params_lm_static_sigma = calibrate_on_subset(
+                eval_date, zero_df, calibration_set, term_structure, **static_lm_settings
             )
-            # This line is for testing purposes, since the actual calibration can be time-consuming
-            # params_lm_a, params_lm_sigma = ([0.021], [0.00021, 0.00019, 0.00018, 0.00017, 0.00016, 0.00015, 0.00014])
-            time_lm_sec = time.perf_counter() - start_time_lm
+            time_lm_static_sec = time.perf_counter() - start_time_lm_static
+            params_lm_static = np.concatenate([params_lm_static_a, params_lm_static_sigma]) if params_lm_static_a else np.full(len(params_nn), np.nan)
 
-            if params_lm_a is None:
-                print("  LM Calibration failed.")
-                params_lm = np.full(len(params_nn), np.nan)
-            else:
-                params_lm = np.concatenate([params_lm_a, params_lm_sigma])
-                print(f"  LM Calibration complete in {time_lm_sec:.4f} seconds.")
+            # --- STRATEGY 2: PURE ROLLING WARM START (The Drifting Heuristic) ---
+            print("  Running LM Strategy 2: Pure Rolling Warm Start...")
+            pure_rolling_settings = TRADITIONAL_CALIBRATION_SETTINGS.copy()
+            if previous_pure_rolling_params is not None:
+                num_a = pure_rolling_settings['num_a_segments']
+                pure_rolling_settings['initial_a'] = previous_pure_rolling_params[0]
+                pure_rolling_settings['initial_sigma'] = list(previous_pure_rolling_params[num_a:])
+            
+            start_time_lm_pure_rolling = time.perf_counter()
+            params_lm_pure_rolling_a, params_lm_pure_rolling_sigma = calibrate_on_subset(
+                eval_date, zero_df, calibration_set, term_structure, **pure_rolling_settings
+            )
+            time_lm_pure_rolling_sec = time.perf_counter() - start_time_lm_pure_rolling
+            params_lm_pure_rolling = np.concatenate([params_lm_pure_rolling_a, params_lm_pure_rolling_sigma]) if params_lm_pure_rolling_a else np.full(len(params_nn), np.nan)
 
-            # e. Evaluate both models on the Hold-Out Set
+            # --- STRATEGY 3: ADAPTIVE ANCHOR (The Optimized Solution) ---
+            print("  Running LM Strategy 3: Adaptive Anchor...")
+            static_guess_params = np.array([TRADITIONAL_CALIBRATION_SETTINGS['initial_a']] + TRADITIONAL_CALIBRATION_SETTINGS['initial_sigma'])
+            rolling_guess_params = previous_adaptive_anchor_params if previous_adaptive_anchor_params is not None else static_guess_params
+            
+            dynamic_w = calculate_dynamic_weight(
+                previous_adaptive_anchor_rmse, MIN_ERROR_THRESHOLD, MAX_ERROR_THRESHOLD, W_MIN_TRUST, W_MAX_TRUST
+            )
+            print(f"    -> Dynamic Anchor Weight: {dynamic_w:.4f} (based on previous RMSE of {previous_adaptive_anchor_rmse:.4f})")
+            
+            blended_guess_params = dynamic_w * rolling_guess_params + (1 - dynamic_w) * static_guess_params
+            
+            adaptive_anchor_settings = TRADITIONAL_CALIBRATION_SETTINGS.copy()
+            num_a = adaptive_anchor_settings['num_a_segments']
+            adaptive_anchor_settings['initial_a'] = blended_guess_params[0]
+            adaptive_anchor_settings['initial_sigma'] = list(blended_guess_params[num_a:])
+
+            start_time_lm_adaptive = time.perf_counter()
+            params_lm_adaptive_a, params_lm_adaptive_sigma = calibrate_on_subset(
+                eval_date, zero_df, calibration_set, term_structure, **adaptive_anchor_settings
+            )
+            time_lm_adaptive_sec = time.perf_counter() - start_time_lm_adaptive
+            params_lm_adaptive_anchor = np.concatenate([params_lm_adaptive_a, params_lm_adaptive_sigma]) if params_lm_adaptive_a else np.full(len(params_nn), np.nan)
+
+            # --- d. Evaluate all models on the Hold-Out Set ---
             results_nn_df, rmse_nn = evaluate_on_holdout(params_nn, holdout_set, eval_date, term_structure, MODEL_SETTINGS)
-            results_lm_df, rmse_lm = evaluate_on_holdout(params_lm, holdout_set, eval_date, term_structure, MODEL_SETTINGS)
-            print(f"  Evaluation on Hold-Out Set -> RMSE NN: {rmse_nn:.4f} bps | RMSE LM: {rmse_lm:.4f} bps")
+            results_static_df, rmse_lm_static = evaluate_on_holdout(params_lm_static, holdout_set, eval_date, term_structure, MODEL_SETTINGS)
+            results_pure_rolling_df, rmse_lm_pure_rolling = evaluate_on_holdout(params_lm_pure_rolling, holdout_set, eval_date, term_structure, MODEL_SETTINGS)
+            results_adaptive_df, rmse_lm_adaptive_anchor = evaluate_on_holdout(params_lm_adaptive_anchor, holdout_set, eval_date, term_structure, MODEL_SETTINGS)
+            print(f"  Evaluation on Hold-Out Set -> RMSE NN: {rmse_nn:.4f} | LM-Static: {rmse_lm_static:.4f} | LM-PureRolling: {rmse_lm_pure_rolling:.4f} | LM-Adaptive: {rmse_lm_adaptive_anchor:.4f}")
 
-            # f. Collect Results
-            day_summary = {'Date': eval_date,
-                           'RMSE_NN_OutOfSample': rmse_nn, 'RMSE_LM_OutOfSample': rmse_lm,
-                           'Time_NN_sec': time_nn_sec, 'Time_LM_sec': time_lm_sec}
-            num_a = MODEL_SETTINGS['num_a_segments'] if MODEL_SETTINGS['optimize_a'] else 0
-            for p_idx in range(num_a):
-                day_summary[f'NN_a_{p_idx+1}'] = params_nn[p_idx]
-                day_summary[f'LM_a_{p_idx+1}'] = params_lm[p_idx]
-            for p_idx in range(MODEL_SETTINGS['num_sigma_segments']):
-                day_summary[f'NN_sigma_{p_idx+1}'] = params_nn[num_a + p_idx]
-                day_summary[f'LM_sigma_{p_idx+1}'] = params_lm[num_a + p_idx]
+            # --- e. Update State for Next Day's Loop ---
+            previous_pure_rolling_params = params_lm_pure_rolling.copy() if not np.isnan(params_lm_pure_rolling).any() else None
+            previous_adaptive_anchor_params = params_lm_adaptive_anchor.copy() if not np.isnan(params_lm_adaptive_anchor).any() else None
+            previous_adaptive_anchor_rmse = rmse_lm_adaptive_anchor
+
+            # --- f. Collect Results ---
+            day_summary = {'Date': eval_date}
+            param_sets = {
+                'NN': (params_nn, rmse_nn, time_nn_sec),
+                'LM_Static': (params_lm_static, rmse_lm_static, time_lm_static_sec),
+                'LM_Pure_Rolling': (params_lm_pure_rolling, rmse_lm_pure_rolling, time_lm_pure_rolling_sec),
+                'LM_Adaptive_Anchor': (params_lm_adaptive_anchor, rmse_lm_adaptive_anchor, time_lm_adaptive_sec)
+            }
+            num_a = MODEL_SETTINGS['num_a_segments']
+            for name, (params, rmse, time_sec) in param_sets.items():
+                day_summary[f'RMSE_{name}'] = rmse
+                day_summary[f'Time_{name}_sec'] = time_sec
+                for p_idx in range(num_a):
+                    day_summary[f'{name}_a_{p_idx+1}'] = params[p_idx]
+                for p_idx in range(MODEL_SETTINGS['num_sigma_segments']):
+                    day_summary[f'{name}_sigma_{p_idx+1}'] = params[num_a + p_idx]
             daily_summary_results.append(day_summary)
 
-            merged_swaption_df = pd.merge(
-                results_nn_df, results_lm_df, on=['ExpiryStr', 'TenorStr', 'MarketVol_bps'],
-                suffixes=('_NN', '_LM')
-            )
-            merged_swaption_df.rename(columns={'ModelVol_bps_NN': 'NN_ModelVol_bps', 'ModelVol_bps_LM': 'LM_ModelVol_bps',
-                                               'Error_bps_NN': 'NN_Error_bps', 'Error_bps_LM': 'LM_Error_bps'}, inplace=True)
-            merged_swaption_df['EvaluationDate'] = eval_date
-            per_swaption_results.append(merged_swaption_df)
+            # Merge granular per-swaption results
+            merged_df = results_nn_df.rename(columns={'ModelVol_bps': 'NN_ModelVol_bps', 'Error_bps': 'NN_Error_bps'})
+            merged_df = pd.merge(merged_df, results_static_df.rename(columns={'ModelVol_bps': 'LM_Static_ModelVol_bps', 'Error_bps': 'LM_Static_Error_bps'}), on=['ExpiryStr', 'TenorStr', 'MarketVol_bps'])
+            merged_df = pd.merge(merged_df, results_pure_rolling_df.rename(columns={'ModelVol_bps': 'LM_Pure_Rolling_ModelVol_bps', 'Error_bps': 'LM_Pure_Rolling_Error_bps'}), on=['ExpiryStr', 'TenorStr', 'MarketVol_bps'])
+            merged_df = pd.merge(merged_df, results_adaptive_df.rename(columns={'ModelVol_bps': 'LM_Adaptive_Anchor_ModelVol_bps', 'Error_bps': 'LM_Adaptive_Anchor_Error_bps'}), on=['ExpiryStr', 'TenorStr', 'MarketVol_bps'])
+            merged_df['EvaluationDate'] = eval_date
+            per_swaption_results.append(merged_df)
 
         # --- 3. Save Final Outputs ---
         print("\n--- Experiment finished. Saving results. ---")
@@ -492,9 +563,6 @@ if __name__ == '__main__':
         if per_swaption_results:
             swaption_df = pd.concat(per_swaption_results, ignore_index=True)
             swaption_path = os.path.join(FOLDER_COMPARISON_RESULTS, 'per_swaption_holdout_results.csv')
-            cols_order = ['EvaluationDate', 'ExpiryStr', 'TenorStr', 'MarketVol_bps', 
-                          'NN_ModelVol_bps', 'LM_ModelVol_bps', 'NN_Error_bps', 'LM_Error_bps']
-            swaption_df = swaption_df[cols_order]
             swaption_df.to_csv(swaption_path, index=False)
             print(f"Per-swaption holdout results saved to: {swaption_path}")
 

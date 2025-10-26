@@ -247,6 +247,9 @@ def calibrate_on_subset(
         model.calibrate(calibration_helpers, method, end_criteria, ql.PositiveConstraint())
     else:
         model.calibrateVolatilitiesIterative(calibration_helpers, method, end_criteria)
+        
+    termination_reason = model.endCriteria()
+    print(f'LM Termination Reason: {termination_reason}')
     
     calibrated_expanded_as = list(model.reversion())
     calibrated_expanded_sigmas = list(model.volatility())
