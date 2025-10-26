@@ -499,36 +499,7 @@ Since the normal-volatility-based model error \( \varepsilon_N \) is constant ac
 \end{equation}
 This formula represents the vega-weighted average conversion from normal to lognormal volatility on the portfolio level. Conceptually, this approach yields a portfolio-consistent transformation of model errors that is grounded in financial reality, allowing for a robust comparison of calibration quality under different modeling frameworks.
 
-Having established the input structure and metrics, the next step outlines the full end-to-end workflow.
-
-\subsection{Methodology Workflow}
-The subsequent section delineates the comprehensive, step-by-step workflow implemented for the calibration of the \ac{hw} model, as depicted by the provided source code. The process is designed as an end-to-end pipeline, commencing with raw data ingestion and culminating in model evaluation, adaptive retraining, and interpretability analysis.
-
-\begin{enumerate}
-	\item \textbf{Data Ingestion and Preprocessing:}
-	      The initial phase involves loading raw \ac{eur} swap curve data, provided in Excel format. For each historical date, the mid-market rate is computed from the bid and ask quotes. These raw swap curves are then processed and transformed into a standardized format. Subsequently, the \texttt{QuantLib} library is employed to bootstrap these swap curves, yielding the corresponding zero-coupon yield curves for each valuation date. This bootstrapping process utilizes a \texttt{PiecewiseLogLinearDiscount} methodology to construct a term structure of zero rates from the observed market swap rates.
-
-	\item \textbf{External Market Data Integration:}
-	      To enrich the feature set, external market data is loaded. This includes the \ac{move} index, \ac{vix} and the EUR/USD foreign exchange rate. This data is sourced via the \texttt{yfinance} library. A complete time series is ensured by forward- and back-filling any missing daily values, providing a consistent set of external features for every yield curve date.
-
-	\item \textbf{Chronological Data Splitting:}
-	      Given the time-series nature of the financial data, a strict chronological split is enforced to prevent look-ahead bias. The dataset of available daily yield curves is divided into a training set (the initial 50\%), a validation set (the following 20\%), and a final out-of-sample testing set (the remaining 30\%). This ensures that the model is trained on past data, validated on more recent data, and finally tested on unseen future data.
-
-	\item \textbf{Feature Engineering and Dimensionality Reduction:}
-	      For each yield curve, a comprehensive feature vector is engineered. This vector includes not only the zero rates at key tenors (1Y to 30Y) but also derived features such as various yield curve slopes (e.g., 10Y-2Y), curvatures (e.g., $(2 \times 5\text{Y}) - 2\text{Y} - 10\text{Y}$), and the external market indicators. To address the high multicollinearity inherent in yield curve rates, \ac{pca} is performed exclusively on the rate-based features of the training data. The first three principal components, are retained. This reduces dimensionality while preserving the most significant sources of variance. The complete feature set, comprising these principal components and the other engineered features, is then standardized using Scikit-learn's \texttt{StandardScaler}, which is also fitted solely on the training data.
-
-	\item \textbf{Hyperparameter Optimization:}
-	      A rigorous hyperparameter tuning process is conducted using the Hyperband algorithm, implemented via the \texttt{Keras Tuner} library. The search space includes critical model architecture parameters (number of layers, neurons per layer, activation function, dropout usage and rate), optimization parameters (learning rate), and a custom hyperparameter for an asymmetric loss function (underestimation penalty). The objective function for the tuner is the minimization of the \ac{rmse} on the validation set.
-
-	\item \textbf{Model Training and Early Stopping:}
-	      Upon identifying the optimal set of hyperparameters, the final model is retrained from scratch on the entire training set. A key architectural choice is the \texttt{ResidualParameterModel}, which does not predict the \ac{hw} parameters directly but rather learns a residual correction to a predefined initial guess. Training is performed over a set number of epochs, but an early stopping mechanism is employed. The model's performance on the validation set is monitored after each epoch. If the validation \ac{rmse} does not improve for a predefined number of consecutive epochs (patience), the training is halted, and the model weights from the epoch with the lowest validation \ac{rmse} are restored. This prevents overfitting to the training data.
-
-	\item \textbf{Out-of-Sample Evaluation:}
-	      The trained model is evaluated on the unseen testing set in a forward-moving, chronological sequence. For each day in the test set, the model predicts the \ac{hw} parameters, and the resulting calibration error (\ac{rmse}) is calculated.
-
-	\item \textbf{Model Explainability with \ac{shap}:}
-	      To ensure transparency and interpretability of the final trained model, a post-hoc analysis is conducted using \ac{shap}. A \texttt{DeepExplainer} is utilized to compute \ac{shap} values for the model's predictions on the test set. This analysis quantifies the contribution of each input feature (e.g., PC Level, \ac{move} index) to the prediction of each output \ac{hw} parameter. The results are visualized through summary and feature importance plots, providing crucial insights into the model's decision-making process.
-\end{enumerate}
+Having established the framework for converting and aggregating calibration errors into a financially sound, portfolio-level metric, the following section describes the specific calibration strategy employed.
 
 \subsection{Calibration Strategy}
 The calibration methodology implemented in this thesis aligns with the \textit{simultaneous optimization} strategy discussed in section \ref{calibration}. The \ac{nn} is configured to concurrently optimize all dynamic parameters of the \ac{hw} model within a single, unified optimization routine.
@@ -537,85 +508,183 @@ Specifically, the approach treats the mean-reversion parameter, $\alpha$, as a s
 
 Furthermore, the calibration employs a \textit{global (full matrix) calibration} methodology with the exception of swaptions which have a maturity and tenor of less than 2 years. This global approach provides the model with a comprehensive view of the market, enabling it to achieve a more robust and stable fit across the entire volatility surface, as recommended for empirical analyses in section \ref{calibration}.
 
+The following section outlines the experimental framework established to compare the performance of the \ac{nn} predictor against the traditional \ac{lm} optimization method.
+
 \subsection{Comparison of Neural Network and Levenberg-Marquardt Calibration}
 \label{subsec:comparison_of_nn_and_lm}
-A robust experimental framework was designed and implemented to enable a scientifically valid comparison between the traditional \ac{lm} optimization and the \ac{nn} predictor. The primary objective of this framework was to address the fundamental methodological challenge of fairly comparing an in-sample fitter with an out-of-sample predictor.
+A robust experimental framework was designed to enable a scientifically valid comparison between the \ac{nn} predictor and the traditional \ac{lm} optimization. Recognizing that the performance of iterative optimizers can be highly dependent on their starting conditions, the \ac{lm} algorithm was implemented under three distinct initial guess strategies. The primary objective of this framework was to address the methodological challenge of fairly comparing an out-of-sample predictor against several variations of an in-sample fitter.
 
-The core issue arises from the differing nature of the two models. The \ac{lm} algorithm operates as an in-sample fitter: for a given day, it receives the complete set of that day's market-observed swaption volatilities and determines the \ac{hw} parameters $(a, \sigma)$ that minimize the pricing error for this exact set. Its performance metric, typically the \ac{rmse}, is computed against the same data used for calibration, reflecting the model's goodness-of-fit. This approach is prone to overfitting, as the resulting parameters may capture noise and idiosyncrasies specific to the input data rather than generalizable features. In contrast, the \ac{nn} is designed as an out-of-sample predictor. It is trained on historical data to learn a mapping from observable market features, such as yield curve shapes and volatility indices, to the corresponding optimal \ac{hw} parameters. On a test day, it receives only these market features and predicts parameters that are evaluated against the previously unseen swaption volatilities, making its error a measure of generalization ability.
+The core issue arises from the differing nature of the two model types. The \ac{lm} algorithm operates as an in-sample fitter: for a given day, it receives a set of market-observed swaption volatilities and determines the \ac{hw} parameters $(a, \sigma)$ that minimize the pricing error for this exact set. This approach can be prone to overfitting, as the resulting parameters may capture noise specific to the input data. In contrast, the \ac{nn} is designed as an out-of-sample predictor, trained on historical data to learn a mapping from observable market features to the optimal \ac{hw} parameters, making its error an inherent measure of generalization ability. This distinction is fundamental because the ultimate purpose of any model calibration extends beyond mere in-sample fitting. While an optimizer's primary function is to achieve a minimal error on a given set of instruments, its practical utility is defined by its ability to derive parameters that accurately represent the underlying market dynamics. Consequently, a successful calibration must yield parameters capable of consistently pricing related financial instruments beyond the immediate calibration set. The \textit{Intra-Day Hold-Out Set} framework is explicitly designed to quantify this precise generalization capability. Therefore, this comparison does not contest the \ac{lm} algorithm's efficacy as a pure curve-fitting tool. Instead, it provides a rigorous assessment of each method's ability to produce robust, generalizable parameters suitable for broader applications in pricing and risk management, which is the essential, albeit implicit, requirement for any robust calibration tool.
 
-To reconcile this methodological inconsistency, an \emph{Intra-Day Hold-Out Set} framework was employed. This protocol enforces a uniform out-of-sample evaluation for both models. Each day within the test period was processed as follows. First, all valid swaptions were assembled into a master list and partitioned into calibration and hold-out sets using stratified random sampling, with the swaption expiry date as the stratification variable. Within each expiry stratum, 80\% of the instruments were assigned to the calibration set and the remaining 20\% to the hold-out set. Single-instrument strata were assigned to the calibration set to ensure sufficient data for LM optimization, and the random sampling was controlled by a fixed seed to guarantee reproducibility.
+To reconcile this methodological inconsistency, an \emph{Intra-Day Hold-Out Set} framework was employed. This protocol enforces a uniform out-of-sample evaluation for all models. Each day within the test period was processed as follows. First, all valid swaptions were assembled and partitioned into calibration and hold-out sets using stratified random sampling, with the swaption expiry date as the stratification variable. Within each expiry stratum, 80\% of the instruments were assigned to the calibration set and the remaining 20\% to the hold-out set. This partitioned data was then used to calibrate not one, but three distinct variations of the \ac{lm} optimizer, each designed to test a different hypothesis regarding the optimal handling of initial parameter guesses in a time-series context.
 
-Once the data partitioning was completed, both models generated their \ac{hw} parameters under controlled conditions. The pre-trained \ac{nn} produced its parameters via a forward pass using only the day's market features, whereas the \ac{lm} algorithm was restricted to the 80\% calibration set and iteratively optimized the parameters to fit this subset. Wall-clock times were recorded for both processes.
+Once the data partitioning was completed, all models generated their \ac{hw} parameters. The pre-trained \ac{nn} produced its parameters via a single forward pass using only the day's market features. In parallel, the three \ac{lm} strategies were calibrated using only the 80\% calibration set. The first, termed the 'Static Cold Start,' served as the scientific baseline, utilizing a fixed initial guess for every day of the test period to ensure a stable and reproducible performance reference. The second, the 'Pure Rolling Warm Start,' was designed to test a common heuristic by using its own calibrated parameters from day $t-1$ as the initial guess for day $t$, thereby allowing for an investigation into the risks of error propagation and parameter drift. The third and most sophisticated approach, the 'Adaptive Anchor,' was developed as a robust solution to the challenges of parameter drift and market regime shifts. This strategy creates its initial guess, $\theta_{t}^{\text{guess}}$, for day $t$ from a dynamic, error-based weighted average of its own calibrated parameters from the previous day, $\theta_{t-1}^{\text{adaptive}}$, and the stable static anchor, $\theta^{\text{static}}$. This design manages the trade-off between exploiting recent market information and exploring from a known-good baseline. The core of this strategy is the dynamic weight, $w_t$, which adjusts the model's reliance on the previous day's result based on its historical performance. The weight is calculated on each day prior to calibration using a linear interpolation function that maps the previous day's out-of-sample \ac{rmse}, denoted $\text{RMSE}_{t-1}$, to a trust level.
 
-Finally, both sets of parameters were evaluated on the identical 20\% hold-out set. Each model was used to price the hold-out swaptions, and the \ac{rmse} between model-implied volatilities and observed market volatilities was computed. This uniform evaluation enabled a direct and fair comparison of the \ac{nn}'s predictive capabilities against the \ac{lm}'s in-sample fitting performance, effectively quantifying their relative generalization power in unseen market conditions.
-
-It is critical to acknowledge that this study's experimental protocol evaluates the \ac{lm} algorithm, an in-sample optimizer, against the \ac{nn}, a predictive model, using a unified out-of-sample generalization criterion. While the \ac{lm} method's primary function is to achieve a minimal error on a given set of instruments, the fundamental purpose of any model calibration is to derive parameters that accurately represent the underlying market dynamics. Consequently, a successful calibration must yield parameters capable of consistently pricing related financial instruments beyond the immediate calibration set. An optimizer that perfectly fits one portfolio of swaptions but fails to price another is of limited practical utility. The \textit{Intra-Day Hold-Out Set} framework is explicitly designed to quantify this precise generalization capability, which is an essential, albeit implicit, requirement for any robust calibration tool.
-
-Therefore, this comparison does not contest the \ac{lm} algorithm's efficacy for pure in-sample fitting. Instead, it provides a rigorous assessment of each method's ability to produce robust, generalizable parameters suitable for broader applications in pricing and risk management.
-
-\subsection{Technical Setup and Computational Optimization}
-\label{subsec:technical_setup}
-The implementation of the \ac{nn}-based \ac{hw} calibration framework was carried out in Python~3.12.3, employing TensorFlow~2.15 for the \ac{nn} architecture and QuantLib~1.34 for the financial modeling components. All experiments were conducted on a commercially available laptop equipped with 32~GB of RAM and an AMD~Ryzen~7~7840HS processor (16~cores, approximately 3.8~GHz), operating under Windows~11.
-
-\subsubsection{Integration of TensorFlow and QuantLib}
-A central technical challenge of this research lies in the hybrid nature of the model architecture, which combines the differentiable TensorFlow framework with the non-differentiable pricing engines of QuantLib. Since QuantLib's pricing routines are implemented in C++ and do not expose analytical gradients, the \ac{nn} cannot rely on TensorFlow's automatic differentiation. To overcome this limitation, the QuantLib-based loss function was implemented within a function decorated by TensorFlow's \texttt{@tf.custom\_gradient}. This mechanism allows the explicit definition of a custom backward pass, where the gradients are computed manually rather than automatically propagated by TensorFlow.
-
-The gradients with respect to the \ac{nn} outputs are approximated numerically using finite difference methods. For each model parameter, the loss function is evaluated twice - once with a positive and once with a negative perturbation - yielding an approximation of the partial derivatives. Consequently, each gradient step requires $2 \times (\text{number of parameters})$ complete QuantLib evaluations. This approach is computationally demanding but necessary to correctly propagate gradients through the non-differentiable pricing engine.
-
-\subsubsection{Parallelization and Hardware Considerations}
-To mitigate the computational cost associated with the numerical gradient computation, the implementation leverages Python's \texttt{concurrent.futures.ThreadPoolExecutor} to parallelize function evaluations across the 16~available CPU cores. Thread-based parallelization is preferred over process-based parallelization because it introduces less communication overhead and efficiently shares memory among threads, which is particularly advantageous for memory-intensive but moderately CPU-bound pricing routines. In practice, this parallelization leads to a near-linear reduction in computation time with respect to the number of threads, thereby rendering the training process computationally feasible.
-
-All training was executed on the CPU. This decision was motivated by the observation that the primary computational bottleneck lies not in the \ac{nn}'s forward propagation-which would benefit from GPU acceleration-but in the iterative, conditional, and sequential nature of QuantLib's pricing algorithms. Such algorithms are inherently unsuited to GPU architectures, which excel in parallel matrix operations but perform poorly with branching control flow. Re-implementing QuantLib's pricing models in a GPU-compatible framework would require prohibitive effort while yielding minimal performance benefits. Although frameworks such as \textit{TF-Quant-Finance} aim to provide GPU-compatible financial modeling tools, they currently lack active maintenance and do not support \ac{gsr} models with piecewise constant volatility-an essential feature for this research.
-
-\subsubsection{Algorithmic and Numerical Efficiency}
-\label{subsubsec:algorithmic_and_numerical_efficiency}
-Further acceleration was achieved through algorithmic refinements and numerical efficiency improvements. The numerical derivative used in gradient computation can be approximated either by the forward difference or the central difference scheme. The forward difference requires only one additional model evaluation per parameter and is therefore approximately twice as fast as the central difference method, albeit with slightly higher numerical noise. Given the high computational cost of each QuantLib evaluation, the forward difference scheme was selected as the default method for gradient approximation. Empirical tests confirmed that the increased noise did not significantly impair training stability or convergence, making this a worthwhile trade-off for speed.
-
-Additionally, the precision of numerical integration within the QuantLib pricing engine was adjusted through the \texttt{pricing\_engine\_integration\_points} parameter, which controls the number of Gaussian quadrature points used by the \texttt{Gaussian1dSwaptionEngine}. Reducing the number of integration points lowers computational cost per pricing call but may introduce marginally higher numerical error. The chosen configuration (32 integration points) represents a compromise between computational tractability and pricing stability.
-
-\subsubsection{Optimization of the Training Process}
-Several optimization strategies were applied to enhance convergence speed and stability. An \textit{early stopping} criterion monitors the validation \ac{rmse} after each epoch and terminates training once no improvement is observed over a predefined patience period (20 epochs). This approach prevents overfitting and avoids unnecessary computation.
-
-In addition, the concept of \textit{instrument batching} was introduced to reduce the computational burden per training iteration. Rather than evaluating all available swaptions at once, the loss function is computed on randomly selected subsets of instruments, controlled by the parameter \texttt{instrument\_batch\_size\_percentage}. This stochasticity not only accelerates each iteration but also introduces beneficial noise, which helps the optimizer escape local minima and improves generalization. Due to the small size of the dataset, all instruments were used in each batch (100\%) for the final training run as well as for the hyperparameter tuning to ensure maximum information utilization.
-
-Hyperparameter optimization was conducted using the Hyperband algorithm (see section~\ref{subsec:hyperband_algorithm}). Hyperband allocates computational resources adaptively by evaluating a large number of configurations for a limited number of epochs and retaining only the most promising candidates for further training. This method significantly reduces the computational time required for hyperparameter tuning while maintaining robustness in identifying high-performing parameter configurations.
-
-\subsubsection{Workflow-Level Enhancements and Model Design}
-To further enhance efficiency, all input data-such as bootstrapped zero curves and volatility cubes-were preloaded into system memory prior to model training. This design choice eliminates repeated disk input/output operations, minimizing latency and enabling smoother training iterations.
-
-Moreover, the preprocessing pipeline was designed modularly, allowing selective execution of computationally expensive routines. Boolean flags such as \texttt{PREPROCESS\_CURVES} and \texttt{BOOTSTRAP\_CURVES} allow bypassing redundant computations once intermediate data has been stored, thereby facilitating efficient experimentation and reproducibility during hyperparameter searches.
-
-Finally, the \ac{nn} was implemented as a residual model, predicting adjustments to an initial parameter estimate rather than the parameters directly. If the initial parameter vector is denoted by $\theta_{\text{initial}}$ and the predicted correction by $\Delta \theta_{\text{predicted}}$, the final parameter estimate is given by
+Specifically, the dynamic weight $w_t$ is determined by first scaling the error to a normalized range $[0, 1]$ and then interpolating between a predefined maximum and minimum trust level. The scaled error, $e_t^{\text{scaled}}$, is computed as:
 \begin{equation}
-	\theta_{\text{final}} = \theta_{\text{initial}} + \Delta \theta_{\text{predicted}}.
+	e_t^{\text{scaled}} = \text{max}\left(0, \text{min}\left(1, \frac{\text{RMSE}_{t-1} - \text{RMSE}_{\text{min}}}{\text{RMSE}_{\text{max}} - \text{RMSE}_{\text{min}}}\right)\right)
 \end{equation}
-This residual formulation simplifies the learning task, as the \ac{nn} learns to approximate local corrections rather than the entire nonlinear mapping between market features and model parameters. Empirically, this leads to smoother loss surfaces, faster convergence, and improved numerical stability.
+where $\text{RMSE}_{\text{min}}$ and $\text{RMSE}_{\text{max}}$ are predefined thresholds for good and poor performance, respectively. The weight $w_t$ is then calculated to have an inverse relationship with this scaled error:
+\begin{equation}
+	w_t = w_{\text{max}} - e_t^{\text{scaled}} \cdot (w_{\text{max}} - w_{\text{min}})
+\end{equation}
+
+In this framework, $w_{\text{max}}$ represents the maximum trust in the rolling guess during periods of stability, while $w_{\text{min}}$ enforces a strong reversion to the static anchor during periods of high error. For this study, the hyperparameters were set to $\text{RMSE}_{\text{min}} = 6.0$ bps, $\text{RMSE}_{\text{max}} = 12.0$ bps, $w_{\text{max}} = 0.95$, and $w_{\text{min}} = 0.15$. This mechanism ensures that the model automatically becomes more conservative in volatile markets and more aggressive in stable, trending markets.
+
+The efficacy of the \ac{lm} strategies is fundamentally dependent on the quality of the baseline initial guess that serves as their stable anchor. To ensure this anchor was robust and represented a globally sensible starting point, it was determined through a computationally intensive pre-computation step, separate from the main testing phase. A genetic algorithm, specifically employing a general island model approach, was utilized for this purpose. This global optimization technique is particularly well-suited for exploring the complex, non-convex error surface of the calibration problem, mitigating the risk of selecting an initial guess from a suboptimal local minimum (see \ref{subsec:generalized_island_model}). The algorithm was run on the full swaption volatility surface from 03.08.2025, the day immediately preceding the start of the test period. To focus on the more liquid and significant instruments, swaptions with either a tenor or a maturity of less than two years were excluded from this initial calculation. The resulting parameter set, detailed in table \ref{tab:initial_guess}, was then used as the fixed initial guess throughout the subsequent experiment.
 
 \begin{table}[H]
 	\centering
 	\begin{threeparttable}
-		\caption{Initial Guess Parameters for \ac{nn} Calibration of the \ac{hw} Model}
-		\label{tab:hw_initial_guess}
-		\begin{tabular}{l c}
-			\hline
-			Parameter  & Initial Guess \\
-			\hline
-			$\alpha$   & 0.02000       \\
-			$\sigma_1$ & 0.00020       \\
-			$\sigma_2$ & 0.00020       \\
-			$\sigma_3$ & 0.00017       \\
-			$\sigma_4$ & 0.00017       \\
-			$\sigma_5$ & 0.00017       \\
-			$\sigma_6$ & 0.00017       \\
-			$\sigma_7$ & 0.00017       \\
-			\hline
+		\caption{Initial Guess for Levenberg-Marquardt Strategies}
+		\label{tab:initial_guess}
+		\begin{tabular}{ll}
+			\toprule
+			Parameter  & Initial Value          \\
+			\midrule
+			$\alpha$   & 0.01821630830602023    \\
+			\addlinespace
+			$\sigma_1$ & 0.00021102917641460398 \\
+			$\sigma_2$ & 0.00026161313022069355 \\
+			$\sigma_3$ & 0.0002433782032732618  \\
+			$\sigma_4$ & 0.00023207666803595517 \\
+			$\sigma_5$ & 0.00019547828248440554 \\
+			$\sigma_6$ & 0.00013296374054782453 \\
+			$\sigma_7$ & 0.0001745673951321553  \\
+			\bottomrule
 		\end{tabular}
+		\begin{tablenotes}
+			\item \footnotesize Note: The parameter values were determined as a one-off pre-computation using a Genetic Algorithm (Island Model) on a representative dataset prior to the testing period.
+		\end{tablenotes}
 	\end{threeparttable}
 \end{table}
 
-The initial parameter guess can be derived from various sources, such as the parameters from the previous trading day or those obtained from a traditional calibration method. This flexibility allows the \ac{nn} to leverage prior knowledge and enhances its adaptability to changing market conditions. In this study, the initial guess was set to fixed values based on a calibration of the first day in the training set using the \ac{lm} algorithm. Then, the values have been rounded to avoid that the \ac{nn} get "stucked" in the same local minimum as the \ac{lm} algorithm.
+In contrast to the iterative LM methods, the \ac{nn} architecture also incorporates an initial parameter guess, but for a fundamentally different purpose. The network is designed as a residual model, meaning it does not predict the absolute parameter values directly. Instead, it learns to predict a correction, $\Delta \theta_{\text{predicted}}$, to a predefined baseline, $\theta_{\text{initial}}$. The final parameter estimate is then constructed as their sum:
+\begin{equation}
+	\theta_{\text{final}} = \theta_{\text{initial}} + \Delta \theta_{\text{predicted}}
+\end{equation}
+This residual formulation simplifies the learning task, as the \ac{nn} only needs to approximate local adjustments rather than the entire complex mapping from market features to parameters, which empirically leads to faster convergence and improved stability.
 
-In summary, the proposed hybrid framework integrates TensorFlow's differentiable learning capabilities with QuantLib's high-fidelity financial pricing models through custom gradient definitions and parallelized numerical differentiation. Combined with algorithmic, workflow, and training-level optimizations, these measures ensure that the training process remains computationally feasible, stable, and reproducible on commercially available hardware.
+The choice of this baseline, $\theta_{\text{initial}}$, is flexible; it can be derived from various sources, such as parameters from the previous trading day or a traditional calibration. For this study, to provide a consistent and stable reference point, the initial guess was determined by calibrating the \ac{hw} model on the first day of the training set using the \ac{lm} algorithm. The resulting parameters were then rounded to create a generalized, central reference point. This rounding discourages the network from merely replicating the specific local minimum found by the initial \ac{lm} calibration and encourages it to learn a more robust mapping. The fixed values used as this baseline for the \ac{nn}'s residual predictions throughout the study are detailed in table \ref{tab:nn_initial_guess}.
+
+\begin{table}[H]
+	\centering
+	\begin{threeparttable}
+		\caption{Initial Guess Baseline for the Residual Neural Network}
+		\label{tab:nn_initial_guess}
+		\begin{tabular}{l c}
+			\toprule
+			Parameter  & Initial Guess Value \\
+			\midrule
+			$\alpha$   & 0.02000             \\
+			\addlinespace
+			$\sigma_1$ & 0.00020             \\
+			$\sigma_2$ & 0.00020             \\
+			$\sigma_3$ & 0.00017             \\
+			$\sigma_4$ & 0.00017             \\
+			$\sigma_5$ & 0.00017             \\
+			$\sigma_6$ & 0.00017             \\
+			$\sigma_7$ & 0.00017             \\
+			\bottomrule
+		\end{tabular}
+		\begin{tablenotes}
+			\item \footnotesize Note: Values were determined via an \ac{lm} calibration on the first day of the training set and subsequently rounded.
+		\end{tablenotes}
+	\end{threeparttable}
+\end{table}
+
+Finally, the parameters generated by the \ac{nn} and all three \ac{lm} strategies were evaluated on the identical 20\% hold-out set and the required calibration time was measured. Each model was used to price the hold-out swaptions, and the \ac{rmse} between model-implied volatilities and observed market volatilities was computed. This uniform evaluation enabled a direct and fair comparison of the models' relative generalization power in unseen market conditions.
+
+\subsection{Methodological Workflow Summary}
+The end-to-end analytical framework commences with the acquisition of the dataset, which is temporally partitioned into distinct training, validation, and test sets to ensure a rigorous evaluation of model generalization. The raw data subsequently undergoes a multi-stage preprocessing pipeline designed to extract salient features and prepare the inputs for modeling. This pipeline begins with the bootstrapping of raw swap rates to construct continuous zero-coupon yield curves, a prerequisite for the QuantLib pricing engine. Concurrently, external market data is temporally aligned with the primary dataset by resampling to a daily frequency and imputing values for non-trading days. A sophisticated feature engineering process is then applied, creating variables that describe the yield curve's shape, such as slope and curvature, alongside engineered indicators like the MOVE-to-VIX ratio. To mitigate multicollinearity and reduce dimensionality, Principal Component Analysis is performed on the yield curve rates, distilling their dynamics into three orthogonal factors representing level, slope, and curvature. Finally, all engineered features are standardized using a Z-score scaler, which is fitted exclusively on the training data to prevent data leakage.
+
+With the data prepared, the \ac{nn} model is developed. An optimal \ac{nn} architecture and its associated hyperparameters are identified through a systematic search using the Hyperband algorithm, with performance assessed on the validation set. The final model, which employs a residual architecture to predict corrections to a baseline parameter set, is then trained on the complete training dataset. In parallel, the benchmark \ac{lm} optimizer is prepared for the final comparison. A critical pre-computation step is executed to establish a robust initial parameter guess, which serves as a stable anchor for the iterative optimizations. This is achieved by running a global optimization via a genetic algorithm on the full swaption volatility surface from the day immediately preceding the test period.
+
+The final stage consists of a direct, out-of-sample comparison conducted daily on the test set. For each day, an "Intra-Day Hold-Out Set" protocol is implemented, partitioning the day's swaptions into an 80\% calibration set and a 20\% hold-out set. The trained \ac{nn} generates its parameters through a single forward pass based on the day's market features, scaled with the scaler fitted to the training data. Simultaneously, the \ac{lm} algorithm is calibrated using only the 80\% calibration set. The parameters generated by both methods are then used to price the swaptions in the 20\% hold-out set. The generalization performance of each model is quantified by the Root Mean Squared Error between the model-implied and market-observed volatilities, facilitating a direct and unbiased comparison of their predictive capabilities.
+
+Following the execution of the comparative evaluation framework, a further series of analyses were conducted to facilitate a deeper interpretation of the model's behavior and to present the empirical findings comprehensively. To elucidate the internal decision-making process of the \ac{nn}, the final trained model was subjected to an interpretability analysis using \ac{shap}. This post-hoc analysis quantifies the marginal contribution of each input feature to the model's predictions, thereby rendering the behavior of the otherwise opaque model transparent. The resulting SHAP value plots provide crucial insights into the learned relationships between market drivers and the calibrated model parameters. In parallel, the daily performance metrics and parameter outputs generated during the evaluation phase were systematically aggregated. This data serves as the foundation for the creation of all subsequent visualizations, including time-series plots of model errors and parameter stability. Furthermore, these aggregated results were exported to CSV files to ensure reproducibility and to facilitate the direct construction of the summary tables presented in the empirical results section of this thesis.
+
+% Define custom colors inspired by Matplotlib's "coolwarm"
+\definecolor{coolcolor}{RGB}{103, 132, 180}
+\definecolor{warmcolor}{RGB}{212, 98, 98}
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}[
+			scale=0.75, transform shape,
+			% Node Styles
+			block/.style={rectangle, draw, fill=warmcolor!40, text width=9em, text centered, rounded corners, minimum height=4em},
+			line/.style={draw, -Latex},
+			cloud/.style={ellipse, draw, fill=coolcolor!30, minimum height=2em, text width=7em, text centered},
+			process/.style={rectangle, draw, fill=warmcolor!30, text width=10em, text centered, rounded corners, minimum height=4em},
+			io/.style={trapezium, trapezium left angle=70, trapezium right angle=110, draw, fill=coolcolor!30, text centered, minimum height=3em, text width=8em},
+			comment/.style={rectangle, draw, dashed, fill=gray!15, text width=11em},
+			% Style for the fitting dashed box
+			fit-box/.style={draw, dashed, rounded corners, inner sep=0.4cm}
+		]
+
+		% == NODES ==
+		% --- Top Section ---
+		\node[cloud] (start) {Raw Market Data (Swaptions, Curves, Indicators)};
+		\node[process, below=1cm of start] (split) {Temporal Split: Training, Validation, and Test Sets};
+		\node[process, below=1cm of split] (preprocess) {Preprocessing Pipeline (Fit on Training Data)};
+		\node[comment, right=0.5cm of preprocess] (preprocess-comment) {\textit{Includes:} \\ Bootstrapping, Feature Engineering, PCA, Standardization};
+
+		% --- Offline Phases (Left and Right Branches) ---
+		\node[process, below=1.2cm of preprocess, xshift=-5.5cm] (nn-train) {NN Hyperparameter Tuning \& Training (on Train/Val Sets)};
+		\node[io, below=0.8cm of nn-train] (nn-model) {Trained NN Model};
+
+		\node[process, below=1.2cm of preprocess, xshift=5.5cm] (lm-setup) {LM Initial Guess Determination (Genetic Algorithm on data from T-1)};
+		\node[io, below=0.8cm of lm-setup] (lm-guess) {LM Initial Guess};
+
+		% --- Daily Evaluation Loop (Central Flow) ---
+		\node[block, below=1cm of $(nn-model.south)!0.5!(lm-guess.south)$] (daily-loop) {Daily Comparative Evaluation Loop (on Test Set)};
+		\node[process, below=1cm of daily-loop] (intra-day-split) {Intra-Day Split: 80\% Calibration Set \& 20\% Hold-Out Set};
+		\node[process, below=1cm of intra-day-split, xshift=-4.5cm, text width=7em] (nn-predict) {NN Prediction (Forward Pass)};
+		\node[process, below=1cm of intra-day-split, xshift=4.5cm, text width=8em] (lm-calibrate) {LM Calibration (on 80\% Calibration Set)};
+		\node[io, below=0.8cm of nn-predict] (nn-params) {NN HW Parameters};
+		\node[io, below=0.8cm of lm-calibrate] (lm-params) {LM HW Parameters};
+		\node[process, below=0.8cm of $(nn-params.south)!0.5!(lm-params.south)$] (evaluate) {Evaluate both parameter sets on 20\% Hold-Out Set};
+		\node[io, below=0.8cm of evaluate, text width=12em] (results) {Out-of-Sample RMSE (Unweighted \& Vega-Weighted)};
+		\node[block, below=0.8cm of results, fill=warmcolor!50] (compare) {Performance Comparison};
+
+		% == ARROWS & CONNECTIONS ==
+		\path [line] (start) -- (split);
+		\path [line] (split) -- (preprocess);
+		\path [line] (preprocess) -- (nn-train);
+		\path [line] (preprocess) -- (lm-setup);
+		\path [line] (nn-train) -- (nn-model);
+		\path [line] (lm-setup) -- (lm-guess);
+		\path [line, dashed] (split.east) -| ++(7,0) |- (daily-loop.north);
+		\path [line] (daily-loop) -- (intra-day-split);
+		\path [line] (intra-day-split) -- (nn-predict);
+		\path [line] (intra-day-split) -- (lm-calibrate);
+		\path [line] (nn-model) -- (nn-predict);
+		\path [line] (lm-guess) -- (lm-calibrate);
+		\path [line] (nn-predict) -- (nn-params);
+		\path [line] (lm-calibrate) -- (lm-params);
+		\path [line] (nn-params) -- (evaluate);
+		\path [line] (lm-params) -- (evaluate);
+		\path [line] (evaluate) -- (results);
+		\path [line] (results) -- (compare);
+		\path [draw, dashed] (preprocess.east) -- (preprocess-comment.west);
+
+		% == Dashed boxes for Offline Phases using FIT library ==
+		% This must be done AFTER the nodes to be fitted are defined.
+		\node[fit-box, fit=(nn-train) (nn-model), label={[text=warmcolor!80!black]above:Offline NN Phase}] {};
+		\node[fit-box, fit=(lm-setup) (lm-guess), label={[text=warmcolor!80!black]above:Offline LM Phase}] {};
+
+	\end{tikzpicture}
+	\caption{The end-to-end methodological workflow, from data preparation and model training to the final daily out-of-sample comparative evaluation.}
+	\label{fig:workflow_chart}
+\end{figure}
+
+\subsection{Technical Setup and Computational Framework}
+\label{subsec:technical_setup}
+The implementation of the \ac{nn}-based \ac{hw} calibration framework was carried out in Python 3.12.3, employing TensorFlow 2.15 for the \ac{nn} architecture and QuantLib 1.34 for the financial modeling components. All experiments were conducted on a commercially available laptop equipped with an AMD~Ryzen~7~7840HS (\~ 3.8~GHz) processor with 16 cores.
+
+A central technical challenge of this research lies in the hybrid nature of the model, which combines the differentiable TensorFlow framework with the non-differentiable pricing engines of QuantLib. Since QuantLib's C++ pricing routines do not expose analytical gradients, TensorFlow's automatic differentiation cannot be used to train the \ac{nn}. To overcome this limitation, the QuantLib-based loss function was implemented within a function decorated by TensorFlow's \texttt{@tf.custom\_gradient}. This mechanism allows for the explicit definition of a custom backward pass, where the gradients of the loss function with respect to the \ac{nn}'s outputs are approximated numerically using a finite difference method.
+
+To mitigate the significant computational cost associated with this numerical gradient computation, the implementation leverages Python's \texttt{concurrent.futures.ThreadPoolExecutor} to parallelize the pricing evaluations across all available CPU cores. This parallelization renders the training process computationally feasible on standard hardware. The decision to execute all training on the CPU was motivated by the observation that the primary computational bottleneck lies not in the \ac{nn}'s matrix operations, which would benefit from GPU acceleration, but in the iterative and sequential nature of QuantLib's algorithms which determines the implied volatility, which are inherently unsuited to GPU architectures. In summary, the proposed hybrid framework integrates TensorFlow's learning capabilities with QuantLib's financial pricing models through custom gradient definitions and parallelized numerical differentiation, ensuring the training process remains computationally feasible, stable, and reproducible. A comprehensive discussion of further algorithmic, numerical, and workflow-level optimizations employed to enhance training efficiency is provided in the appendix~\ref{sec:appendix_implementation_details}.
 
 \subsection{Use of Artificial Intelligence}
 \ac{ai} was employed in the context of this master thesis to support the author in various auxiliary and editorial tasks. Its use was strictly limited to non-critical and non-confidential aspects of the research and writing process. The primary purpose of employing \ac{ai} tools was to enhance the overall clarity, coherence, and grammatical accuracy of the text, ensuring a consistent academic writing style. Through text proposals and linguistic adjustments, the readability of the thesis was improved, allowing for a clearer communication of complex concepts to the reader. \ac{ai} was additionally utilized for translation purposes between English and German, ensuring linguistic precision in both directions.
