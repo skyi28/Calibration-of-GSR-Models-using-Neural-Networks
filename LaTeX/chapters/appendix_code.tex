@@ -14,25 +14,26 @@ The effectiveness of the generalized island model depends on the careful configu
 
 \textit{Note:} This subsection is entirely based on the description provided in \parencite[pp.~151-169]{izzo2012generalislandmodel}.
 
-This framework was implemented to calibrate the eight parameters of a Hull-White one-factor model with piecewise-constant volatility. The number of islands was set to equal the number of available CPU cores (16), with a total population of 512 individuals distributed among them (32 individuals per population). The migration policy was configured with a unidirectional ring topology, where, at an interval of every 15 generations, the two best-performing individuals from one island migrate to the next. The replacement strategy involved removing the two worst-performing individuals in the receiving population to accommodate the migrants, a common elitist approach. Each island independently executed a genetic algorithm for a total of 150 generations. Within each island, parent selection was managed by a tournament of size three. New individuals were generated through an averaging crossover operator, and a Gaussian mutation operator was applied with a 90\% probability. To balance exploration and exploitation, the mutation strength was dynamically adjusted, decaying exponentially from an initial value of 1.0 to a final value of 0.05 over the generations. Finally, an elitism count of one ensured that the best individual of each generation was preserved. The calibration was performed for a single day, 03.08.2025 (one day before the testing set starts) to determine the initial guess parameters for the \ac{lm} algorithm and concluded after 5576.09 seconds, achieving a final, not vega-weighted \ac{rmse} of 4.21 basis points.
+This framework was implemented to calibrate the eight parameters of a Hull-White one-factor model with piecewise-constant volatility. The number of islands was set to equal the number of available CPU cores (16), with a total population of 512 individuals distributed among them (32 individuals per population). The migration policy was configured with a unidirectional ring topology, where, at an interval of every 15 generations, the two best-performing individuals from one island migrate to the next. The replacement strategy involved removing the two worst-performing individuals in the receiving population to accommodate the migrants, a common elitist approach. Each island independently executed a genetic algorithm for a total of 150 generations. Within each island, parent selection was managed by a tournament of size three. New individuals were generated through an averaging crossover operator, and a Gaussian mutation operator was applied with a 90\% probability. To balance exploration and exploitation, the mutation strength was dynamically adjusted, decaying exponentially from an initial value of 1.0 to a final value of 0.05 over the generations. Finally, an elitism count of one ensured that the best individual of each generation was preserved. The calibration was performed for a single day, 03.08.2025 (one day before the testing set starts) to determine the initial guess parameters for the \ac{lm} algorithm and concluded after 5576.09 seconds, achieving a final, not vega-weighted \ac{rmse} of 4.21~\ac{bps}.
 
-\section{Detailed Implementation and Optimization Techniques}
+\subsection{Detailed Implementation and Optimization Techniques}
 \label{sec:appendix_implementation_details}
 This section provides a detailed account of the algorithmic, numerical, and workflow-level optimizations which were employed in addition to the optimizations listed in seciton \ref{subsec:technical_setup} to ensure the computational feasibility and stability of the neural network training process.
 
-\subsection{Algorithmic and Numerical Efficiency}
+\subsubsection{Algorithmic and Numerical Efficiency}
+\label{appendix:algorithmic_and_numerical_efficiency}
 Further acceleration was achieved through algorithmic refinements and numerical efficiency improvements. The numerical derivative used in the custom gradient computation can be approximated either by the forward difference or the central difference scheme. The forward difference method requires only one additional model evaluation per parameter and is therefore approximately twice as fast as the central difference method, albeit with potentially higher numerical noise. Given the high computational cost of each QuantLib evaluation, the forward difference scheme was selected as the default method for gradient approximation. Empirical tests confirmed that the increased noise did not significantly impair training stability or convergence, making this a worthwhile trade-off for speed. Eventhough the forward difference scheme is less computational intensive, the central difference scheme was implemented for completeness and potential future use cases.
 
 Additionally, the precision of numerical integration within the QuantLib pricing engine was adjusted through the \texttt{pricing\_engine\_integration\_points} parameter, which controls the number of Gaussian quadrature points used by the \texttt{Gaussian1dSwaptionEngine}. Reducing the number of integration points lowers the computational cost per pricing call but may introduce marginally higher numerical error. The chosen configuration of 32 integration points represents a carefully selected compromise between computational tractability and pricing stability for the problem at hand.
 
-\subsection{Optimization of the Training Process}
+\subsubsection{Optimization of the Training Process}
 Several established machine learning strategies were applied to enhance convergence speed and stability. An \textit{early stopping} criterion was implemented to monitor the validation \ac{rmse} after each epoch. This mechanism automatically terminates the training process once no improvement is observed over a predefined patience period of 20 epochs, which both prevents overfitting to the training data and avoids unnecessary computation.
 
 In addition, the concept of \textit{instrument batching} was introduced to reduce the computational burden per training iteration. Rather than evaluating all available swaptions at once, the loss function can be computed on randomly selected subsets of instruments. This stochasticity not only accelerates each iteration but also introduces beneficial noise, which can help the optimizer escape local minima and improve generalization. However, due to the relatively small size of the dataset, all available instruments were used in each batch (a batch size percentage of 100\%) for the final training runs to ensure maximum information utilization per gradient update.
 
 Hyperparameter optimization was conducted using the Hyperband algorithm, as detailed in section~\ref{subsec:hyperband_algorithm}. Hyperband allocates computational resources adaptively by evaluating a large number of configurations for a limited number of epochs and promoting only the most promising candidates for further training. This method significantly reduces the computational time required for hyperparameter tuning while maintaining robustness in identifying high-performing parameter configurations.
 
-\subsection{Workflow-Level Enhancements}
+\subsubsection{Workflow-Level Enhancements}
 To further enhance efficiency, all input data, such as bootstrapped zero curves and volatility cubes, were preloaded into system memory prior to the commencement of model training. This design choice eliminates repeated disk input/output operations during the training loop, thereby minimizing latency and enabling smoother, faster training iterations.
 
 Moreover, the data preprocessing pipeline was designed in a modular fashion, allowing for the selective execution of computationally expensive routines. Boolean flags such as \texttt{PREPROCESS\_CURVES} and \texttt{BOOTSTRAP\_CURVES} permit bypassing redundant computations once intermediate data has been generated and stored. This modularity proved highly beneficial for facilitating efficient experimentation and reproducibility, particularly during the resource-intensive hyperparameter search phase.
@@ -119,22 +120,76 @@ The distribution of the custom underestimation penalty hyperparameter among the 
 	\caption{Training History of Final Model using Best Hyperparameters.}
 	\label{fig:training_history}
 \end{figure}
-The training and validation loss history of the best-performing model over 59 epochs is illustrated in figure \ref{fig:training_history}, where the y-axis represents the \ac{rmse} in basis points and the x-axis represents the training epoch. The blue line denotes the weighted training \ac{rmse}, incorporating an asymmetric penalty for underestimation, while the red line shows the standard, unweighted validation \ac{rmse}. A vertical dashed line at epoch 39 indicates the point at which the model achieved its lowest validation error and was selected as the final model through early stopping.
+The training and validation loss history of the best-performing model over 59 epochs is illustrated in figure \ref{fig:training_history}, where the y-axis represents the \ac{rmse} in \ac{bps} and the x-axis represents the training epoch. The blue line denotes the weighted training \ac{rmse}, incorporating an asymmetric penalty for underestimation, while the red line shows the standard, unweighted validation \ac{rmse}. A vertical dashed line at epoch 39 indicates the point at which the model achieved its lowest validation error and was selected as the final model through early stopping.
 
 The training process exhibits several distinct phases. An initial rapid convergence occurs within the first ten epochs, during which both training and validation \ac{rmse} decrease sharply from over 12~\ac{bps} to approximately 5-6~\ac{bps}. This is followed by a plateau phase characterized by noisy fluctuations without a significant long-term downward trend. Throughout this phase, the validation \ac{rmse} consistently remains lower than the weighted training \ac{rmse}, reaching its global minimum at epoch 39. After this point, the validation error does not improve over the subsequent twenty epochs, triggering early stopping and restoring the model weights from epoch 39.
 
 The learning curve provides several insights into model behavior and the optimization landscape. The steep initial decrease indicates that the network architecture and learning rate effectively capture the principal patterns in the training data. The subsequent noisy yet stable plateau reflects the complex, non-convex loss surface typical of financial model calibration, which the stochastic optimizer successfully navigates without divergence. The persistent gap between training and validation \ac{rmse} is a direct consequence of the asymmetric loss function: the elevated training loss reflects the explicit penalty for underestimation, while the lower validation \ac{rmse} provides an unbiased measure of generalization. Finally, early stopping acts as an effective regularization mechanism, ensuring that the final model generalizes well to unseen data rather than overfitting, as evidenced by the stability of the validation curve and the model's robust predictive performance.
 
 \subsection{Pricing Comparison}
+\label{appendix:hypothesis_tests}
+\begin{table}[H]
+	\centering
+	\begin{threeparttable}
+		\caption{Shapiro-Wilk Normality Test for Each Strategy}
+		\label{tab:shapiro_wilk}
+		\begin{tabular}{lccccc}
+			\toprule
+			Strategy           & Statistic & p-value & $\alpha=0.01$ & $\alpha=0.05$ & $\alpha=0.10$ \\
+			\midrule
+			Neural Network     & 0.9076    & 0.0173  & Not Rejected  & Rejected      & Rejected      \\
+			\ac{lm} Static          & 0.7788    & 0.0000  & Rejected      & Rejected      & Rejected      \\
+			\ac{lm} Pure Rolling    & 0.9360    & 0.0877  & Not Rejected  & Not Rejected  & Rejected      \\
+			\ac{lm} Adaptive Anchor & 0.8237    & 0.0003  & Rejected      & Rejected      & Rejected      \\
+			\bottomrule
+		\end{tabular}
+		\begin{tablenotes}
+			\footnotesize
+			\item \textit{Note:} The table shows Shapiro-Wilk test statistics, p-values, and decisions at three significance levels. Rejected indicates that the null hypothesis of normality is rejected.
+		\end{tablenotes}
+	\end{threeparttable}
+\end{table}
+
+\begin{table}[H]
+	\centering
+	\begin{threeparttable}
+		\caption{Augmented Dickey-Fuller Test for Stationarity}
+		\label{tab:adf_test}
+		\begin{tabular}{lccccc}
+			\toprule
+			Strategy           & ADF Statistic & p-value & $\alpha=0.01$ & $\alpha=0.05$ & $\alpha=0.10$ \\
+			\midrule
+			Neural Network     & 1.1245        & 0.9954  & Not Rejected  & Not Rejected  & Not Rejected  \\
+			\ac{lm} Static          & -4.2964       & 0.0005  & Rejected      & Rejected      & Rejected      \\
+			\ac{lm} Pure Rolling    & -1.3795       & 0.5921  & Not Rejected  & Not Rejected  & Not Rejected  \\
+			\ac{lm} Adaptive Anchor & -5.3023       & 0.0000  & Rejected      & Rejected      & Rejected      \\
+			\bottomrule
+		\end{tabular}
+		\begin{tablenotes}
+			\footnotesize
+			\item \textit{Note:} The null hypothesis of the ADF test is non-stationarity. “Rejected” indicates that the series is stationary at the given significance level.
+		\end{tablenotes}
+	\end{threeparttable}
+\end{table}
+Tables \ref{tab:shapiro_wilk} and \ref{tab:adf_test} summarize the results of the Shapiro-Wilk normality test and the Augmented Dickey-Fuller stationarity test, respectively, for the daily out-of-sample \ac{rmse} time series of each calibration strategy.
+
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=1\textwidth]{images/appendix/plot2_rmse_distribution.png}
+	\includegraphics[width=1\textwidth]{images/appendix/plot2_rmse_distribution_combined.png}
 	\caption{Distribution of \ac{rmse} between \ac{nn} and \ac{lm}.}
-	\label{fig:distribution_rmse_violin plot}
+	\label{fig:distribution_rmse_violin}
 \end{figure}
-The daily out-of-sample \ac{rmse} (no vega weighting was applied) for the \ac{nn} and \ac{lm} calibration methods is presented using a violin plot (figure \ref{fig:distribution_rmse_violin plot}), where the width represents the frequency of each daily error and the inner box plot indicates the median and interquartile range. A clear separation between the two methods is observed. The \ac{nn}'s error distribution is centered at a lower level, with a median of approximately 6.5~\ac{bps}, and is considerably more compact, with most daily errors between 5.5 and 7.5~\ac{bps}. In contrast, the \ac{lm} method exhibits a higher median of around 9.8~\ac{bps} and a substantially wider dispersion, ranging from approximately 8 to 12~\ac{bps}. Notably, the 75th percentile of the \ac{nn} distribution is lower than the 25th percentile of the \ac{lm} distribution.
+ Figure \ref{fig:distribution_rmse_violin} presents a comparative analysis of the daily out-of-sample \ac{rmse} distributions for the four calibration strategies under investigation. The visualization employs split violin plots to contrast the probability densities of both the unweighted and the vega-weighted \ac{rmse} for each model over the entire test period. This allows for a detailed examination of each method's accuracy, stability, and performance on financially significant instruments.
 
-These results provide strong evidence of both the superior accuracy of the \ac{nn} approach. The consistently lower \ac{rmse} indicates that the \ac{nn} generalizes more effectively to unseen market data, while the narrower distribution demonstrates more reliable and predictable performance, which is essential for practical risk management. The minimal overlap between the core distributions further emphasizes that the \ac{nn}'s worst-day performance typically exceeds the average performance of the \ac{lm} method.
+The \ac{nn} exhibits a distribution that is characterized by a low central tendency and minimal dispersion. The violin plot for the \ac{nn} is situated at the lowest level on the vertical axis, with a median \ac{rmse} around 4~\ac{bps}, and is substantially more compact than those of the other methods. This visual representation indicates a high degree of both accuracy and stability, suggesting that the \ac{nn} consistently generated low-error calibrations on a daily basis. The close alignment of its unweighted and vega-weighted distributions further implies that the model's performance is robust across instruments of varying price sensitivity to volatility.
+
+In contrast, the \ac{lm} strategies display markedly different performance characteristics. The \ac{lm} (Pure Rolling) strategy yields the widest and most elongated error distribution, extending beyond 30~\ac{bps}. This demonstrates a high degree of instability and a significantly higher average error, which is consistent with the hypothesis of error propagation and parameter drift. The observation that its vega-weighted error distribution is shifted upwards relative to its unweighted counterpart indicates that this strategy's largest pricing errors are concentrated on the swaptions with the highest financial sensitivity.
+
+The \ac{lm} (Static) approach shows a less extreme, yet still considerable, error distribution compared to the \ac{nn}. Its median error is approximately double that of the \ac{nn}, and its larger vertical span signifies lower day-to-day stability. Similar to the Pure Rolling strategy, the vega-weighted \ac{rmse} distribution is slightly higher than the unweighted one, suggesting a tendency to misprice more sensitive instruments.
+
+The \ac{lm} (Adaptive Anchor) strategy represents the most effective of the traditional optimization methods. Its error distribution is located at a lower level than the other two \ac{lm} strategies, and its variance is visibly reduced, though it remains substantially larger than that of the \ac{nn}. An important distinction for this method is that its vega-weighted error distribution has a slightly lower median than its unweighted counterpart. This suggests that, unlike the other \ac{lm} methods, the Adaptive Anchor strategy achieves a comparatively better fit for the most vega-sensitive instruments.
+
+In summary, the graphical evidence demonstrates a clear hierarchy in performance. The \ac{nn} provides the most accurate and stable calibrations. The \ac{lm} (Adaptive Anchor) method offers a substantial improvement over naive \ac{lm} initialization strategies but does not match the performance of the machine learning approach. The \ac{lm} (Pure Rolling) and \ac{lm} (Static) methods exhibit significant deficiencies in both stability and accuracy, particularly when evaluated using a financially meaningful, vega-weighted error metric.
 
 \begin{figure}[H]
 	\centering
@@ -142,23 +197,60 @@ These results provide strong evidence of both the superior accuracy of the \ac{n
 	\caption{Distribution of \ac{rmse} between \ac{nn} and \ac{lm} by Swaption Volatility Quantiles.}
 	\label{fig:distribution_rmse_by_swaption_volatility_quantile}
 \end{figure}
-The instrument-level pricing errors (no vega weighting was applied), defined as the difference between model-implied and market-observed volatilities, are analyzed across three market volatility quantiles—Low (0-25\%), Mid (25-75\%), and High (75-100\%)—using a grouped box plot (figure \ref{fig:distribution_rmse_by_swaption_volatility_quantile}), with a dashed line at zero indicating perfect predictions. The \ac{lm} method exhibits large, systematic, and offsetting biases. In the low-volatility regime, it shows a strong positive bias, with a median error exceeding 10~\ac{bps}, indicating overpricing, while in the high-volatility regime, the bias reverses to a median error of approximately -5~\ac{bps}, indicating underpricing. In contrast, the \ac{nn} maintains a consistent and less biased profile across all volatility regimes, with median errors closer to zero and substantially smaller interquartile ranges, reflecting lower prediction variance.
 
-This analysis highlights a key limitation of the traditional \ac{lm} optimizer: its inability to simultaneously fit instruments across the full volatility surface results in severe, systematic mispricings, overcompensating in one regime to correct errors in another. The \ac{nn}, however, learns a more flexible and robust mapping that generalizes effectively across the volatility spectrum. Its consistently lower bias and variance demonstrate a superior capacity to capture the complex dynamics of the market, making it a more reliable tool for pricing and risk management.
+Figure \ref{fig:distribution_rmse_by_swaption_volatility_quantile} presents a conditional analysis of model performance by displaying the distribution of unweighted prediction errors, stratified by the level of market volatility. The dataset is partitioned into three quantiles representing low (0-25\%), medium (25-75\%), and high (75-100\%) volatility regimes. This segmentation facilitates an assessment of each model's robustness and potential state-dependent biases.
+
+The \ac{nn} model demonstrates a high degree of performance consistency across all three volatility environments. Its error distribution, represented by the blue boxplots, is characterized by a median that remains close to the zero-error line and a compact interquartile range. This indicates both low bias and low variance, irrespective of the prevailing market volatility level. The model exhibits a marginal positive bias, signifying a slight tendency to overpredict volatility, but the magnitude of this bias is minimal and stable across the quantiles.
+
+The \ac{lm} strategies exhibit significant performance degradation and systematic biases that are persistent across the volatility regimes. The \ac{lm} (Static) method consistently produces a large positive error, with its median residing between approximately 10 and 15~\ac{bps} above zero. The substantial interquartile range of this method highlights a high degree of prediction uncertainty. This systematic overprediction suggests that the fixed initial parameter guess becomes progressively less suitable but does so in a manner that is not strongly dependent on the volatility level itself.
+
+Conversely, the \ac{lm} (Pure Rolling) strategy displays a severe and consistent negative bias, with median errors centered around -20~\ac{bps}. The large interquartile range and extensive whiskers, particularly in the low and high volatility buckets, are indicative of extreme parameter instability. This result provides further evidence of the parameter drift phenomenon, where the model converges to a suboptimal state that systematically underestimates market volatility across all conditions.
+
+The \ac{lm} (Adaptive Anchor) strategy provides a more controlled performance relative to the other \ac{lm} variants. Its error distribution is centered closer to zero, although it maintains a consistent negative bias across all quantiles. The interquartile range is considerably smaller than that of the Static and Pure Rolling methods, indicating improved stability. Nonetheless, its error distribution is wider and its bias is more pronounced than that of the \ac{nn} in all market regimes.
+
+In conclusion, the analysis reveals that the \ac{nn}'s calibration performance is robust to changes in market volatility, consistently delivering the most accurate and stable predictions. The traditional \ac{lm} methods, in contrast, are prone to significant systematic biases that are not mitigated by shifts in the market environment. The choice of initialization strategy is paramount, with the Adaptive Anchor method effectively containing the extreme errors of the other \ac{lm} approaches, yet failing to achieve the level of accuracy and robustness demonstrated by the machine learning model.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/appendix/plot8_error_by_tenor.png}
+	\caption{Distribution of \ac{rmse} between \ac{nn} and \ac{lm} by Swaption Tenor.}
+	\label{fig:distribution_rmse_by_swaption_tenor}
+\end{figure}
+
+Figure \ref{fig:distribution_rmse_by_swaption_tenor} offers a granular analysis of the unweighted prediction error distributions, conditioned on the tenor of the underlying swaption. The data is segregated into three distinct buckets: Short (0-3 years), Medium (3-7 years), and Long (7+ years). This stratification allows for an examination of how each calibration model's accuracy varies across the term structure of the swaption volatility surface.
+
+The \ac{nn} model demonstrates a structurally consistent and relatively balanced performance across all tenor buckets. For short-tenor swaptions, it exhibits a slight positive median error of approximately 4~\ac{bps}, indicating a tendency to overpredict volatility. As the tenor increases to the medium and long buckets, this bias shifts to a marginal underprediction, with medians slightly below the zero-error line. A key characteristic of the \ac{nn} is that its interquartile range remains compact and its median error stays proximate to zero across the entire term structure, signifying robust and stable pricing performance regardless of the instrument's tenor.
+
+The performance of the \ac{lm} strategies reveals significant structural biases that are highly dependent on the swaption tenor. The \ac{lm} (Static) model's accuracy deteriorates monotonically with increasing tenor. While its median error is close to zero for short-tenor instruments, it develops a substantial positive bias in the medium-tenor bucket, which becomes even more pronounced for long-tenor swaptions, where the median error exceeds 5~\ac{bps} and the interquartile range is notably large.
+
+The \ac{lm} (Pure Rolling) strategy is consistently the least accurate model, displaying a severe negative bias that worsens dramatically as the tenor lengthens. The median error begins at approximately -8~\ac{bps} for short tenors and declines to nearly -18 \ac{bps} for long tenors. The expansion of the interquartile range for longer tenors further underscores the model's instability and its fundamental failure to capture the term structure dynamics, a direct consequence of parameter drift.
+
+The \ac{lm} (Adaptive Anchor) strategy performs best among the traditional optimizers, yet it is characterized by a persistent negative bias across all tenor buckets. The median error is approximately -3~\ac{bps} for short and medium tenors, increasing to -5~\ac{bps} for long-tenor swaptions. Although its bias is more controlled and its variance is smaller than the other \ac{lm} methods, its performance remains inferior to the \ac{nn} across all segments of the term structure.
+
+In summary, the analysis demonstrates that the \ac{nn} provides the most accurate calibration across the full range of swaption tenors, exhibiting only minor, structured biases. In contrast, all \ac{lm} methods produce pricing errors with strong structural dependencies on the instrument tenor, indicating a failure to correctly model the entire volatility surface simultaneously.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/appendix/plot7_error_by_expiry.png}
+	\caption{Distribution of \ac{rmse} between \ac{nn} and \ac{lm} by Swaption Expirty.}
+	\label{fig:distribution_rmse_by_swaption_expiriy}
+\end{figure}
+
+Figure \ref{fig:distribution_rmse_by_swaption_expiriy} provides a conditional analysis of the unweighted daily pricing errors, segmented by the maturity of the swaption. The data is partitioned into Short (0-3 years), Medium (3-7 years), and Long (7+ years) expiry buckets to evaluate how each model's performance varies along the maturity dimension of the volatility surface.
+
+The \ac{nn} model exhibits a distinct structural pattern in its pricing errors across the expiry buckets. For short-dated swaptions, the model displays a consistent underprediction bias, with a median error of approximately -8~\ac{bps}. As the swaption expiry increases into the medium bucket, the error distribution shifts upwards, becoming more symmetric with a median close to zero. For long-expiry swaptions, the bias reverses, resulting in a slight overprediction with a median error of approximately 2~\ac{bps}. Despite this structured bias, the interquartile range of the \ac{nn} remains relatively compact across all buckets, indicating a stable level of prediction variance.
+
+The \ac{lm} strategies demonstrate more pronounced and systematic biases. The \ac{lm} (Static) model's performance degrades as the swaption expiry increases. It shows a marginal positive bias for short-dated swaptions, which escalates significantly for medium and long expiries, where the median error reaches approximately 7~\ac{bps}. The interquartile range for this model also expands considerably with longer maturities, signifying a loss of precision.
+
+The \ac{lm} (Pure Rolling) strategy consistently yields the most inaccurate results, characterized by a severe underprediction bias. The median error is approximately -22~\ac{bps} for short-expiry instruments. While this bias lessens for medium-term expiries, it remains substantial, and the interquartile range becomes exceptionally large, reflecting high instability. For long-expiry swaptions, the underprediction bias intensifies again, highlighting a fundamental inability of the drifting parameters to accurately price instruments across the maturity spectrum.
+
+The \ac{lm} (Adaptive Anchor) model shows a consistent underprediction bias across all expiry buckets, with median errors centered around -6~\ac{bps}. While its performance is notably more stable than the other \ac{lm} variants, especially for short-dated options where its interquartile range is the tightest, its accuracy diminishes for medium and long expiries as evidenced by an expanding interquartile range.
+
+In conclusion, the analysis reveals that all calibration methods produce errors that are structurally dependent on the swaption expiry. The \ac{nn} exhibits the most balanced performance, with the smallest error magnitudes and a contained variance across the buckets, despite a clear shift in bias from underprediction to overprediction. The \ac{lm} methods, by contrast, are subject to larger and more systematic biases that suggest difficulties in simultaneously fitting the entire term structure of swaption volatilities.
 
 \subsection{\ac{shap} Values}
-The \ac{shap} feature importance and summary plots provide a detailed understanding of how individual features influence the model's predictions across different parameters. The \ac{shap} feature importance plot presents an aggregated view by ranking features according to their mean absolute \ac{shap} values across all predictions. The longer a bar appears in this plot, the greater the average magnitude of that feature's contribution to the model's output, irrespective of direction. This visualization therefore highlights the features with the strongest overall predictive power. In contrast, the \ac{shap} value summary plot (beeswarm plot) offers a granular perspective, showing the distribution of individual \ac{shap} values for each feature across all samples. Each dot represents a single prediction, positioned horizontally according to its \ac{shap} value, while the color encodes the original feature value from low (blue) to high (red). This dual encoding makes it possible to discern not only the importance but also the directionality and consistency of each feature's effect.
-
-For the parameter \(a_1\), which governs mean reversion, the feature importance plot identifies \textit{curvature\_10y20y30y}, representing the long-end curvature of the yield curve, as the most influential feature, followed by slope measures such as \textit{slope\_3m10y} and \textit{slope\_5y30y}. The summary plot shows that high curvature and steep slope values, indicated by red dots, are associated with negative \ac{shap} values. This suggests that a pronounced long-end curvature and a steep yield curve reduce the predicted mean reversion parameter. Such a relationship aligns with financial intuition: when the market anticipates substantial future rate movements, the short rate becomes less anchored, leading to weaker mean reversion.
-
-Across the parameters \(\sigma_1\) to \(\sigma_7\), which represent piecewise volatilities, a consistent pattern emerges. In nearly all cases, \textit{curvature\_10y20y30y} is the single most important predictor. This finding implies that the model perceives the \ac{shap}e of the far end of the yield curve as the key indicator for volatility across the entire term structure. The neural network thus interprets long-end curvature as a proxy for systemic uncertainty in interest rates. At the same time, the model demonstrates adaptive behavior in weighting secondary features. For short-term volatilities (\(\sigma_1, \sigma_2\)), features describing the immediate yield curve \ac{shap}e, such as \textit{PC\_Curvature} and slope measures, gain importance. In contrast, for long-term volatility (\(\sigma_7\)), the \textit{MOVE\_VIX\_Ratio} becomes a critical factor, reflecting the model's capacity to incorporate cross-asset market stress into its predictions.
-
-The \ac{shap} beeswarm plot provides a comprehensive visual summary of these interactions. Features are ranked by their average impact, displayed along the y-axis, while the x-axis indicates how strongly a given feature value influences a specific prediction. Positive \ac{shap} values correspond to features that increase the predicted parameter, whereas negative values indicate a downward effect. The color gradient adds a third layer of interpretation by mapping original feature values, thereby revealing relationships such as positive or negative correlations between a feature's level and its effect on the output. The density and spread of the dots further illustrate the variability and context-dependence of each feature's influence, enabling the identification of stable versus conditional effects.
-
-When examining all predicted parameters together, the beeswarm plots reveal a consistent and economically interpretable decision structure within the neural network. The long-end yield curve curvature emerges as the universal driver: high curvature values tend to decrease the mean reversion parameter \(a_1\) while simultaneously increasing volatility parameters \(\sigma_i\). This dual effect indicates that the model has learned to associate a more curved yield curve with heightened market uncertainty and weaker rate anchoring. Beyond this primary driver, the model differentiates between parameter-specific influences. For mean reversion, the dominant secondary features are yield curve slopes, whose high values lower \(a_1\) in line with the expectation that steep curves imply rising future rates. For short-term volatilities, the model prioritizes immediate yield curve factors, while for long-term volatility, it emphasizes inter-market stress measures such as the \textit{MOVE\_VIX\_Ratio}.
-
-A particularly notable finding arises from the non-linear relationship between the \linebreak \textit{MOVE\_VIX\_Ratio} and long-term volatility \(\sigma_7\). High values of this ratio, indicative of bond market stress, are often associated with negative \ac{shap} values, implying that periods of extreme market tension can precede suppressed long-term volatility. This pattern reflects complex, regime-dependent market dynamics, such as the “flight-to-quality” phenomenon or central bank interventions following crises. Finally, the principal component features (\textit{PC\_Level}, \textit{PC\_Slope}, \textit{PC\_Curvature}) behave in accordance with financial expectations. For instance, higher \textit{PC\_Level} values, representing generally higher interest rates, correspond to higher predicted volatilities, consistent with empirical observations that volatility tends to increase in high-rate environments. These findings confirm that the model has successfully internalized financially coherent relationships and interprets engineered features in an economically meaningful manner.
-
+\label{appendix:shap_values}
+Presented below are the SHAP feature importance and summary plots for each of the eight output parameters of the Hull-White model. This comprehensive analysis covers the mean-reversion parameter, \(\alpha\), as well as the seven piecewise constant volatility parameters, from \(\sigma_1\) through \(\sigma_7\). The SHAP values were computed based on the network's performance on the hold-out test set, thereby providing insight into its out-of-sample decision-making process.
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.5\textwidth]{images/appendix/SHAP_importance_a_1.png}
@@ -166,13 +258,13 @@ A particularly notable finding arises from the non-linear relationship between t
 	\label{fig:shap_importance_a_1}
 \end{figure}
 \foreach \i in {1,...,7}{
-    \begin{figure}[H]
-        \centering
-        \includegraphics[width=0.5\textwidth]{images/appendix/SHAP_importance_sigma_\i.png}
-        \caption{\ac{shap} Feature Importance for $\sigma_\i$.}
-        \label{fig:shap_importance_sigma_\i}
-    \end{figure}
-}
+		\begin{figure}[H]
+			\centering
+			\includegraphics[width=0.5\textwidth]{images/appendix/SHAP_importance_sigma_\i.png}
+			\caption{\ac{shap} Feature Importance for $\sigma_\i$.}
+			\label{fig:shap_importance_sigma_\i}
+		\end{figure}
+	}
 
 \begin{figure}[H]
 	\centering
@@ -181,13 +273,13 @@ A particularly notable finding arises from the non-linear relationship between t
 	\label{fig:shap_summary_a_1}
 \end{figure}
 \foreach \i in {1,...,7}{
-    \begin{figure}[H]
-        \centering
-        \includegraphics[width=0.5\textwidth]{images/appendix/SHAP_summary_sigma_\i.png}
-        \caption{\ac{shap} Feature Importance for $\sigma_\i$.}
-        \label{fig:shap_summary_sigma_\i}
-    \end{figure}
-}
+		\begin{figure}[H]
+			\centering
+			\includegraphics[width=0.5\textwidth]{images/appendix/SHAP_summary_sigma_\i.png}
+			\caption{\ac{shap} Feature Importance for $\sigma_\i$.}
+			\label{fig:shap_summary_sigma_\i}
+		\end{figure}
+	}
 
 \subsection{Code and Data Availability}
 For the purposes of transparency and to facilitate further research, the complete source code implementing the methodologies, experiments, and analyses detailed within this thesis has been made publicly available. The project repository is hosted on GitHub and can be accessed via the following URL: \linebreak \url{https://github.com/skyi28/Calibration-of-GSR-Models-using-Neural-Networks}

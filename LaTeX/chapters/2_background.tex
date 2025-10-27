@@ -343,6 +343,8 @@ Understanding how the parameters affect model output is essential. The volatilit
 \subsubsection{Levenberg-Marquardt Algorithm} \label{lm_algorithm}
 The \ac{lm} algorithm is a widely used method for solving nonlinear least-squares problems, particularly effective when estimating model parameters in contexts such as the calibration of interest rate models. It aims to minimize the sum of squared residuals between observed data points and the corresponding model predictions \parencite{marquardt1963}.
 
+However, a significant challenge in its application to financial models stems from the non-convex nature of the calibration problem's error surface. This landscape often contains multiple local minima. As a local optimization method, the \ac{lm} algorithm's success is highly dependent on its starting point or 'initial guess.' If the initial guess is not sufficiently close to the true global minimum, the algorithm is susceptible to converging to a suboptimal local minimum. This can result in inaccurate and unstable parameter estimates, a crucial consideration for any robust calibration strategy \parencite{lui2019nnfinancialmodelcalibration}.
+
 Given a nonlinear model $f(x; \beta)$ with parameters $\beta = (\beta_1, \dots, \beta_k)$, and observations $\mathbf{y} = (y_1, \dots, y_n)$, the objective is to minimize the cost function
 
 \begin{equation}
@@ -375,8 +377,6 @@ The value of $\lambda$ is adjusted dynamically during the iteration process:
 If the new parameter vector $\beta + \delta$ results in a lower cost function $\Phi$, the step is accepted and $\lambda$ is decreased. If the step does not yield improvement, $\lambda$ is increased, making the algorithm more conservative.
 
 To improve numerical stability and convergence behavior, especially when model parameters have different magnitudes, parameter scaling is often applied. This ensures that step sizes and gradients are appropriately balanced.
-
-Due to its adaptive nature and robustness, the \ac{lm} algorithm is particularly well suited for the calibration of the \ac{hw} model, where the objective function is highly nonlinear and sensitive to changes in model parameters.
 
 \subsection{Neural Networks}
 \ac{nn}s are computational models inspired by the structure and function of the human brain and its nervous system. Unlike traditional computing systems that operate through explicit programming and deterministic logic, \ac{nn}s are designed to learn from data by adjusting internal parameters in response to input stimuli. This adaptive capability enables them to approximate complex, non-linear functions and has led to their widespread use in fields such as image recognition, natural language processing, and financial forecasting.

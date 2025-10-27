@@ -184,36 +184,105 @@ def calculate_daily_rmse_metrics(df_swaption: pd.DataFrame) -> pd.DataFrame:
 
 # --- VISUALIZATION FUNCTIONS ---
 def generate_summary_tables(df: pd.DataFrame, save_dir: str):
-    """Generates a summary table for performance metrics for all strategies."""
+    """
+    Generates summary tables for performance metrics, prediction time, and
+    parameter stability for all strategies.
+    """
     print("\n" + "="*80)
     print(" GENERATING SUMMARY TABLES ".center(80, "="))
     print("="*80)
-    
+
+    # --- Table 1: Performance Metrics (RMSE) ---
     rmse_cols = [col for col in df.columns if 'RMSE' in col]
-    rmse_stats = df[rmse_cols].agg(['mean', 'std', 'median', 'min', 'max']).T
-    rmse_stats.columns = ['Mean', 'Std Dev', 'Median', 'Min', 'Max']
-    
-    index_map = {f'RMSE_{key}_Unweighted': f'{props["name"]} (Unweighted)' for key, props in STRATEGIES.items()}
-    index_map.update({f'RMSE_{key}_VegaWeighted': f'{props["name"]} (Vega-Weighted)' for key, props in STRATEGIES.items()})
-    
-    # --- FIX IS HERE ---
-    # Use a robust list comprehension with .get() to create the new index names.
-    # This avoids the error by safely handling any names that might not be in the map.
-    original_index = rmse_stats.index
-    new_index = [index_map.get(item, item) for item in original_index]
-    rmse_stats.index = new_index
-    # --- END OF FIX ---
+    if rmse_cols:
+        rmse_stats = df[rmse_cols].agg(['mean', 'std', 'median', 'min', 'max']).T
+        rmse_stats.columns = ['Mean', 'Std Dev', 'Median', 'Min', 'Max']
 
-    rmse_stats.sort_index(inplace=True)
+        index_map = {f'RMSE_{key}_Unweighted': f'{props["name"]} (Unweighted)' for key, props in STRATEGIES.items()}
+        index_map.update({f'RMSE_{key}_VegaWeighted': f'{props["name"]} (Vega-Weighted)' for key, props in STRATEGIES.items()})
 
-    print("\n--- Table 1: Aggregate Out-of-Sample Performance Metrics (RMSE in bps) ---")
-    print(rmse_stats.to_string(float_format="%.4f"))
+        original_index = rmse_stats.index
+        new_index = [index_map.get(item, item) for item in original_index]
+        rmse_stats.index = new_index
+        rmse_stats.sort_index(inplace=True)
+
+        print("\n--- Table 1: Aggregate Out-of-Sample Performance Metrics (RMSE in bps) ---")
+        print(rmse_stats.to_string(float_format="%.4f"))
+
+        rmse_stats.to_csv(os.path.join(save_dir, 'table1_performance_metrics.csv'))
+        with open(os.path.join(save_dir, 'table1_performance_metrics.txt'), 'w') as f:
+            f.write("Table 1: Aggregate Out-of-Sample Performance Metrics (RMSE in bps)\n")
+            f.write(rmse_stats.to_string(float_format="%.4f"))
+        print(f"\nSaved Table 1 to '{save_dir}'")
+    else:
+        print("\nSkipping Table 1: No RMSE columns found in the summary DataFrame.")
+
+    # --- Table 2: Average Prediction Time ---
+    df = pd.read_csv(SUMMARY_CSV, parse_dates=['Date'])
+    time_cols = [col for col in df.columns if col.startswith('Time_') and col.endswith('_sec')]
+    if time_cols:
+        time_stats = df[time_cols].mean().to_frame(name='Average Time (sec)')
+        time_stats['Std Dev'] = df[time_cols].std().to_frame(name='Std Dev (sec)')
+        time_index_map = {f'Time_{key}_sec': props["name"] for key, props in STRATEGIES.items()}
+        
+        original_time_index = time_stats.index
+        new_time_index = [time_index_map.get(item, item) for item in original_time_index]
+        time_stats.index = new_time_index
+        time_stats.sort_index(inplace=True, ascending=False)
+
+        print("\n--- Table 2: Average Prediction Time ---")
+        print(time_stats.to_string(float_format="%.4f"))
+
+        time_stats.to_csv(os.path.join(save_dir, 'table2_prediction_time.csv'))
+        with open(os.path.join(save_dir, 'table2_prediction_time.txt'), 'w') as f:
+            f.write("Table 2: Average Prediction Time\n")
+            f.write(time_stats.to_string(float_format="%.4f"))
+        print(f"\nSaved Table 2 to '{save_dir}'")
+    else:
+        print("\nSkipping Table 2: No time columns found in the summary DataFrame.")
+
+    # --- Table 3: Parameter Stability Statistics ---
+    print("\n--- Table 3: Parameter Stability Statistics ---")
+    all_param_stats = []
     
-    rmse_stats.to_csv(os.path.join(save_dir, 'table1_performance_metrics.csv'))
-    with open(os.path.join(save_dir, 'table1_performance_metrics.txt'), 'w') as f:
-        f.write("Table 1: Aggregate Out-of-Sample Performance Metrics (RMSE in bps)\n")
-        f.write(rmse_stats.to_string(float_format="%.4f"))
-    print(f"\nSaved Table 1 to '{save_dir}'")
+    # Loop through each defined strategy to find its parameter columns
+    for key, props in STRATEGIES.items():
+        # Identify columns for parameters 'a' and 'sigma' for the current strategy
+        param_cols = [col for col in df.columns if col.startswith(f'{key}_a_') or col.startswith(f'{key}_sigma_')]
+        
+        if not param_cols:
+            continue
+
+        # Use .describe() to get the required statistics
+        param_stats = df[param_cols].describe().T # Transpose for better readability
+        
+        # Add a column to identify the strategy
+        param_stats['Strategy'] = props['name']
+        
+        all_param_stats.append(param_stats)
+
+    if all_param_stats:
+        # Concatenate all stats into one multi-indexed DataFrame
+        final_param_table = pd.concat(all_param_stats)
+        final_param_table = final_param_table.set_index('Strategy', append=True).swaplevel(0, 1)
+        final_param_table.sort_index(inplace=True)
+        
+        # Define the desired order of columns from .describe()
+        desired_columns = ['mean', 'std', 'min', '25%', '50%', '75%', 'max']
+        # Reorder columns, keeping only those that exist
+        final_param_table = final_param_table[[col for col in desired_columns if col in final_param_table.columns]]
+
+
+        print(final_param_table.to_string(float_format="%.6f"))
+        
+        # Save the table to csv and txt files
+        final_param_table.to_csv(os.path.join(save_dir, 'table3_parameter_stability.csv'))
+        with open(os.path.join(save_dir, 'table3_parameter_stability.txt'), 'w') as f:
+            f.write("Table 3: Parameter Stability Statistics\n")
+            f.write(final_param_table.to_string(float_format="%.6f"))
+        print(f"\nSaved Table 3 to '{save_dir}'")
+    else:
+        print("\nSkipping Table 3: No parameter columns found in the summary DataFrame.")
 
 def plot_daily_rmse(df: pd.DataFrame, save_path: str):
     """Plots both unweighted and vega-weighted daily RMSE for all models."""
@@ -448,7 +517,7 @@ def plot_error_heatmaps_weighted(df: pd.DataFrame, save_path: str):
     pivots = {}
     for key, col in error_cols.items():
         if col in df_copy.columns:
-            df_copy[f'weighted_error_{key}'] = df_copy[col]**2 * df_copy['Vega']
+            df_copy[f'weighted_error_{key}'] = df_copy[col] * df_copy['Vega'] / df_copy['Vega'].mean()
             pivots[key] = df_copy.pivot_table(index=expiry_bins, columns=tenor_bins, values=f'weighted_error_{key}', aggfunc='mean')
 
     if not pivots:
