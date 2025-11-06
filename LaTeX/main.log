@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.16)  27 OCT 2025 17:20
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.7.16)  27 OCT 2025 17:21
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1010,7 +1010,11 @@ Package csquotes Info: Redefining alias 'default' -> 'english'.
 LaTeX Font Info:    Trying to load font information for T1+ptm on input line 172.
  (C:\Users\bened\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\t1ptm.fd
 File: t1ptm.fd 2001/06/04 font definitions for T1/ptm.
-) (main.aux)
+) (main.aux
+
+LaTeX Warning: Label `fig:shap_summary_sigma_7' multiply defined.
+
+)
 \openout1 = `main.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 172.
@@ -1051,6 +1055,7 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 48
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
 Package hyperref Info: Link coloring OFF on input line 172.
+ (main.out) (main.out)
 \@outlinefile=\write5
 \openout5 = `main.out'.
 
@@ -1128,7 +1133,7 @@ Package biblatex Info: ... file 'main.bbl' found.
  (main.bbl)
 Package biblatex Info: Reference section=0 on input line 172.
 Package biblatex Info: Reference segment=0 on input line 172.
-<images/zhaw_logo.png, id=6, 602.25pt x 602.25pt>
+<images/zhaw_logo.png, id=297, 602.25pt x 602.25pt>
 File: images/zhaw_logo.png Graphic file (type png)
 <use images/zhaw_logo.png>
 Package pdftex.def Info: images/zhaw_logo.png  used on input line 178.
@@ -1169,22 +1174,7 @@ LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <7> not available
 
 [1
 
-{C:/Users/bened/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/base/8r.enc} <./images/zhaw_logo.png>] (chapters/0_abstract.tex
-Overfull \hbox (3.729pt too wide) in paragraph at lines 5--6
-[]\T1/ptm/m/n/12 The re-sults in-di-cate that the Neu-ral Net-work[]-based ap-proach and the Levenberg-Marquardt[]
- []
-
-
-Overfull \hbox (3.36768pt too wide) in paragraph at lines 5--6
-\T1/ptm/m/n/12 strate-gies ex-hib-ited dis-tinct per-for-mance char-ac-ter-is-tics within the frame-work of this study.
- []
-
-
-Overfull \hbox (2.03723pt too wide) in paragraph at lines 5--6
-\T1/ptm/m/n/12 Mean Squared Er-ror[] of 4.33 Ba-sis Points[], while the best-performing Levenberg-Marquardt[]
- []
-
-
+{C:/Users/bened/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{C:/Users/bened/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/base/8r.enc} <./images/zhaw_logo.png>] (chapters/0_abstract.tex)
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1196,7 +1186,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 [1
 
 
-])
+] (main.toc
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1205,13 +1195,27 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
+[1
 
-pdfTeX warning (ext4): destination with the same identifier (name{page.}) has been already used, duplicate ignored
-<to be read again> 
-                   \relax 
-l.209 \clearpage
-                 [2]
-No file main.toc.
+]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[2]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[3])
 \tf@toc=\write6
 \openout6 = `main.toc'.
 
@@ -1224,9 +1228,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[1
-
-]
+[4]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1235,10 +1237,28 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[2
+[5
 
-]
-No file main.lof.
+] (main.lof
+Overfull \hbox (6.19016pt too wide) in paragraph at lines 14--14
+ [][] [][]\T1/ptm/m/n/12 The end-to-end method-olog-i-cal work-flow, from data prepa-ra-tion and model 
+ []
+
+
+Overfull \hbox (23.14485pt too wide) in paragraph at lines 22--22
+ [][] [][]\T1/ptm/m/n/12 Shapley Ad-di-tive Ex-pla-na-tions (SHAP) Sum-mary Plot for the Mean-Reversion 
+ []
+
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[6])
 \tf@lof=\write7
 \openout7 = `main.lof'.
 
@@ -1251,8 +1271,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[3]
-No file main.lot.
+[7] (main.lot)
 \tf@lot=\write8
 \openout8 = `main.lot'.
 
@@ -1265,7 +1284,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[4] (chapters/1_introduction.tex
+[8] (chapters/1_introduction.tex
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1279,20 +1298,7 @@ pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has b
 <to be read again> 
                    \relax 
 l.10 	\item W
-             hat is the quantitative difference in computational speed betwe... [1]
-
-LaTeX Warning: Reference `background' on page 2 undefined on input line 16.
-
-
-LaTeX Warning: Reference `methodology' on page 2 undefined on input line 16.
-
-
-LaTeX Warning: Reference `results' on page 2 undefined on input line 16.
-
-
-LaTeX Warning: Reference `conclusion' on page 2 undefined on input line 16.
-
-)
+             hat is the quantitative difference in computational speed betwe... [1])
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1339,19 +1345,6 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 [6]
 
-LaTeX Warning: Reference `eq:par_swap_equation' on page 7 undefined on input line 83.
-
-
-LaTeX Warning: Reference `eq:par_swap_equation' on page 7 undefined on input line 83.
-
-
-LaTeX Warning: Reference `eq:bootstrap_equation' on page 7 undefined on input line 93.
-
-
-LaTeX Warning: Reference `eq:zero_rate_definition' on page 7 undefined on input line 97.
-
-
-
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1387,11 +1380,9 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [10]
-
-LaTeX Warning: Reference `gaussian_short_rate_models' on page 11 undefined on input line 159.
-
-
-LaTeX Warning: Reference `no_arbitrage_models' on page 11 undefined on input line 159.
+Overfull \hbox (4.89162pt too wide) in paragraph at lines 154--155
+[]\T1/ptm/m/n/12 Importantly, GSR[] mod-els stand in con-trast to log-nor-mal mod-els such as the Black-Derman-
+ []
 
 
 
@@ -1412,10 +1403,6 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [12]
-
-LaTeX Warning: Reference `subsubsec:bond_pricing_hw' on page 13 undefined on input line 221.
-
-
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1449,10 +1436,6 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 [15]
 
-LaTeX Warning: Reference `swaption_pricing' on page 16 undefined on input line 317.
-
-
-
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1461,10 +1444,6 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [16]
-
-LaTeX Warning: Reference `lm_algorithm' on page 17 undefined on input line 339.
-
-
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1534,22 +1513,6 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 [23]
 
-LaTeX Warning: Reference `nn_partial_derivative_term1' on page 24 undefined on input line 477.
-
-
-LaTeX Warning: Reference `nn_partial_derivative_term2' on page 24 undefined on input line 477.
-
-
-LaTeX Warning: Reference `nn_partial_derivative_term3' on page 24 undefined on input line 477.
-
-
-LaTeX Warning: Reference `nn_partial_derivative' on page 24 undefined on input line 477.
-
-
-LaTeX Warning: Reference `weight_update_equation' on page 24 undefined on input line 483.
-
-
-
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1558,15 +1521,6 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [24]
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[25]
 LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 526.
  (C:\Users\bened\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
@@ -1579,7 +1533,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[26]
+[25]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1588,7 +1542,16 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[27])
+[26])
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[27]
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1598,11 +1561,6 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [28] (chapters/3_methodology.tex
-Overfull \hbox (0.30853pt too wide) in paragraph at lines 7--8
-\T1/ptm/m/n/12 Marquardt[] op-ti-mizer, thereby ad-dress-ing a fun-da-men-tal method-olog-i-cal chal-lenge in com-
- []
-
-
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1634,7 +1592,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [31]
-<images/descriptive_data_analysis/external_data_time_series.png, id=379, 1011.78pt x 1084.05pt>
+<images/descriptive_data_analysis/external_data_time_series.png, id=827, 1011.78pt x 1084.05pt>
 File: images/descriptive_data_analysis/external_data_time_series.png Graphic file (type png)
 <use images/descriptive_data_analysis/external_data_time_series.png>
 Package pdftex.def Info: images/descriptive_data_analysis/external_data_time_series.png  used on input line 54.
@@ -1648,51 +1606,19 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[32]
-
-LaTeX Warning: Reference `fig:external_data_time_series' on page 33 undefined on input line 59.
-
+[32 <./images/descriptive_data_analysis/external_data_time_series.png>]
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10> not available
 (Font)              Font shape `OT1/ptm/b/n' tried instead on input line 78.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <7.4> not available
 (Font)              Font shape `OT1/ptm/b/n' tried instead on input line 78.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <6> not available
 (Font)              Font shape `OT1/ptm/b/n' tried instead on input line 78.
-
-Overfull \hbox (78.21217pt too wide) in paragraph at lines 65--81
- [] 
- []
-
-
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[33 <./images/descriptive_data_analysis/external_data_time_series.png>]
-
-LaTeX Warning: Reference `tab:external_summary' on page 34 undefined on input line 84.
-
-
-LaTeX Warning: Reference `fig:external_data_time_series' on page 34 undefined on input line 84.
-
-<images/descriptive_data_analysis/yield_curve_selected_tenors.png, id=392, 1011.78pt x 505.89pt>
+<images/descriptive_data_analysis/yield_curve_selected_tenors.png, id=837, 1011.78pt x 505.89pt>
 File: images/descriptive_data_analysis/yield_curve_selected_tenors.png Graphic file (type png)
 <use images/descriptive_data_analysis/yield_curve_selected_tenors.png>
 Package pdftex.def Info: images/descriptive_data_analysis/yield_curve_selected_tenors.png  used on input line 88.
 (pdftex.def)             Requested size: 426.79135pt x 213.39865pt.
 
-LaTeX Warning: Reference `fig:yield_curve_selected_tenors' on page 34 undefined on input line 93.
-
-<images/descriptive_data_analysis/vol_surface_coterminal_series.png, id=393, 1011.78pt x 505.89pt>
-File: images/descriptive_data_analysis/vol_surface_coterminal_series.png Graphic file (type png)
-<use images/descriptive_data_analysis/vol_surface_coterminal_series.png>
-Package pdftex.def Info: images/descriptive_data_analysis/vol_surface_coterminal_series.png  used on input line 97.
-(pdftex.def)             Requested size: 426.79135pt x 213.39865pt.
-
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1701,19 +1627,18 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[34 <./images/descriptive_data_analysis/yield_curve_selected_tenors.png>]
-
-LaTeX Warning: Reference `fig:vol_surface_coterminal_series' on page 35 undefined on input line 102.
-
-<images/descriptive_data_analysis/yield_curve_2d_snapshots.png, id=402, 1445.4pt x 433.62pt>
+[33 <./images/descriptive_data_analysis/yield_curve_selected_tenors.png>]
+<images/descriptive_data_analysis/vol_surface_coterminal_series.png, id=846, 1011.78pt x 505.89pt>
+File: images/descriptive_data_analysis/vol_surface_coterminal_series.png Graphic file (type png)
+<use images/descriptive_data_analysis/vol_surface_coterminal_series.png>
+Package pdftex.def Info: images/descriptive_data_analysis/vol_surface_coterminal_series.png  used on input line 97.
+(pdftex.def)             Requested size: 426.79135pt x 213.39865pt.
+<images/descriptive_data_analysis/yield_curve_2d_snapshots.png, id=848, 1445.4pt x 433.62pt>
 File: images/descriptive_data_analysis/yield_curve_2d_snapshots.png Graphic file (type png)
 <use images/descriptive_data_analysis/yield_curve_2d_snapshots.png>
 Package pdftex.def Info: images/descriptive_data_analysis/yield_curve_2d_snapshots.png  used on input line 106.
 (pdftex.def)             Requested size: 426.79135pt x 128.03589pt.
 
-LaTeX Warning: Reference `fig:yield_curve_2d_snapshots' on page 35 undefined on input line 111.
-
-
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1722,22 +1647,13 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[35 <./images/descriptive_data_analysis/vol_surface_coterminal_series.png> <./images/descriptive_data_analysis/yield_curve_2d_snapshots.png>]
-
-LaTeX Warning: Reference `tab:yield_curve_summary' on page 36 undefined on input line 135.
-
-
-LaTeX Warning: Reference `fig:yield_curve_std_by_tenor' on page 36 undefined on input line 135.
-
-<images/descriptive_data_analysis/vol_surface_3d_snapshots.png, id=411, 1734.48pt x 578.16pt>
+[34 <./images/descriptive_data_analysis/vol_surface_coterminal_series.png> <./images/descriptive_data_analysis/yield_curve_2d_snapshots.png>]
+<images/descriptive_data_analysis/vol_surface_3d_snapshots.png, id=858, 1734.48pt x 578.16pt>
 File: images/descriptive_data_analysis/vol_surface_3d_snapshots.png Graphic file (type png)
 <use images/descriptive_data_analysis/vol_surface_3d_snapshots.png>
 Package pdftex.def Info: images/descriptive_data_analysis/vol_surface_3d_snapshots.png  used on input line 139.
 (pdftex.def)             Requested size: 426.79135pt x 142.26357pt.
-
-LaTeX Warning: Reference `fig:vol_surface_3d_snapshots' on page 36 undefined on input line 144.
-
-<images/descriptive_data_analysis/yield_curve_std_by_tenor.png, id=412, 1011.78pt x 505.89pt>
+<images/descriptive_data_analysis/yield_curve_std_by_tenor.png, id=860, 1011.78pt x 505.89pt>
 File: images/descriptive_data_analysis/yield_curve_std_by_tenor.png Graphic file (type png)
 <use images/descriptive_data_analysis/yield_curve_std_by_tenor.png>
 Package pdftex.def Info: images/descriptive_data_analysis/yield_curve_std_by_tenor.png  used on input line 148.
@@ -1751,9 +1667,636 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[36 <./images/descriptive_data_analysis/vol_surface_3d_snapshots.png>]
+[35 <./images/descriptive_data_analysis/vol_surface_3d_snapshots.png>]
+<images/descriptive_data_analysis/vol_surface_std_heatmap.png, id=868, 1011.78pt x 722.7pt>
+File: images/descriptive_data_analysis/vol_surface_std_heatmap.png Graphic file (type png)
+<use images/descriptive_data_analysis/vol_surface_std_heatmap.png>
+Package pdftex.def Info: images/descriptive_data_analysis/vol_surface_std_heatmap.png  used on input line 157.
+(pdftex.def)             Requested size: 426.79135pt x 304.85522pt.
 
-LaTeX Warning: Reference `fig:yield_curve_std_by_tenor' on page 37 undefined on input line 153.
 
-<images/descriptive_data_analysis/vol_surface_std_heatmap.png, id=422, 1011.78pt x 722.7pt>
-File: ima
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[36 <./images/descriptive_data_analysis/yield_curve_std_by_tenor.png> <./images/descriptive_data_analysis/vol_surface_std_heatmap.png>]
+<images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png, id=878, 1084.05pt x 867.24pt>
+File: images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png Graphic file (type png)
+<use images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png>
+Package pdftex.def Info: images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png  used on input line 190.
+(pdftex.def)             Requested size: 426.79135pt x 341.43787pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[37]
+<images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png, id=885, 1084.05pt x 867.24pt>
+File: images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png Graphic file (type png)
+<use images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png>
+Package pdftex.def Info: images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png  used on input line 199.
+(pdftex.def)             Requested size: 426.79135pt x 341.43787pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[38 <./images/descriptive_data_analysis/yield_curve_daily_changes_histogram.png>]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[39 <./images/descriptive_data_analysis/vol_surface_daily_changes_histogram.png>]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[40]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[41]
+<images/features/feature_correlation_matrixPre-PCA.png, id=922, 1330.4907pt x 1148.3703pt>
+File: images/features/feature_correlation_matrixPre-PCA.png Graphic file (type png)
+<use images/features/feature_correlation_matrixPre-PCA.png>
+Package pdftex.def Info: images/features/feature_correlation_matrixPre-PCA.png  used on input line 269.
+(pdftex.def)             Requested size: 426.79135pt x 368.36214pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[42 <./images/features/feature_correlation_matrixPre-PCA.png>]
+<images/features/feature_correlation_matrixPost-PCA.png, id=935, 1330.4907pt x 1148.3703pt>
+File: images/features/feature_correlation_matrixPost-PCA.png Graphic file (type png)
+<use images/features/feature_correlation_matrixPost-PCA.png>
+Package pdftex.def Info: images/features/feature_correlation_matrixPost-PCA.png  used on input line 306.
+(pdftex.def)             Requested size: 426.79135pt x 368.36214pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[43]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[44 <./images/features/feature_correlation_matrixPost-PCA.png>]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[45]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[46]
+Overfull \hbox (4.53807pt too wide) in paragraph at lines 369--371
+\T1/ptm/m/it/12 Search Space: \T1/ptm/m/n/12 Floating-point value be-tween 0.1 and 0.5 (only ac-tive if \T1/lmtt/m/n/12 use_dropout
+ []
+
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[47]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[48]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[49]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[50]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[51]
+Overfull \hbox (58.11105pt too wide) in paragraph at lines 507--508
+\T1/ptm/m/n/12 e-ters. Dur-ing the train-ing loop, the cus-tom gra-di-ent cal-cu-la-tion within the \T1/lmtt/m/n/12 _perform_training_step
+ []
+
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[52]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[53]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[54]
+Underfull \hbox (badness 1019) in paragraph at lines 555--555
+[]\T1/ptm/m/n/12 Table 7: |Ini-tial Guess for Levenberg-
+ []
+
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[55]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[56]
+Overfull \hbox (13.99988pt too wide) in paragraph at lines 676--677
+ [][] 
+ []
+
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[57]
+Overfull \hbox (1.94006pt too wide) in paragraph at lines 683--684
+[]\T1/ptm/m/n/12 The im-ple-men-ta-tion of the NN[]-based HW[] cal-i-bra-tion frame-work was car-ried out in Python
+ []
+
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[58]
+Overfull \hbox (53.06923pt too wide) in paragraph at lines 687--688
+\T1/ptm/m/n/12 com-pu-ta-tion, the im-ple-men-ta-tion lever-ages Python's \T1/lmtt/m/n/12 concurrent.futures.ThreadPoolExecutor
+ []
+
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[59])
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[60] (chapters/4_results.tex
+Overfull \hbox (12.66351pt too wide) in paragraph at lines 7--7
+|[]\T1/ptm/b/n/14.4 Interpretation of Prin-ci-pal Com-po-nent Anal-y-sis on the Yield Curve| 
+ []
+
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[61]
+Overfull \hbox (1.56874pt too wide) in paragraph at lines 36--37
+[]\T1/ptm/m/n/12 To iden-tify the most suit-able model con-fig-u-ra-tion, a com-pre-hen-sive hy-per-pa-ram-e-ter search
+ []
+
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[62]
+<images/hyperparameters/hyperparameter_correlation_heatmap.png, id=1079, 867.24pt x 722.7pt>
+File: images/hyperparameters/hyperparameter_correlation_heatmap.png Graphic file (type png)
+<use images/hyperparameters/hyperparameter_correlation_heatmap.png>
+Package pdftex.def Info: images/hyperparameters/hyperparameter_correlation_heatmap.png  used on input line 40.
+(pdftex.def)             Requested size: 426.79135pt x 355.65892pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[63 <./images/hyperparameters/hyperparameter_correlation_heatmap.png>]
+<images/hyperparameters/error_feature_correlation_heatmap.png, id=1087, 1300.86pt x 289.08pt>
+File: images/hyperparameters/error_feature_correlation_heatmap.png Graphic file (type png)
+<use images/hyperparameters/error_feature_correlation_heatmap.png>
+Package pdftex.def Info: images/hyperparameters/error_feature_correlation_heatmap.png  used on input line 49.
+(pdftex.def)             Requested size: 426.79135pt x 94.8409pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[64 <./images/hyperparameters/error_feature_correlation_heatmap.png>]
+<images/calibration_results/plot1_daily_rmse_combined.png, id=1098, 1011.78pt x 578.16pt>
+File: images/calibration_results/plot1_daily_rmse_combined.png Graphic file (type png)
+<use images/calibration_results/plot1_daily_rmse_combined.png>
+Package pdftex.def Info: images/calibration_results/plot1_daily_rmse_combined.png  used on input line 95.
+(pdftex.def)             Requested size: 426.79135pt x 243.88419pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[65]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[66 <./images/calibration_results/plot1_daily_rmse_combined.png>]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[67]
+Overfull \hbox (73.24876pt too wide) in paragraph at lines 140--159
+ [] 
+ []
+
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[68]
+<images/calibration_results/plot6_error_heatmaps.png, id=1123, 1300.86pt x 1011.78pt>
+File: images/calibration_results/plot6_error_heatmaps.png Graphic file (type png)
+<use images/calibration_results/plot6_error_heatmaps.png>
+Package pdftex.def Info: images/calibration_results/plot6_error_heatmaps.png  used on input line 167.
+(pdftex.def)             Requested size: 426.79135pt x 331.94318pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[69 <./images/calibration_results/plot6_error_heatmaps.png>]
+<images/calibration_results/plot6b_error_heatmaps_weighted.png, id=1131, 1300.86pt x 1011.78pt>
+File: images/calibration_results/plot6b_error_heatmaps_weighted.png Graphic file (type png)
+<use images/calibration_results/plot6b_error_heatmaps_weighted.png>
+Package pdftex.def Info: images/calibration_results/plot6b_error_heatmaps_weighted.png  used on input line 178.
+(pdftex.def)             Requested size: 426.79135pt x 331.94318pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[70 <./images/calibration_results/plot6b_error_heatmaps_weighted.png>]
+<images/calibration_results/plot10_scatter_comparison.png, id=1138, 1011.78pt x 867.24pt>
+File: images/calibration_results/plot10_scatter_comparison.png Graphic file (type png)
+<use images/calibration_results/plot10_scatter_comparison.png>
+Package pdftex.def Info: images/calibration_results/plot10_scatter_comparison.png  used on input line 189.
+(pdftex.def)             Requested size: 426.79135pt x 365.82628pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[71]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[72 <./images/calibration_results/plot10_scatter_comparison.png>]
+<images/calibration_results/plot3_parameter_evolution.png, id=1149, 1084.05pt x 722.7pt>
+File: images/calibration_results/plot3_parameter_evolution.png Graphic file (type png)
+<use images/calibration_results/plot3_parameter_evolution.png>
+Package pdftex.def Info: images/calibration_results/plot3_parameter_evolution.png  used on input line 203.
+(pdftex.def)             Requested size: 426.79135pt x 284.53154pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[73 <./images/calibration_results/plot3_parameter_evolution.png>]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[74]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[75]
+Overfull \hbox (34.06615pt too wide) in paragraph at lines 235--249
+ [] 
+ []
+
+
+Overfull \hbox (28.06615pt too wide) in paragraph at lines 255--268
+ [] 
+ []
+
+
+Overfull \hbox (56.0621pt too wide) in paragraph at lines 277--291
+ [] 
+ []
+
+
+Overfull \hbox (56.0621pt too wide) in paragraph at lines 297--310
+ [] 
+ []
+
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[76]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[77]
+<images/calibration_results/SHAP_summary_a_1.png, id=1181, 687.2877pt x 552.8655pt>
+File: images/calibration_results/SHAP_summary_a_1.png Graphic file (type png)
+<use images/calibration_results/SHAP_summary_a_1.png>
+Package pdftex.def Info: images/calibration_results/SHAP_summary_a_1.png  used on input line 350.
+(pdftex.def)             Requested size: 426.79135pt x 343.31296pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[78]
+Overfull \hbox (48.3167pt too wide) in paragraph at lines 355--356
+[]\T1/ptm/m/n/12 For the mean-reversion pa-ram-e-ter, $\OML/ztmcm/m/it/12 []$\T1/ptm/m/n/12 , the fea-ture im-por-tance plot iden-ti-fies 'cur-va-ture_10y20y30y',
+ []
+
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[79 <./images/calibration_results/SHAP_summary_a_1.png>]
+<images/calibration_results/SHAP_summary_sigma_7.png, id=1191, 687.2877pt x 552.8655pt>
+File: images/calibration_results/SHAP_summary_sigma_7.png Graphic file (type png)
+<use images/calibration_results/SHAP_summary_sigma_7.png>
+Package pdftex.def Info: images/calibration_results/SHAP_summary_sigma_7.png  used on input line 361.
+(pdftex.def)             Requested size: 426.79135pt x 343.31296pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[80 <./images/calibration_results/SHAP_summary_sigma_7.png>]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\textcite' on input line 374.
+
+
+Overfull \hbox (0.52455pt too wide) in paragraph at lines 377--378
+[]\T1/ptm/m/n/12 The method-olog-i-cal dis-tinc-tion be-tween both ap-proaches is sub-stan-tial. []Her-nan-dez ([]2016[])
+ []
+
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[81]
+<images/calibration_results/plot4_daily_rmse_black_vol.png, id=1212, 1011.78pt x 578.16pt>
+File: images/calibration_results/plot4_daily_rmse_black_vol.png Graphic file (type png)
+<use images/calibration_results/plot4_daily_rmse_black_vol.png>
+Package pdftex.def Info: images/calibration_results/plot4_daily_rmse_black_vol.png  used on input line 389.
+(pdftex.def)             Requested size: 426.79135pt x 243.88419pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[82]
+<images/calibration_results/hernandez_calibration_results.png, id=1217, 461.3235pt x 266.1945pt>
+File: images/calibration_results/hernandez_calibration_results.png Graphic file (type png)
+<use images/calibration_results/hernandez_calibration_results.png>
+Package pdftex.def Info: images/calibration_results/hernandez_calibration_results.png  used on input line 396.
+(pdftex.def)             Requested size: 426.79135pt x 246.27074pt.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[83 <./images/calibration_results/plot4_daily_rmse_black_vol.png> <./images/calibration_results/hernandez_calibration_results.png>]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[84])
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[85]
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)         
