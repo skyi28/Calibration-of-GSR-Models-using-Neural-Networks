@@ -1,13 +1,55 @@
-# traditional_calibration.py
+"""
+This script provides a robust framework for calibrating the Hull-White one-factor interest rate model
+using traditional optimization techniques, specifically the Levenberg-Marquardt (LM) algorithm
+implemented in QuantLib. It is designed to be flexible, supporting both standalone execution
+for daily calibration and modular integration into larger comparison frameworks.
 
-import datetime
+The script's primary objective is to determine the optimal mean-reversion parameter ('a')
+and piecewise-constant volatility parameters ('sigma') that best fit observed market swaption
+volatilities for a given evaluation date.
+
+Key functionalities include:
+1.  **Data Loading and Preparation**: Reads zero-coupon yield curve data and swaption
+    volatility cube data for a specified date.
+2.  **Swaption Helper Creation**: Converts market swaption data into QuantLib SwaptionHelper
+    objects, optionally filtering by minimum expiry and tenor.
+3.  **Hull-White Model Setup**: Configures the QuantLib Hull-White (GSR) model with
+    piecewise-constant 'a' and 'sigma' segments. It supports automatic determination
+    of sigma segments based on available swaption expiries.
+4.  **Levenberg-Marquardt Calibration**: Utilizes QuantLib's LM optimizer to minimize
+    the difference between model-implied and market-observed swaption volatilities.
+    It supports optimizing 'a' or keeping it fixed, and allows for initial guesses
+    for both 'a' and 'sigma'.
+5.  **Performance Evaluation**: Calculates the Root Mean Squared Error (RMSE) in basis
+    points (bps) between model-implied and market volatilities on the calibration set.
+6.  **Result Visualization (Standalone Mode)**: Generates 3D surface plots comparing
+    market, model, and difference volatility surfaces for the calibrated date.
+7.  **Output Storage (Standalone Mode)**: Saves detailed calibration results, including
+    calibrated parameters and per-swaption errors, to a CSV file.
+
+The core calibration logic is encapsulated in `calibrate_on_subset`, allowing other
+scripts (e.g., `run_comparison.py`) to leverage this functionality for fair,
+out-of-sample comparisons.
+
+Usage:
+    - Ensure input CSV files for zero curves and Excel files for volatility cubes
+      are present in the configured data directories.
+    - Modify `CALIBRATION_SETTINGS` in the `if __name__ == '__main__':` block
+      to adjust model parameters, initial guesses, and optimization settings.
+    - Run the script directly to perform batch calibration for all available dates.
+
+Dependencies:
+    - pandas: For data loading and manipulation.
+    - numpy: For numerical operations.
+    - QuantLib: For financial modeling and calibration.
+    - matplotlib: For plotting results.
+"""
+
 import os
 import pandas as pd
 import numpy as np
 import QuantLib as ql
-from numpy.typing import NDArray
 from typing import List, Tuple, Optional, Set, Union
-import sys
 import time
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -22,8 +64,20 @@ FOLDER_ZERO_CURVES: str = os.path.join(DATA_DIR, 'EUR ZERO CURVE')
 FOLDER_VOLATILITY_CUBES: str = os.path.join(DATA_DIR, 'EUR BVOL CUBE')
 FOLDER_RESULTS_TRADITIONAL: str = os.path.join(RESULTS_DIR, 'traditional')
 
-#--------------------HELPER FUNCTIONS (UNCHANGED)--------------------
+#--------------------HELPER FUNCTIONS--------------------
 def parse_tenor(tenor_str: str) -> ql.Period:
+    """
+    Parses a tenor string (e.g., '10YR', '6MO') into a QuantLib Period object.
+
+    Args:
+        tenor_str (str): The tenor string to be parsed.
+
+    Returns:
+        ql.Period: The parsed tenor as a QuantLib Period object.
+
+    Raises:
+        ValueError: If the parsing fails due to an invalid tenor string.
+    """
     tenor_str = tenor_str.strip().upper()
     if 'YR' in tenor_str:
         num = int(tenor_str.replace('YR', ''))
@@ -34,6 +88,18 @@ def parse_tenor(tenor_str: str) -> ql.Period:
     raise ValueError(f"Could not parse tenor string: {tenor_str}")
 
 def parse_tenor_to_years(tenor_str: str) -> float:
+    """
+    Parses a tenor string (e.g., '10YR', '6MO') into a float representing years.
+
+    Args:
+        tenor_str (str): The tenor string to be parsed.
+
+    Returns:
+        float: The parsed tenor in years.
+
+    Raises:
+        ValueError: If the parsing fails due to an invalid tenor string.
+    """
     tenor_str = tenor_str.strip().upper()
     if 'YR' in tenor_str:
         num = int(tenor_str.replace('YR', ''))
@@ -47,6 +113,20 @@ def create_ql_yield_curve(
     zero_curve_df: pd.DataFrame,
     eval_date: datetime.date
 ) -> ql.RelinkableYieldTermStructureHandle:
+    """
+    Creates a QuantLib yield curve from a pandas DataFrame.
+
+    The function takes a time series of daily zero rates and constructs a
+    QuantLib yield curve from it. The constructed curve is then returned as a
+    QuantLib RelinkableYieldTermStructureHandle.
+
+    Args:
+        zero_curve_df (pd.DataFrame): A pandas DataFrame containing a time series of daily zero rates.
+        eval_date (datetime.date): The date at which the yield curve should be evaluated.
+
+    Returns:
+        ql.RelinkableYieldTermStructureHandle: A QuantLib yield curve handle constructed from the input time series.
+    """
     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     dates = [ql_eval_date] + [ql.Date(d.day, d.month, d.year) for d in pd.to_datetime(zero_curve_df['Date'])]
     rates = [zero_curve_df['ZeroRate'].iloc[0]] + zero_curve_df['ZeroRate'].tolist()
@@ -62,6 +142,18 @@ def prepare_calibration_helpers(
     min_expiry_years: float = 0.0,
     min_tenor_years: float = 0.0
 ) -> List[Tuple[ql.SwaptionHelper, str, str]]:
+    """
+    Prepares a list of QuantLib SwaptionHelper objects from the volatility cube.
+
+    Args:
+        vol_cube_df (pd.DataFrame): A pandas DataFrame containing a volatility cube.
+        term_structure_handle (ql.RelinkableYieldTermStructureHandle): A QuantLib yield curve handle.
+        min_expiry_years (float): The minimum expiry in years for a swaption to be considered.
+        min_tenor_years (float): The minimum tenor in years for a swaption to be considered.
+
+    Returns:
+        List[Tuple[ql.SwaptionHelper, str, str]]: A list of QuantLib SwaptionHelper objects representing the relevant swaptions.
+    """
     helpers_with_info = []
     vols_df = vol_cube_df[vol_cube_df['Type'] == 'Vol'].set_index('Expiry')
     strikes_df = vol_cube_df[vol_cube_df['Type'] == 'Strike'].set_index('Expiry')
@@ -92,6 +184,19 @@ def prepare_calibration_helpers(
     return helpers_with_info
 
 def plot_calibration_results(results_df: pd.DataFrame, eval_date: datetime.date, save_dir: str):
+    """
+    Generates a 3D plot of the Hull-White calibration results for a given evaluation date.
+
+    The plot consists of three subplots: the observed market volatilities, the model implied volatilities, and the difference between the two.
+
+    Parameters:
+        results_df (pd.DataFrame): A pandas DataFrame containing the results of the Hull-White calibration process.
+        eval_date (datetime.date): The evaluation date for which the plots should be generated.
+        save_dir (str): The directory in which the generated plots should be saved.
+
+    Returns:
+        None
+    """
     plot_data = results_df.dropna(subset=['MarketVol', 'ModelVol', 'Difference_bps']).copy()
     if plot_data.empty:
         print(f"\nCould not generate plots for {eval_date}: No valid data points available.")
@@ -134,6 +239,20 @@ def _get_step_dates_from_expiries(
     included_expiries_yrs: List[float],
     num_segments: int
 ) -> List[ql.Date]:
+    """
+    Creates a list of step dates by dividing the included expiries into num_segments
+    partitions. If there are not enough unique expiries, it reduces the number of
+    segments and prints a warning message.
+
+    Args:
+        ql_eval_date (ql.Date): The evaluation date of the yield curve.
+        included_expiries_yrs (List[float]): A list of unique expiries in years.
+        num_segments (int): The number of segments to divide the expiries into.
+
+    Returns:
+        List[ql.Date]: A list of step dates, each representing a point in time where
+            the yield curve is divided into a segment.
+    """
     if num_segments <= 1: return []
     unique_expiries = sorted(list(set(included_expiries_yrs)))
     if len(unique_expiries) < num_segments:
@@ -151,6 +270,17 @@ def _expand_params_to_unified_timeline(
     param_step_dates: List[ql.Date],
     unified_step_dates: List[ql.Date]
 ) -> List[ql.QuoteHandle]:
+    """
+    Expands a list of parameters to a unified timeline of dates.
+
+    Parameters:
+        initial_params (List[ql.QuoteHandle]): A list of parameters to be expanded.
+        param_step_dates (List[ql.Date]): A list of step dates for the parameters.
+        unified_step_dates (List[ql.Date]): A list of unified step dates.
+
+    Returns:
+        List[ql.QuoteHandle]: A list of expanded parameters on the unified timeline.
+    """
     if not unified_step_dates: return initial_params
     if not param_step_dates: return [initial_params[0]] * (len(unified_step_dates) + 1)
     expanded_handles = []
@@ -163,7 +293,7 @@ def _expand_params_to_unified_timeline(
         expanded_handles.append(initial_params[idx])
     return expanded_handles
 
-#--------------------REFACTORED CALIBRATION FUNCTION--------------------
+#--------------------CALIBRATION FUNCTION--------------------
 def calibrate_on_subset(
     eval_date: datetime.date,
     zero_curve_df: pd.DataFrame,
@@ -173,23 +303,26 @@ def calibrate_on_subset(
     num_sigma_segments: Union[int, str] = 'auto',
     optimize_a: bool = False,
     initial_a: float = 0.01,
-    initial_sigma: float = 0.01,
+    initial_sigma: float|List[float] = 0.01,
     pricing_engine_integration_points: int = 64
 ) -> Tuple[Optional[List[float]], Optional[List[float]]]:
     """
-    Calibrates a Hull-White model using a pre-defined subset of swaption helpers.
-    This is the core modular function for the LM method.
+    Calibrates the Hull-White model to a subset of swaptions using the Levenberg-Marquardt method.
 
-    Args:
-        eval_date: The evaluation date for the calibration.
-        zero_curve_df: The zero curve data frame.
-        list_of_calibration_helpers: A list of (SwaptionHelper, expiry_str, tenor_str)
-            tuples to be used for calibration.
-        term_structure_handle: A handle to the QuantLib yield curve.
-        ... (other calibration settings)
+    Parameters:
+        eval_date (datetime.date): The evaluation date for which the calibration should be performed.
+        zero_curve_df (pd.DataFrame): A pandas DataFrame containing the zero curve information.
+        list_of_calibration_helpers (List[Tuple[ql.SwaptionHelper, str, str]]): A list of tuples containing the swaption helper, expiry string, and tenor string.
+        term_structure_handle (ql.RelinkableYieldTermStructureHandle): The term structure handle to use for the calibration.
+        num_a_segments (int, optional): The number of segments for the reversion parameters. Defaults to 1.
+        num_sigma_segments (Union[int, str], optional): The number of segments for the volatility parameters. If set to 'auto', the number of segments is determined by the number of swaption expiries. Defaults to 'auto'.
+        optimize_a (bool, optional): Whether to optimize the reversion parameters. Defaults to False.
+        initial_a (float|List[float], optional): The initial guess for the reversion parameters. If a float is provided the same value is used for all segments. Defaults to 0.01.
+        initial_sigma (float, optional): The initial guess for the volatility. Defaults to 0.01.
+        pricing_engine_integration_points (int, optional): The number of integration points for the pricing engine. Defaults to 64.
 
     Returns:
-        A tuple containing (calibrated_a_params, calibrated_sigma_params).
+        Tuple[Optional[List[float]], Optional[List[float]]]: A tuple containing the calibrated reversion parameters and volatility parameters. If the calibration was not successful, returns None for both parameters.
     """
     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     ql.Settings.instance().evaluationDate = ql_eval_date
@@ -269,7 +402,7 @@ def calibrate_on_subset(
 
     return final_as, final_sigmas
 
-#--------------------ORIGINAL CALIBRATION FUNCTION (FOR STANDALONE RUN)--------------------
+#--------------------CALIBRATION FUNCTION (FOR STANDALONE RUN)--------------------
 def calibrate_hull_white_full(
     eval_date: datetime.date,
     zero_curve_df: pd.DataFrame,
@@ -284,6 +417,25 @@ def calibrate_hull_white_full(
     pricing_engine_integration_points: int = 64
 ) -> Tuple[Optional[List[float]], Optional[List[float]], Optional[pd.DataFrame], float]:
     
+    """
+    Calibrate Hull-White parameters on the full swaption volatility surface.
+
+    Parameters:
+        eval_date (datetime.date): The evaluation date for which the calibration should be performed.
+        zero_curve_df (pd.DataFrame): A pandas DataFrame containing the zero curve information.
+        vol_cube_df (pd.DataFrame): A pandas DataFrame containing the volatility cube information.
+        num_a_segments (int, optional): The number of segments for the reversion parameters. Defaults to 1.
+        num_sigma_segments (Union[int, str], optional): The number of segments for the volatility parameters. If set to 'auto', the number of segments is determined by the number of swaption expiries. Defaults to 'auto'.
+        optimize_a (bool, optional): Whether to optimize the reversion parameters. Defaults to False.
+        initial_a (float|List[float], optional): The initial guess for the reversion parameters. If a float is provided the same value is used for all segments. Defaults to 0.01.
+        initial_sigma (float|List[float], optional): The initial guess for the volatility. Defaults to 0.01.
+        min_expiry_years (float, optional): The minimum number of years for which to include swaption helpers for calibration. Defaults to 0.0.
+        min_tenor_years (float, optional): The minimum number of years for which to include swaption helpers for calibration. Defaults to 0.0.
+        pricing_engine_integration_points (int, optional): The number of integration points for the pricing engine. Defaults to 64.
+
+    Returns:
+        Tuple[Optional[List[float]], Optional[List[float]], Optional[pd.DataFrame], float]: A tuple containing the calibrated reversion parameters, volatility parameters, DataFrame containing the results of the calibration, and the daily in-sample root mean squared error (RMSE) in basis points. If the calibration was not successful, returns None for all parameters.
+    """
     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     ql.Settings.instance().evaluationDate = ql_eval_date
 
