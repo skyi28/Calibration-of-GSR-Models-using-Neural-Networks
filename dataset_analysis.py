@@ -1,25 +1,43 @@
 """
-Standalone Python script for Descriptive Data Analysis.
+Standalone Exploratory Data Analysis (EDA) for Financial Market Datasets.
 
-This script performs a comprehensive descriptive analysis on the datasets used
-to train a Hull-White model predicting neural network. It is designed to be
-run independently of the main project's code but uses the same data sources
-and file structures.
+This script performs a comprehensive descriptive analysis on the financial market
+data used for calibrating the Hull-White model. It is designed to be run
+independently to generate a full suite of statistical summaries and
+visualizations, providing insights into the underlying data characteristics
+before model training or evaluation.
 
 The analysis covers:
-1.  Swaption Volatility Surfaces
-2.  Bootstrapped Zero-Coupon Yield Curves
-3.  External Market Indices (VIX, MOVE) and FX Rates (EUR/USD)
+1.  Bootstrapped Zero-Coupon Yield Curves: The term structure of interest
+    rates derived from swap market data.
+2.  Swaption Volatility Surfaces: Market-implied normal volatilities for
+    European swaptions across various expiries and tenors.
+3.  External Market Indicators: Daily data for key financial indices,
+    including the VIX (equity volatility), MOVE (bond volatility), and the
+    EUR/USD exchange rate.
 
-For each dataset, it computes and saves summary statistics and generates
-a series of visualizations to illustrate the data's characteristics and
-evolution over time. All outputs (CSVs and plots) are saved to a dedicated
-'results/descriptive_analysis' directory. All plots now use the 'coolwarm'
-color palette and specified custom colors for consistency.
+Key Functionalities:
+--------------------
+- Data Discovery: Automatically finds and pairs corresponding daily files for
+  yield curves and volatility cubes.
+- External Data Handling: Downloads required external market data from
+  Yahoo Finance if not already present locally, ensuring the script is
+  self-contained.
+- Statistical Summaries: For each dataset, it computes and saves detailed
+  descriptive statistics (mean, std, skew, kurtosis) to CSV files.
+- Rich Visualization: Generates a wide array of plots to explore the data,
+  including:
+    - Time-series plots to track the evolution of rates and indices.
+    - 2D and 3D surface plots to visualize the shape of yield curves and
+      volatility surfaces on specific dates.
+    - Heatmaps to illustrate the dynamics of surfaces over the entire period.
+    - Histograms and box plots to analyze the distribution and spread of data.
+
+All generated outputs (tables and plots) are systematically saved to the
+`results/descriptive_analysis/` directory for easy access and review.
 """
 
 import datetime
-import os
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -27,9 +45,8 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import seaborn as sns
 from pathlib import Path
-from typing import List, Dict, Tuple
-from scipy.stats import norm # Added for normal distribution overlay
-
+from typing import List, Tuple
+from scipy.stats import norm
 
 # Define the base directory for data and results
 BASE_DATA_DIR = Path('data')
@@ -100,7 +117,6 @@ def parse_tenor_to_years(tenor_str: str) -> float:
     return np.nan
 
 
-# --- Data Loading and Preparation ---
 def find_available_data_files() -> List[Tuple[datetime.date, Path, Path]]:
     """
     Finds all available data files for the descriptive analysis by searching for
@@ -166,6 +182,8 @@ def download_and_load_external_data(start_date: datetime.date, end_date: datetim
             tickers = ['^VIX', '^MOVE', 'EURUSD=X']
             # Add one day to end_date to ensure the last day's data is included
             raw_data = yf.download(tickers, start=start_date, end=end_date + datetime.timedelta(days=1))
+            if not isinstance(raw_data, pd.DataFrame):
+                raise ValueError("Failed to download data from yfinance. Check tickers and date range.")
             if raw_data.empty:
                 raise ValueError("No data downloaded from yfinance. Check tickers and date range.")
 
@@ -185,7 +203,6 @@ def download_and_load_external_data(start_date: datetime.date, end_date: datetim
     return df_ext
 
 
-# --- Analysis and Visualization Functions ---
 def analyze_external_data(df: pd.DataFrame, output_dir: Path):
     """
     Analyzes the external market data (VIX, MOVE, EUR/USD) loaded from Yahoo Finance
@@ -212,7 +229,7 @@ def analyze_external_data(df: pd.DataFrame, output_dir: Path):
     stats.to_csv(stats_path)
     print(f"Summary statistics saved to: {stats_path}")
 
-    # Use the user-specified custom colors
+    # Use the colors of matplotlib's coolwarm colormap
     colors = ['#00004c', '#0000ff', '#ff0000', '#800000']
 
     # 2. Time Series Visualization
@@ -305,8 +322,7 @@ def analyze_yield_curves(files: List[Tuple[datetime.date, Path, Path]], output_d
     stats.to_csv(stats_path)
     print(f"Summary statistics for yield curve tenors saved to: {stats_path}")
 
-    # 2. Visualizations
-    # a) Line plot of selected tenors over time
+    # 1) Line plot of selected tenors over time
     plt.figure(figsize=(14, 7))
     tenors_to_plot = [col for col in [1.0, 2.0, 5.0, 10.0, 30.0] if col in pivot_df.columns]
     pivot_df[tenors_to_plot].plot(title='Selected Zero-Coupon Rates Over Time', ax=plt.gca(), colormap='coolwarm')
@@ -314,14 +330,14 @@ def analyze_yield_curves(files: List[Tuple[datetime.date, Path, Path]], output_d
     plt.savefig(output_dir / "yield_curve_selected_tenors.png"); plt.close()
     print(f"Plot of selected tenors saved.")
 
-    # b) Heatmap of yield curve evolution
+    # 2) Heatmap of yield curve evolution
     plt.figure(figsize=(14, 10))
     sns.heatmap(pivot_df.transpose(), cmap='coolwarm', cbar_kws={'label': 'Zero Rate'})
     plt.title('Yield Curve Evolution Heatmap'); plt.xlabel('Date'); plt.ylabel('Tenor (Years)')
     plt.savefig(output_dir / "yield_curve_heatmap.png"); plt.close()
     print(f"Yield curve heatmap saved.")
 
-    # c) 2D line plots for key dates
+    # 3) 2D line plots for key dates
     key_dates = [pivot_df.index[0], pivot_df.index[len(pivot_df)//2], pivot_df.index[-1]]
     fig, axes = plt.subplots(1, 3, figsize=(20, 6), sharey=True)
     fig.suptitle('Yield Curve Shape at Different Points in Time', fontsize=16)
@@ -334,14 +350,14 @@ def analyze_yield_curves(files: List[Tuple[datetime.date, Path, Path]], output_d
     plt.tight_layout(rect=[0, 0.03, 1, 0.95]); plt.savefig(output_dir / "yield_curve_2d_snapshots.png"); plt.close()
     print(f"2D yield curve snapshots saved.")
 
-    # d) Bar chart of standard deviation by tenor
+    # 4) Bar chart of standard deviation by tenor
     plt.figure(figsize=(14, 7))
     stats['std'].sort_index().plot(kind='bar', title='Volatility of Yield Curve Tenors (Standard Deviation)', color='#00004c', edgecolor='black')
     plt.xlabel('Tenor (Years)'); plt.ylabel('Standard Deviation of Zero Rate'); plt.xticks(rotation=45); plt.grid(True, axis='y', linestyle='--', linewidth=0.5); plt.tight_layout()
     plt.savefig(output_dir / "yield_curve_std_by_tenor.png"); plt.close()
     print(f"Standard deviation bar chart for yield curve tenors saved.")
 
-    # e) Histograms of daily changes
+    # 5) Histograms of daily changes
     daily_changes = pivot_df.diff().dropna(how='all')
     desired_tenors = [1.0, 5.0, 10.01, 30.02]
     hist_tenors = [t for t in desired_tenors if t in daily_changes.columns]
@@ -428,8 +444,7 @@ def analyze_volatility_surfaces(files: List[Tuple[datetime.date, Path, Path]], o
     except Exception as e:
         print(f"Could not compute summary statistics for volatility: {e}")
 
-    # 2. Visualizations
-    # a) Line plot of key co-terminal swaption vols
+    # 1) Line plot of key co-terminal swaption vols
     coterminal_df = full_df[np.isclose(full_df['Expiry_yrs'], full_df['Tenor_yrs'])]
     coterminal_pivot = coterminal_df.pivot_table(index='Date', columns='Tenor_yrs', values='Volatility_bps')
     plt.figure(figsize=(14, 7))
@@ -439,7 +454,7 @@ def analyze_volatility_surfaces(files: List[Tuple[datetime.date, Path, Path]], o
     plt.savefig(output_dir / "vol_surface_coterminal_series.png"); plt.close()
     print(f"Plot of selected co-terminal volatilities saved.")
 
-    # b) 3D Surface plots for key dates
+    # 2) 3D Surface plots for key dates
     key_dates = [full_df['Date'].min(), full_df['Date'].iloc[len(full_df['Date'].unique())//2], full_df['Date'].max()]
     fig = plt.figure(figsize=(24, 8)); fig.suptitle('Volatility Surface Shape at Different Points in Time', fontsize=16)
     for i, date in enumerate(key_dates):
@@ -450,7 +465,7 @@ def analyze_volatility_surfaces(files: List[Tuple[datetime.date, Path, Path]], o
     plt.tight_layout(rect=[0, 0.03, 1, 0.95]); plt.savefig(output_dir / "vol_surface_3d_snapshots.png"); plt.close()
     print(f"3D volatility surface snapshots saved.")
 
-    # c) Heatmap of standard deviation by Expiry and Tenor
+    # 3) Heatmap of standard deviation by Expiry and Tenor
     if not stats_df.empty:
         plt.figure(figsize=(14, 10))
         std_pivot = stats_df.pivot_table(index='Expiry_yrs', columns='Tenor_yrs', values='std')
@@ -459,7 +474,7 @@ def analyze_volatility_surfaces(files: List[Tuple[datetime.date, Path, Path]], o
         plt.savefig(output_dir / "vol_surface_std_heatmap.png"); plt.close()
         print(f"Standard deviation heatmap for volatility surface saved.")
 
-    # d) Histograms of daily changes for co-terminal vols
+    # 4) Histograms of daily changes for co-terminal vols
     daily_changes_vol = coterminal_pivot.diff().dropna(how='all')
     desired_tenors_vol = [1.0, 5.0, 10.0, 30.0]
     hist_tenors_vol = [t for t in desired_tenors_vol if t in daily_changes_vol.columns]
