@@ -1,11 +1,44 @@
+"""
+Finds an optimal initial parameter guess for a 1+7 Hull-White model using a
+parallelized Genetic Algorithm (GA) based on the Island Model.
+
+Objective:
+The primary goal of this script is to perform a robust, global search for the
+optimal parameters of a Hull-White one-factor model with a single mean-reversion
+parameter ('a') and a piecewise-constant volatility structure defined by seven
+sigma parameters. Traditional gradient-based optimizers (like Levenberg-Marquardt)
+are highly sensitive to their initial guess and can easily get trapped in local
+minima. This script uses a GA to explore the vast parameter space and find a
+high-quality set of initial parameters, which can then be used to seed a
+traditional optimizer for fine-tuning.
+
+Methodology:
+The script implements a "Generalized Island Model" to parallelize the GA.
+The total population of potential solutions (individuals) is split across
+multiple "islands," with each island running an independent GA in a separate
+process. This approach accelerates the search and enhances diversity.
+
+Workflow:
+1.  Initialization: For a specified market date, the script loads the zero-coupon
+    yield curve and the swaption volatility cube. It initializes multiple
+    populations (islands) with random parameter sets.
+2.  Evolution: Within each island, the population evolves over a set number of
+    generations. The fitness of each parameter set is its RMSE, calculated by
+    pricing all relevant swaptions in QuantLib and comparing them to market data.
+3.  Migration: At fixed intervals (epochs), the best individuals from each island
+    migrate to a neighboring island in a ring topology, introducing new genetic
+    material and preventing stagnation.
+4.  Termination: After a total number of generations, the algorithm terminates.
+5.  Output: The script identifies the best parameter set found across all islands
+    and saves it to a NumPy file (`.npy`), ready for use in other calibration scripts.
+"""
+
 import datetime
 import os
 import pandas as pd
 import numpy as np
 import QuantLib as ql
-from typing import List, Tuple, Dict
-import matplotlib.pyplot as plt
-from matplotlib import cm
+from typing import List, Tuple
 import random
 import time
 import multiprocessing
@@ -21,14 +54,38 @@ FOLDER_VOLATILITY_CUBES: str = os.path.join(DATA_DIR, 'EUR BVOL CUBE')
 OUTPUT_DIR: str = os.path.join(RESULTS_DIR, 'initial_guess_analysis_ga_extended_hw')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# --- HELPER FUNCTIONS (INCLUDES HELPERS FROM LM SCRIPT) ---
+# --- HELPER FUNCTIONS ---
 def parse_tenor(tenor_str: str) -> ql.Period:
+    """
+    Parses a tenor string (e.g., '10YR', '6MO') into a QuantLib Period object.
+
+    Args:
+        tenor_str (str): The tenor string to be parsed.
+
+    Returns:
+        ql.Period: The parsed tenor as a QuantLib Period.
+
+    Raises:
+        ValueError: If the parsing fails due to an invalid tenor string.
+    """
     tenor_str = tenor_str.strip().upper()
     if 'YR' in tenor_str: num = int(tenor_str.replace('YR', '')); return ql.Period(num, ql.Years)
     if 'MO' in tenor_str: num = int(tenor_str.replace('MO', '')); return ql.Period(num, ql.Months)
     raise ValueError(f"Could not parse tenor string: {tenor_str}")
 
 def parse_tenor_to_years(tenor_str: str) -> float:
+    """
+    Parses a tenor string (e.g., '10YR', '6MO') into a float representing years.
+
+    Args:
+        tenor_str (str): The tenor string to be parsed.
+
+    Returns:
+        float: The parsed tenor in years.
+
+    Raises:
+        ValueError: If the parsing fails due to an invalid tenor string.
+    """
     tenor_str = tenor_str.strip().upper()
     if 'YR' in tenor_str: return float(int(tenor_str.replace('YR', '')))
     if 'MO' in tenor_str: return int(tenor_str.replace('MO', '')) / 12.0
@@ -39,6 +96,20 @@ def _get_step_dates_from_expiries(
     included_expiries_yrs: List[float],
     num_segments: int
 ) -> List[ql.Date]:
+    """
+    Creates a list of step dates by dividing the included expiries into num_segments
+    partitions. If there are not enough unique expiries, it reduces the number of
+    segments and prints a warning message.
+
+    Args:
+        ql_eval_date (ql.Date): The evaluation date of the yield curve.
+        included_expiries_yrs (List[float]): A list of unique expiries in years.
+        num_segments (int): The number of segments to divide the expiries into.
+
+    Returns:
+        List[ql.Date]: A list of step dates, each representing a point in time where
+            the yield curve is divided into a segment.
+    """
     if num_segments <= 1: return []
     unique_expiries = sorted(list(set(included_expiries_yrs)))
     if len(unique_expiries) < num_segments:
@@ -52,6 +123,16 @@ def _get_step_dates_from_expiries(
     return step_dates
 
 def create_ql_yield_curve(zero_curve_df: pd.DataFrame, eval_date: datetime.date) -> ql.RelinkableYieldTermStructureHandle:
+    """
+    Creates a QuantLib yield curve from a pandas DataFrame.
+
+    Args:
+        zero_curve_df (pd.DataFrame): A pandas DataFrame containing a time series of daily zero rates.
+        eval_date (datetime.date): The date at which the yield curve should be evaluated.
+
+    Returns:
+        ql.RelinkableYieldTermStructureHandle: A QuantLib yield curve handle constructed from the input time series.
+    """
     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     dates = [ql_eval_date] + [ql.Date(d.day, d.month, d.year) for d in pd.to_datetime(zero_curve_df['Date'])]
     rates = [zero_curve_df['ZeroRate'].iloc[0]] + zero_curve_df['ZeroRate'].tolist()
@@ -62,6 +143,18 @@ def create_ql_yield_curve(zero_curve_df: pd.DataFrame, eval_date: datetime.date)
     return handle
 
 def prepare_calibration_helpers(vol_cube_df: pd.DataFrame, term_structure_handle: ql.RelinkableYieldTermStructureHandle, min_expiry_years: float, min_tenor_years: float) -> List[ql.SwaptionHelper]:
+    """
+    Prepares a list of QuantLib SwaptionHelper objects from the volatility cube.
+
+    Args:
+        vol_cube_df (pd.DataFrame): A pandas DataFrame containing a volatility cube.
+        term_structure_handle (ql.RelinkableYieldTermStructureHandle): A QuantLib yield curve handle.
+        min_expiry_years (float): The minimum expiry in years for a swaption to be considered.
+        min_tenor_years (float): The minimum tenor in years for a swaption to be considered.
+
+    Returns:
+        List[ql.SwaptionHelper]: A list of QuantLib SwaptionHelper objects representing the relevant swaptions.
+    """
     helpers = []
     vols_df = vol_cube_df[vol_cube_df['Type'] == 'Vol'].set_index('Expiry')
     swap_index = ql.Euribor6M(term_structure_handle)
@@ -77,7 +170,17 @@ def prepare_calibration_helpers(vol_cube_df: pd.DataFrame, term_structure_handle
     return helpers
 
 def progress_listener(queue: multiprocessing.Queue, total: int):
-    """Listens to the queue and updates the TQDM progress bar."""
+    """
+    Listens to a multiprocessing queue and updates a tqdm progress bar
+    accordingly. The progress bar is closed when a "STOP" message is received.
+
+    Args:
+        queue (multiprocessing.Queue): The queue to listen to.
+        total (int): The total number of messages to expect.
+
+    Returns:
+        None
+    """
     pbar = tqdm(total=total, desc="Epoch Generations")
     while True:
         message = queue.get()
@@ -86,10 +189,21 @@ def progress_listener(queue: multiprocessing.Queue, total: int):
         pbar.update(1)
     pbar.close()
 
-# --- ISLAND MODEL WORKER FUNCTION (EXTENDED FOR 1+7 PARAMETERS) ---
-def evolve_island(args):
+# --- ISLAND MODEL WORKER FUNCTION ---
+def evolve_island(args: Tuple) -> Tuple[List[Tuple], Dict]:
     """
-    Runs a self-contained GA on a single island to optimize a 1+7 parameter Hull-White model.
+    Evolves a population of island models using a genetic algorithm.
+
+    Args:
+        args (Tuple): A tuple containing the island ID, population size, number of generations per epoch, genetic algorithm parameters, QuantLib initialization data, and a multiprocessing queue for progress updates.
+
+    Returns:
+        Tuple[List[Tuple], Dict]: A tuple containing the final population with its fitness values and a dictionary containing the fitness values of all evaluated individuals.
+
+    Notes:
+        - The genetic algorithm parameters are bounds, mutation rate, tournament size, elitism count, mutation strength, and the number of sigma segments.
+        - The QuantLib initialization data consists of the evaluation date, zero curve DataFrame, volatility cube DataFrame, minimum expiry in years, and minimum tenor in years.
+        - The fitness values are the root-mean-squared errors (RMSEs) of the implied volatilities versus the market volatilities in basis points.
     """
     (island_id, population, generations_per_epoch, ga_params, ql_init_data, progress_queue) = args
     (bounds, mutation_rate, tournament_size, elitism_count, mut_strength, num_sigma_segments) = ga_params
@@ -103,19 +217,29 @@ def evolve_island(args):
     term_structure = create_ql_yield_curve(zero_df, eval_date_dt)
     helpers = prepare_calibration_helpers(vol_df, term_structure, min_exp, min_ten)
     
-    # --- START OF THE FIX ---
-    # Determine step dates for piecewise volatility ONCE, as they are static for this process
-    # Correctly calculate years to expiry from the helper's date objects
     day_counter = ql.Actual365Fixed()
     included_expiries_yrs = sorted(list(set([
         day_counter.yearFraction(ql_eval_date, h.swaption().exercise().dates()[-1]) for h in helpers
     ])))
-    # --- END OF THE FIX ---
     
     sigma_step_dates = _get_step_dates_from_expiries(ql_eval_date, included_expiries_yrs, num_sigma_segments)
 
     fitness_cache = {}
-    def calculate_rmse_local(params: Tuple):
+    def calculate_rmse_local(params: Tuple) -> float:
+        """
+        Calculates the root-mean-squared error (RMSE) of the implied volatilities versus the market volatilities in basis points for a given set of parameters.
+
+        Parameters
+        ----------
+        params : Tuple
+            A tuple containing the a value and the sigma values to be used for the calculation.
+
+        Returns
+        -------
+        float
+            The root-mean-squared error of the implied volatilities versus the market volatilities in basis points.
+        """
+
         if params in fitness_cache:
             return fitness_cache[params]
         
@@ -141,7 +265,6 @@ def evolve_island(args):
         fitness_cache[params] = rmse
         return rmse
 
-    # ... (rest of the function is unchanged) ...
     for gen in range(generations_per_epoch):
         fitness_values = [calculate_rmse_local(ind) for ind in population]
         pop_with_fitness = sorted(zip(population, fitness_values), key=lambda x: x[1])
@@ -176,25 +299,25 @@ def evolve_island(args):
 
 # --- MAIN WORKFLOW ---
 if __name__ == '__main__':
+    date_str = "03.08.2025"                   # Date for which we want to find the initial guess
     # --- GA and Model Hyperparameters ---
     NUM_SIGMA_SEGMENTS = 7
-    NUM_ISLANDS = multiprocessing.cpu_count()
-    MIGRATION_INTERVAL = 15
-    MIGRATION_COUNT = 2
-    TOTAL_POPULATION = 512  # Increased for higher dimensional space
-    TOTAL_GENERATIONS = 150
-    MUTATION_RATE = 0.9     # Higher mutation rate is often better for complex spaces
-    TOURNAMENT_SIZE = 3
-    ELITISM_COUNT = 1
-    INITIAL_MUTATION_STRENGTH = 1.0
-    FINAL_MUTATION_STRENGTH = 0.05
+    NUM_ISLANDS = multiprocessing.cpu_count() # Set number of islands to the number of CPU cores, so that each core processes a different island
+    MIGRATION_INTERVAL = 15                   # Number of generations between migrations
+    MIGRATION_COUNT = 2                       # Number of individuals to migrate
+    TOTAL_POPULATION = 512                    # Total number of individuals, should be divisible by NUM_ISLANDS so that each island has the same number of individuals
+    TOTAL_GENERATIONS = 150                   # Total number of generations (TOTAL_GENERATIONS / MIGRATION_INTERVAL = number of epochs)
+    MUTATION_RATE = 0.9                       # Controls the probability of mutation
+    TOURNAMENT_SIZE = 3                       # Number of individuals participating in each tournament
+    ELITISM_COUNT = 1                         # Number of individuals which have a garanteed place in the next generation
+    INITIAL_MUTATION_STRENGTH = 1.0           # Initial mutation strength
+    FINAL_MUTATION_STRENGTH = 0.05            # Final mutation strength since mutation strength is decayed over time
     
     POP_PER_ISLAND = max(10, TOTAL_POPULATION // NUM_ISLANDS)
     NUM_EPOCHS = TOTAL_GENERATIONS // MIGRATION_INTERVAL
 
     PARAM_BOUNDS = {'a': (0.005, 0.05), 'sigma': (0.00001, 0.001)} # Sigma bounds apply to all 7 sigmas
     MIN_EXPIRY_YEARS, MIN_TENOR_YEARS = 2.0, 2.0
-    date_str = "03.08.2025"
     eval_date = datetime.datetime.strptime(date_str, "%d.%m.%Y").date()
     
     print(f"--- Starting GA for Extended HW (1+7) model for {date_str} ---")
@@ -226,17 +349,14 @@ if __name__ == '__main__':
         fitness_history = []
         global_fitness_cache = {}
 
-        # --- START: CORRECTED MAIN LOOP WITH MANAGER ---
-        # Create a Manager to handle the shared queue
+        # --- MAIN LOOP WITH MANAGER ---
         with multiprocessing.Manager() as manager:
             progress_queue = manager.Queue()
-
             for epoch in range(NUM_EPOCHS):
                 decay = (FINAL_MUTATION_STRENGTH / INITIAL_MUTATION_STRENGTH) ** (1/(NUM_EPOCHS-1)) if NUM_EPOCHS > 1 else 1.0
                 mut_strength = INITIAL_MUTATION_STRENGTH * (decay ** epoch)
                 ga_params = (PARAM_BOUNDS, MUTATION_RATE, TOURNAMENT_SIZE, ELITISM_COUNT, mut_strength, NUM_SIGMA_SEGMENTS)
                 
-                # The Manager's queue can be passed to the workers
                 pool_args = [(i, island_populations[i], MIGRATION_INTERVAL, ga_params, ql_init_data, progress_queue) for i in range(NUM_ISLANDS)]
 
                 print(f"\n--- Epoch {epoch + 1}/{NUM_EPOCHS} | Mutation Strength: {mut_strength:.4f} ---")
@@ -245,15 +365,13 @@ if __name__ == '__main__':
                 listener_thread = threading.Thread(target=progress_listener, args=(progress_queue, total_generations_in_epoch))
                 listener_thread.start()
                 
-                # Create the Pool within the manager's context
                 with multiprocessing.Pool(NUM_ISLANDS) as pool:
                     results = pool.map(evolve_island, pool_args)
 
-                # Stop the listener thread
                 progress_queue.put("STOP")
                 listener_thread.join()
 
-                # Process results and migrate (unchanged logic)
+                # Process results and migrate
                 island_pop_with_fitness = []
                 for pop_with_fit, island_cache in results:
                     island_pop_with_fitness.append(pop_with_fit)
@@ -291,7 +409,7 @@ if __name__ == '__main__':
         np.save(save_path_npy, initial_guess_dict)
         print(f"\nBest initial guess saved to: {save_path_npy}")
 
-        # --- Final Visualization ---
+        # --- Final Evaluation ---
         ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
         term_structure_handle = create_ql_yield_curve(zero_curve_df, eval_date)
                 
@@ -322,6 +440,7 @@ if __name__ == '__main__':
                 'Difference_bps': model_vol_bps - market_vol_bps
             })
         results_df = pd.DataFrame(results_data)
+        print(results_df.to_string(index=False))
         
     except Exception as e:
         import traceback
