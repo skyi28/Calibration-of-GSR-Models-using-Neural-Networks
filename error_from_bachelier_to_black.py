@@ -53,7 +53,8 @@ ASSUMED_NOTIONAL: float = 1.0
 INPUT_CSV_PATH: str = r'results/comparison/daily_summary_results.csv'
 OUTPUT_CSV_PATH: str = r'results/comparison/daily_summary_results_black.csv'
 
-# --- NEW: Define all strategies to be processed ---
+# --- Strategies to be processed ---
+# The strategies mentioned are assumed to be present in the input CSV.
 STRATEGIES = {
     'NN': {'input_col': 'RMSE_NN', 'output_prefix': 'BlackVol_NN'},
     'LM_Static': {'input_col': 'RMSE_LM_Static', 'output_prefix': 'BlackVol_LM_Static'},
@@ -62,10 +63,19 @@ STRATEGIES = {
 }
 
 # -------------------- DATA LOADING & HELPERS --------------------
-
 def load_volatility_cube(file_path: str) -> pd.DataFrame:
     """
-    Reads a volatility cube Excel file into a Pandas DataFrame.
+    Loads a volatility cube from an Excel file and formats it.
+
+    Args:
+        file_path (str): Path to the Excel file containing the volatility cube.
+
+    Returns:
+        pd.DataFrame: A Pandas DataFrame containing the volatility cube data.
+
+    Raises:
+        FileNotFoundError: If the file at the specified path does not exist.
+        Exception: If any other error occurs during the loading process.
     """
     df: pd.DataFrame = pd.read_excel(file_path, engine='openpyxl')
     df.rename(columns={df.columns[1]: 'Type'}, inplace=True)
@@ -76,7 +86,16 @@ def load_volatility_cube(file_path: str) -> pd.DataFrame:
 
 def parse_tenor(tenor_str: str) -> ql.Period:
     """
-    Parses a string representing a tenor (e.g., '1Yr', '6Mo') into a QuantLib Period object.
+    Parses a tenor string (e.g., '10YR', '6MO') into a QuantLib Period object.
+
+    Args:
+        tenor_str (str): The tenor string to be parsed.
+
+    Returns:
+        ql.Period: The parsed tenor as a QuantLib Period.
+
+    Raises:
+        ValueError: If the parsing fails due to an invalid tenor string.
     """
     tenor_str = str(tenor_str).strip().upper()
     if 'YR' in tenor_str: return ql.Period(int(tenor_str.replace('YR', '')), ql.Years)
@@ -88,6 +107,17 @@ def create_ql_yield_curve(
 ) -> ql.RelinkableYieldTermStructureHandle:
     """
     Creates a QuantLib yield curve from a pandas DataFrame.
+
+    The function takes a time series of daily zero rates and constructs a
+    QuantLib yield curve from it. The constructed curve is then returned as a
+    QuantLib RelinkableYieldTermStructureHandle.
+
+    Args:
+        zero_curve_df (pd.DataFrame): A pandas DataFrame containing a time series of daily zero rates.
+        eval_date (datetime.date): The date at which the yield curve should be evaluated.
+
+    Returns:
+        ql.RelinkableYieldTermStructureHandle: A QuantLib yield curve handle constructed from the input time series.
     """
     ql_eval_date: ql.Date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     ql.Settings.instance().evaluationDate = ql_eval_date
@@ -105,7 +135,20 @@ def create_ql_yield_curve(
 # -------------------- CALCULATION LOGIC --------------------
 def get_swaption_details_from_cube(vol_cube_df: pd.DataFrame) -> List[Dict]:
     """
-    Extracts relevant information from a volatility cube DataFrame.
+    Retrieves a pd.DataFrame containing the details of each swaption in a volatility cube.
+
+    Each dictionary contains the following information:
+
+    - 'expiry_str': The expiry date of the swaption as a string.
+    - 'tenor_str': The tenor of the swaption as a string.
+    - 'normal_vol_bps': The normal volatility of the swaption in basis points.
+    - 'forward_rate': The forward rate of the swaption as a float.
+
+    Args:
+        vol_cube_df (pd.DataFrame): A Pandas DataFrame containing a volatility cube.
+
+    Returns:
+        List[Dict]: A list of dictionaries containing the details of each swaption.
     """
     swaption_list = []
     df = vol_cube_df.set_index(['Expiry', 'Type'])
@@ -133,7 +176,16 @@ def calculate_vega_and_black_error(
     model_error_normal_bps: float
 ) -> Optional[Tuple[float, float]]:
     """
-    Calculates the vega and Black volatility errors for a given swaption.
+    Calculates the individual Black volatility error and the normal vega error for a given swaption.
+
+    Args:
+        eval_date (datetime.date): The evaluation date of the swaption.
+        swaption (Dict): A dictionary containing the details of the swaption.
+        yield_curve_handle (ql.RelinkableYieldTermStructureHandle): The QuantLib yield term structure handle.
+        model_error_normal_bps (float): The model error in normal volatility in basis points.
+
+    Returns:
+        Optional[Tuple[float, float]]: A tuple containing the individual Black volatility error and the normal vega error if successful, otherwise None.
     """
     try:
         forward_rate = swaption['forward_rate']
@@ -178,7 +230,16 @@ def convert_normal_to_black_for_date(
     vol_cube_folder: str
 ) -> Optional[Tuple[float, float]]:
     """
-    Calculates the vega-weighted and simple average Black volatility errors.
+    Converts a normal error to a black error for a given date.
+
+    Parameters:
+    eval_date (datetime.date): date to process
+    normal_error_bps (float): normal error in bps
+    zero_curve_folder (str): folder containing zero curve csv files
+    vol_cube_folder (str): folder containing volatility cube xlsx files
+
+    Returns:
+    Optional[Tuple[float, float]]: tuple containing vega-weighted error and simple average error. If no valid swaptions are found, returns None.
     """
     date_str = eval_date.strftime('%d.%m.%Y')
     zero_path = os.path.join(zero_curve_folder, f"{date_str}.csv")
