@@ -765,8 +765,6 @@ def train_new_model(
     joblib.dump(pca_model, os.path.join(model_save_dir, 'pca_model.joblib'))
     np.save(os.path.join(model_save_dir, 'initial_logits.npy'), initial_logits.numpy())
     
-    # <<< NEWLY ADDED LINE >>>
-    # Save the feature names for later use in SHAP analysis
     with open(os.path.join(model_save_dir, 'feature_names.json'), 'w') as f:
         json.dump(feature_names, f)
     

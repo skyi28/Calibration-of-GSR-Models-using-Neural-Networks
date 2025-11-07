@@ -294,6 +294,65 @@
       \field{title}{Interest Rate Models: Theory and Practice}
       \field{year}{2006}
     \endentry
+    \entry{buchel2021deep}{article}{}{}
+      \name{author}{4}{}{%
+        {{un=0,uniquepart=base,hash=3be406ff199227c87a0a19452b367c05}{%
+           family={Büchel},
+           familyi={B\bibinitperiod},
+           given={Philipp},
+           giveni={P\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=c6fb0dc958f7347851202fb17e1b517d}{%
+           family={Kratochwil},
+           familyi={K\bibinitperiod},
+           given={Markus},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=9eb58bf14a2d3f03322bfbe17a97081e}{%
+           family={Nagl},
+           familyi={N\bibinitperiod},
+           given={Maximilian},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=9dacf26773a166a2961db0acb0f081bd}{%
+           family={Rösch},
+           familyi={R\bibinitperiod},
+           given={Daniel},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{05b4bcce2b6d61d3e054efdb155116ac}
+      \strng{fullhash}{905f2d7252396d3b04a7d5bfb1fba960}
+      \strng{fullhashraw}{905f2d7252396d3b04a7d5bfb1fba960}
+      \strng{bibnamehash}{905f2d7252396d3b04a7d5bfb1fba960}
+      \strng{authorbibnamehash}{905f2d7252396d3b04a7d5bfb1fba960}
+      \strng{authornamehash}{05b4bcce2b6d61d3e054efdb155116ac}
+      \strng{authorfullhash}{905f2d7252396d3b04a7d5bfb1fba960}
+      \strng{authorfullhashraw}{905f2d7252396d3b04a7d5bfb1fba960}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Review of Derivatives Research}
+      \field{number}{2}
+      \field{title}{Deep Calibration of Financial Models: Turning Theory into Practice}
+      \field{volume}{25}
+      \field{year}{2021}
+      \field{pages}{109\bibrangedash 136}
+      \range{pages}{28}
+      \verb{doi}
+      \verb 10.1007/s11147-021-09183-7
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1007/s11147-021-09183-7
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1007/s11147-021-09183-7
+      \endverb
+    \endentry
     \entry{chan2022multicollinearity}{article}{}{}
       \name{author}{7}{}{%
         {{un=0,uniquepart=base,hash=f664f3e691a0b4e47f4e15d3f0be5a90}{%
@@ -412,6 +471,97 @@
       \endverb
       \verb{url}
       \verb https://ssrn.com/abstract=264139
+      \endverb
+    \endentry
+    \entry{felici2023negativeinterestrates}{article}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=d8663bc2034d59265add2df721348036}{%
+           family={Felici},
+           familyi={F\bibinitperiod},
+           given={Marco},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=5c9fc2040fa0da69ce831be3d0699448}{%
+           family={Kenny},
+           familyi={K\bibinitperiod},
+           given={Geoff},
+           giveni={G\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=df8f9b432749d6d2c5fe0dec0d12fc0e}{%
+           family={Friz},
+           familyi={F\bibinitperiod},
+           given={Roberta},
+           giveni={R\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{4b445931403dfe91dcfec78eae795808}
+      \strng{fullhash}{b88a2d4ca42e956c4be08c987da8a915}
+      \strng{fullhashraw}{b88a2d4ca42e956c4be08c987da8a915}
+      \strng{bibnamehash}{b88a2d4ca42e956c4be08c987da8a915}
+      \strng{authorbibnamehash}{b88a2d4ca42e956c4be08c987da8a915}
+      \strng{authornamehash}{4b445931403dfe91dcfec78eae795808}
+      \strng{authorfullhash}{b88a2d4ca42e956c4be08c987da8a915}
+      \strng{authorfullhashraw}{b88a2d4ca42e956c4be08c987da8a915}
+      \field{sortinit}{F}
+      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{0014-2921}
+      \field{journaltitle}{European Economic Review}
+      \field{title}{Consumer savings behaviour at low and negative interest rates}
+      \field{volume}{157}
+      \field{year}{2023}
+      \field{pages}{104503}
+      \range{pages}{1}
+      \verb{doi}
+      \verb https://doi.org/10.1016/j.euroecorev.2023.104503
+      \endverb
+      \verb{urlraw}
+      \verb https://www.sciencedirect.com/science/article/pii/S0014292123001320
+      \endverb
+      \verb{url}
+      \verb https://www.sciencedirect.com/science/article/pii/S0014292123001320
+      \endverb
+    \endentry
+    \entry{goldberg2015primerneuralnetworkmodels}{misc}{}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=33b00f3e2f4f1bb310f1cf8d4a4c500a}{%
+           family={Goldberg},
+           familyi={G\bibinitperiod},
+           given={Yoav},
+           giveni={Y\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{fullhash}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{fullhashraw}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{bibnamehash}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{authorbibnamehash}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{authornamehash}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{authorfullhash}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{authorfullhashraw}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \field{sortinit}{G}
+      \field{sortinithash}{32d67eca0634bf53703493fb1090a2e8}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{cs.CL}
+      \field{eprinttype}{arXiv}
+      \field{title}{A Primer on Neural Network Models for Natural Language Processing}
+      \field{year}{2015}
+      \verb{eprint}
+      \verb 1510.00726
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1510.00726
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1510.00726
       \endverb
     \endentry
     \entry{goodfellow2016deeplearning}{book}{}{}
@@ -611,6 +761,56 @@
       \endverb
       \verb{url}
       \verb https://arxiv.org/abs/1512.03385
+      \endverb
+    \endentry
+    \entry{heaton2018deeplearningfinance}{misc}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=e86526d2ca4a06651b23e78e2786385c}{%
+           family={Heaton},
+           familyi={H\bibinitperiod},
+           given={J.\bibnamedelimi B.},
+           giveni={J\bibinitperiod\bibinitdelim B\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=c7ff3f5355edcaff83c15c24eb8bf470}{%
+           family={Polson},
+           familyi={P\bibinitperiod},
+           given={N.\bibnamedelimi G.},
+           giveni={N\bibinitperiod\bibinitdelim G\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=b29e8b7143110a5fca0ab4035d776fed}{%
+           family={Witte},
+           familyi={W\bibinitperiod},
+           given={J.\bibnamedelimi H.},
+           giveni={J\bibinitperiod\bibinitdelim H\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{4d0fb498df2dbe1fba69c9bce9208a27}
+      \strng{fullhash}{d958d28d7fabdf0ce855df06b1173c79}
+      \strng{fullhashraw}{d958d28d7fabdf0ce855df06b1173c79}
+      \strng{bibnamehash}{d958d28d7fabdf0ce855df06b1173c79}
+      \strng{authorbibnamehash}{d958d28d7fabdf0ce855df06b1173c79}
+      \strng{authornamehash}{4d0fb498df2dbe1fba69c9bce9208a27}
+      \strng{authorfullhash}{d958d28d7fabdf0ce855df06b1173c79}
+      \strng{authorfullhashraw}{d958d28d7fabdf0ce855df06b1173c79}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{cs.LG}
+      \field{eprinttype}{arXiv}
+      \field{title}{Deep Learning in Finance}
+      \field{year}{2018}
+      \verb{eprint}
+      \verb 1602.06561
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1602.06561
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1602.06561
       \endverb
     \endentry
     \entry{hernandez2016model}{article}{}{}
@@ -1108,6 +1308,50 @@
       \endverb
       \keyw{Hull–White model,Maximum likelihood,Joint measure modelling,Risk and portfolio management,Derivatives pricing on illiquid markets}
     \endentry
+    \entry{li2020deeplearningimagerecognition}{article}{}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=bba94667e8f58403e414364804690adc}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Lingyun},
+           giveni={L\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{publisher}{1}{%
+        {IOP Publishing}%
+      }
+      \strng{namehash}{bba94667e8f58403e414364804690adc}
+      \strng{fullhash}{bba94667e8f58403e414364804690adc}
+      \strng{fullhashraw}{bba94667e8f58403e414364804690adc}
+      \strng{bibnamehash}{bba94667e8f58403e414364804690adc}
+      \strng{authorbibnamehash}{bba94667e8f58403e414364804690adc}
+      \strng{authornamehash}{bba94667e8f58403e414364804690adc}
+      \strng{authorfullhash}{bba94667e8f58403e414364804690adc}
+      \strng{authorfullhashraw}{bba94667e8f58403e414364804690adc}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Physics: Conference Series}
+      \field{month}{12}
+      \field{number}{1}
+      \field{title}{Application of deep learning in image recognition}
+      \field{volume}{1693}
+      \field{year}{2020}
+      \field{pages}{012128}
+      \range{pages}{1}
+      \verb{doi}
+      \verb 10.1088/1742-6596/1693/1/012128
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1088/1742-6596/1693/1/012128
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1088/1742-6596/1693/1/012128
+      \endverb
+    \endentry
     \entry{li2017hyperband}{article}{}{}
       \name{author}{5}{}{%
         {{un=0,uniquepart=base,hash=1f8dc2db3fb2bdd7a51ade713872affb}{%
@@ -1153,7 +1397,6 @@
       \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
       \field{extradatescope}{labelyear}
       \field{labeldatesource}{}
-      \true{uniqueprimaryauthor}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Journal of Machine Learning Research}
@@ -1168,6 +1411,50 @@
       \endverb
       \verb{url}
       \verb https://jmlr.org/papers/volume18/16-558/16-558.pdf
+      \endverb
+    \endentry
+    \entry{liashchynskyi2019gridsearchrandomsearch}{misc}{}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=58979a9479a08fe091868b8c681be98d}{%
+           family={Liashchynskyi},
+           familyi={L\bibinitperiod},
+           given={Petro},
+           giveni={P\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=a170dfdef15c41ee8c4bcbd3fbe20a58}{%
+           family={Liashchynskyi},
+           familyi={L\bibinitperiod},
+           given={Pavlo},
+           giveni={P\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{a3c74873625a41132d90ecbe2195a762}
+      \strng{fullhash}{a3c74873625a41132d90ecbe2195a762}
+      \strng{fullhashraw}{a3c74873625a41132d90ecbe2195a762}
+      \strng{bibnamehash}{a3c74873625a41132d90ecbe2195a762}
+      \strng{authorbibnamehash}{a3c74873625a41132d90ecbe2195a762}
+      \strng{authornamehash}{a3c74873625a41132d90ecbe2195a762}
+      \strng{authorfullhash}{a3c74873625a41132d90ecbe2195a762}
+      \strng{authorfullhashraw}{a3c74873625a41132d90ecbe2195a762}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{cs.LG}
+      \field{eprinttype}{arXiv}
+      \field{title}{Grid Search, Random Search, Genetic Algorithm: A Big Comparison for NAS}
+      \field{year}{2019}
+      \verb{eprint}
+      \verb 1912.06059
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1912.06059
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1912.06059
       \endverb
     \endentry
     \entry{lui2019nnfinancialmodelcalibration}{article}{}{}
@@ -1277,6 +1564,59 @@
       \endverb
       \verb{url}
       \verb https://ideas.repec.org/a/oup/rfinst/v14y2001i1p113-47.html
+      \endverb
+    \endentry
+    \entry{lucca2019sensitivityoflongterminterestrates}{online}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=3601be97dd1d738844b537aae2d87d0b}{%
+           family={Lucca},
+           familyi={L\bibinitperiod},
+           given={David\bibnamedelima O.},
+           giveni={D\bibinitperiod\bibinitdelim O\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=7f19abca9c1c2715c6ead88e9bb46235}{%
+           family={Hanson},
+           familyi={H\bibinitperiod},
+           given={Samuel\bibnamedelima G.},
+           giveni={S\bibinitperiod\bibinitdelim G\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=3dd0466987f8b46207bad516d8f85045}{%
+           family={Wright},
+           familyi={W\bibinitperiod},
+           given={Jonathan\bibnamedelima H.},
+           giveni={J\bibinitperiod\bibinitdelim H\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{b5021240880efe89df7f1b9cfd4df216}
+      \strng{fullhash}{042399493d930ee03ec8c649531acd1a}
+      \strng{fullhashraw}{042399493d930ee03ec8c649531acd1a}
+      \strng{bibnamehash}{042399493d930ee03ec8c649531acd1a}
+      \strng{authorbibnamehash}{042399493d930ee03ec8c649531acd1a}
+      \strng{authornamehash}{b5021240880efe89df7f1b9cfd4df216}
+      \strng{authorfullhash}{042399493d930ee03ec8c649531acd1a}
+      \strng{authorfullhashraw}{042399493d930ee03ec8c649531acd1a}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{4}
+      \field{month}{3}
+      \field{note}{Federal Reserve Bank of New York Liberty Street Economics (blog)}
+      \field{title}{The Sensitivity of Long-Term Interest Rates: A Tale of Two Frequencies}
+      \field{urlday}{5}
+      \field{urlmonth}{11}
+      \field{urlyear}{2025}
+      \field{year}{2019}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://libertystreeteconomics.newyorkfed.org/2019/03/the-sensitivity-of-long-term-interest-rates-a-tale-of-two-frequencies.html
+      \endverb
+      \verb{url}
+      \verb https://libertystreeteconomics.newyorkfed.org/2019/03/the-sensitivity-of-long-term-interest-rates-a-tale-of-two-frequencies.html
       \endverb
     \endentry
     \entry{lundberg2017unifiedapproachinterpretingmodel}{article}{}{}
@@ -1504,6 +1844,62 @@
       \endverb
       \verb{url}
       \verb https://doi.org/10.1007/978-3-030-13463-1_2
+      \endverb
+    \endentry
+    \entry{park2019effectnetworkwidthstochastic}{misc}{}{}
+      \name{author}{4}{}{%
+        {{un=0,uniquepart=base,hash=4db9c695c7b2eff82b0ed580851397a0}{%
+           family={Park},
+           familyi={P\bibinitperiod},
+           given={Daniel\bibnamedelima S.},
+           giveni={D\bibinitperiod\bibinitdelim S\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=529bdf392a3471f000ce33ec88c41bd5}{%
+           family={Sohl-Dickstein},
+           familyi={S\bibinithyphendelim D\bibinitperiod},
+           given={Jascha},
+           giveni={J\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=c636f146591d51579a8119b777394878}{%
+           family={Le},
+           familyi={L\bibinitperiod},
+           given={Quoc\bibnamedelima V.},
+           giveni={Q\bibinitperiod\bibinitdelim V\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=3449a804ca9f4fb32b4fe7117113c206}{%
+           family={Smith},
+           familyi={S\bibinitperiod},
+           given={Samuel\bibnamedelima L.},
+           giveni={S\bibinitperiod\bibinitdelim L\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{4cbb92447286e8eb4168459d9626ff34}
+      \strng{fullhash}{a75c2603a54689d057547f66d29482b8}
+      \strng{fullhashraw}{a75c2603a54689d057547f66d29482b8}
+      \strng{bibnamehash}{a75c2603a54689d057547f66d29482b8}
+      \strng{authorbibnamehash}{a75c2603a54689d057547f66d29482b8}
+      \strng{authornamehash}{4cbb92447286e8eb4168459d9626ff34}
+      \strng{authorfullhash}{a75c2603a54689d057547f66d29482b8}
+      \strng{authorfullhashraw}{a75c2603a54689d057547f66d29482b8}
+      \field{sortinit}{P}
+      \field{sortinithash}{ff3bcf24f47321b42cb156c2cc8a8422}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{cs.LG}
+      \field{eprinttype}{arXiv}
+      \field{title}{The Effect of Network Width on Stochastic Gradient Descent and Generalization: an Empirical Study}
+      \field{year}{2019}
+      \verb{eprint}
+      \verb 1905.03776
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1905.03776
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1905.03776
       \endverb
     \endentry
     \entry{rebonato2004interest}{book}{}{}
@@ -1860,6 +2256,58 @@
       \field{edition}{2nd}
       \field{title}{Reinforcement Learning: An Introduction}
       \field{year}{2015}
+    \endentry
+    \entry{vanschoren2019automated}{book}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=4ce3afeba4f8f866dbad8e5b02118406}{%
+           family={Vanschoren},
+           familyi={V\bibinitperiod},
+           given={Joaquin},
+           giveni={J\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=a26cf9cd46774802315642220d9f9c4c}{%
+           family={Kotthoff},
+           familyi={K\bibinitperiod},
+           given={Lukas},
+           giveni={L\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=528d4af87fd2ecf5fb8a22db913ce088}{%
+           family={Hutter},
+           familyi={H\bibinitperiod},
+           given={Frank},
+           giveni={F\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{publisher}{1}{%
+        {Springer}%
+      }
+      \strng{namehash}{067adf3ec91858fe0cfe28e0d01738fb}
+      \strng{fullhash}{d78a183b36d5dc3d721f98324f7fffc9}
+      \strng{fullhashraw}{d78a183b36d5dc3d721f98324f7fffc9}
+      \strng{bibnamehash}{d78a183b36d5dc3d721f98324f7fffc9}
+      \strng{authorbibnamehash}{d78a183b36d5dc3d721f98324f7fffc9}
+      \strng{authornamehash}{067adf3ec91858fe0cfe28e0d01738fb}
+      \strng{authorfullhash}{d78a183b36d5dc3d721f98324f7fffc9}
+      \strng{authorfullhashraw}{d78a183b36d5dc3d721f98324f7fffc9}
+      \field{sortinit}{V}
+      \field{sortinithash}{afb52128e5b4dc4b843768c0113d673b}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{series}{The Springer series on challenges in machine learning}
+      \field{title}{Automated Machine Learning}
+      \field{year}{2019}
+      \verb{doi}
+      \verb 10.1007/978-3-030-05318-5
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1007/978-3-030-05318-5
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1007/978-3-030-05318-5
+      \endverb
     \endentry
     \entry{vollrath2009calibration}{article}{}{}
       \name{author}{2}{}{%
@@ -2224,6 +2672,65 @@
       \field{title}{Interest Rate Models: Theory and Practice}
       \field{year}{2006}
     \endentry
+    \entry{buchel2021deep}{article}{}{}
+      \name{author}{4}{}{%
+        {{un=0,uniquepart=base,hash=3be406ff199227c87a0a19452b367c05}{%
+           family={Büchel},
+           familyi={B\bibinitperiod},
+           given={Philipp},
+           giveni={P\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=c6fb0dc958f7347851202fb17e1b517d}{%
+           family={Kratochwil},
+           familyi={K\bibinitperiod},
+           given={Markus},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=9eb58bf14a2d3f03322bfbe17a97081e}{%
+           family={Nagl},
+           familyi={N\bibinitperiod},
+           given={Maximilian},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=9dacf26773a166a2961db0acb0f081bd}{%
+           family={Rösch},
+           familyi={R\bibinitperiod},
+           given={Daniel},
+           giveni={D\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{05b4bcce2b6d61d3e054efdb155116ac}
+      \strng{fullhash}{905f2d7252396d3b04a7d5bfb1fba960}
+      \strng{fullhashraw}{905f2d7252396d3b04a7d5bfb1fba960}
+      \strng{bibnamehash}{905f2d7252396d3b04a7d5bfb1fba960}
+      \strng{authorbibnamehash}{905f2d7252396d3b04a7d5bfb1fba960}
+      \strng{authornamehash}{05b4bcce2b6d61d3e054efdb155116ac}
+      \strng{authorfullhash}{905f2d7252396d3b04a7d5bfb1fba960}
+      \strng{authorfullhashraw}{905f2d7252396d3b04a7d5bfb1fba960}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Review of Derivatives Research}
+      \field{number}{2}
+      \field{title}{Deep Calibration of Financial Models: Turning Theory into Practice}
+      \field{volume}{25}
+      \field{year}{2021}
+      \field{pages}{109\bibrangedash 136}
+      \range{pages}{28}
+      \verb{doi}
+      \verb 10.1007/s11147-021-09183-7
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1007/s11147-021-09183-7
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1007/s11147-021-09183-7
+      \endverb
+    \endentry
     \entry{chan2022multicollinearity}{article}{}{}
       \name{author}{7}{}{%
         {{un=0,uniquepart=base,hash=f664f3e691a0b4e47f4e15d3f0be5a90}{%
@@ -2342,6 +2849,97 @@
       \endverb
       \verb{url}
       \verb https://ssrn.com/abstract=264139
+      \endverb
+    \endentry
+    \entry{felici2023negativeinterestrates}{article}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=d8663bc2034d59265add2df721348036}{%
+           family={Felici},
+           familyi={F\bibinitperiod},
+           given={Marco},
+           giveni={M\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=5c9fc2040fa0da69ce831be3d0699448}{%
+           family={Kenny},
+           familyi={K\bibinitperiod},
+           given={Geoff},
+           giveni={G\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=df8f9b432749d6d2c5fe0dec0d12fc0e}{%
+           family={Friz},
+           familyi={F\bibinitperiod},
+           given={Roberta},
+           giveni={R\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{4b445931403dfe91dcfec78eae795808}
+      \strng{fullhash}{b88a2d4ca42e956c4be08c987da8a915}
+      \strng{fullhashraw}{b88a2d4ca42e956c4be08c987da8a915}
+      \strng{bibnamehash}{b88a2d4ca42e956c4be08c987da8a915}
+      \strng{authorbibnamehash}{b88a2d4ca42e956c4be08c987da8a915}
+      \strng{authornamehash}{4b445931403dfe91dcfec78eae795808}
+      \strng{authorfullhash}{b88a2d4ca42e956c4be08c987da8a915}
+      \strng{authorfullhashraw}{b88a2d4ca42e956c4be08c987da8a915}
+      \field{sortinit}{F}
+      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{0014-2921}
+      \field{journaltitle}{European Economic Review}
+      \field{title}{Consumer savings behaviour at low and negative interest rates}
+      \field{volume}{157}
+      \field{year}{2023}
+      \field{pages}{104503}
+      \range{pages}{1}
+      \verb{doi}
+      \verb https://doi.org/10.1016/j.euroecorev.2023.104503
+      \endverb
+      \verb{urlraw}
+      \verb https://www.sciencedirect.com/science/article/pii/S0014292123001320
+      \endverb
+      \verb{url}
+      \verb https://www.sciencedirect.com/science/article/pii/S0014292123001320
+      \endverb
+    \endentry
+    \entry{goldberg2015primerneuralnetworkmodels}{misc}{}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=33b00f3e2f4f1bb310f1cf8d4a4c500a}{%
+           family={Goldberg},
+           familyi={G\bibinitperiod},
+           given={Yoav},
+           giveni={Y\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{fullhash}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{fullhashraw}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{bibnamehash}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{authorbibnamehash}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{authornamehash}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{authorfullhash}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \strng{authorfullhashraw}{33b00f3e2f4f1bb310f1cf8d4a4c500a}
+      \field{sortinit}{G}
+      \field{sortinithash}{32d67eca0634bf53703493fb1090a2e8}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{cs.CL}
+      \field{eprinttype}{arXiv}
+      \field{title}{A Primer on Neural Network Models for Natural Language Processing}
+      \field{year}{2015}
+      \verb{eprint}
+      \verb 1510.00726
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1510.00726
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1510.00726
       \endverb
     \endentry
     \entry{goodfellow2016deeplearning}{book}{}{}
@@ -2541,6 +3139,56 @@
       \endverb
       \verb{url}
       \verb https://arxiv.org/abs/1512.03385
+      \endverb
+    \endentry
+    \entry{heaton2018deeplearningfinance}{misc}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=e86526d2ca4a06651b23e78e2786385c}{%
+           family={Heaton},
+           familyi={H\bibinitperiod},
+           given={J.\bibnamedelimi B.},
+           giveni={J\bibinitperiod\bibinitdelim B\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=c7ff3f5355edcaff83c15c24eb8bf470}{%
+           family={Polson},
+           familyi={P\bibinitperiod},
+           given={N.\bibnamedelimi G.},
+           giveni={N\bibinitperiod\bibinitdelim G\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=b29e8b7143110a5fca0ab4035d776fed}{%
+           family={Witte},
+           familyi={W\bibinitperiod},
+           given={J.\bibnamedelimi H.},
+           giveni={J\bibinitperiod\bibinitdelim H\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{4d0fb498df2dbe1fba69c9bce9208a27}
+      \strng{fullhash}{d958d28d7fabdf0ce855df06b1173c79}
+      \strng{fullhashraw}{d958d28d7fabdf0ce855df06b1173c79}
+      \strng{bibnamehash}{d958d28d7fabdf0ce855df06b1173c79}
+      \strng{authorbibnamehash}{d958d28d7fabdf0ce855df06b1173c79}
+      \strng{authornamehash}{4d0fb498df2dbe1fba69c9bce9208a27}
+      \strng{authorfullhash}{d958d28d7fabdf0ce855df06b1173c79}
+      \strng{authorfullhashraw}{d958d28d7fabdf0ce855df06b1173c79}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{cs.LG}
+      \field{eprinttype}{arXiv}
+      \field{title}{Deep Learning in Finance}
+      \field{year}{2018}
+      \verb{eprint}
+      \verb 1602.06561
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1602.06561
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1602.06561
       \endverb
     \endentry
     \entry{hernandez2016model}{article}{}{}
@@ -3038,6 +3686,50 @@
       \endverb
       \keyw{Hull–White model,Maximum likelihood,Joint measure modelling,Risk and portfolio management,Derivatives pricing on illiquid markets}
     \endentry
+    \entry{li2020deeplearningimagerecognition}{article}{}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=bba94667e8f58403e414364804690adc}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Lingyun},
+           giveni={L\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{publisher}{1}{%
+        {IOP Publishing}%
+      }
+      \strng{namehash}{bba94667e8f58403e414364804690adc}
+      \strng{fullhash}{bba94667e8f58403e414364804690adc}
+      \strng{fullhashraw}{bba94667e8f58403e414364804690adc}
+      \strng{bibnamehash}{bba94667e8f58403e414364804690adc}
+      \strng{authorbibnamehash}{bba94667e8f58403e414364804690adc}
+      \strng{authornamehash}{bba94667e8f58403e414364804690adc}
+      \strng{authorfullhash}{bba94667e8f58403e414364804690adc}
+      \strng{authorfullhashraw}{bba94667e8f58403e414364804690adc}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Physics: Conference Series}
+      \field{month}{12}
+      \field{number}{1}
+      \field{title}{Application of deep learning in image recognition}
+      \field{volume}{1693}
+      \field{year}{2020}
+      \field{pages}{012128}
+      \range{pages}{1}
+      \verb{doi}
+      \verb 10.1088/1742-6596/1693/1/012128
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1088/1742-6596/1693/1/012128
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1088/1742-6596/1693/1/012128
+      \endverb
+    \endentry
     \entry{li2017hyperband}{article}{}{}
       \name{author}{5}{}{%
         {{un=0,uniquepart=base,hash=1f8dc2db3fb2bdd7a51ade713872affb}{%
@@ -3083,7 +3775,6 @@
       \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
       \field{extradatescope}{labelyear}
       \field{labeldatesource}{}
-      \true{uniqueprimaryauthor}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Journal of Machine Learning Research}
@@ -3098,6 +3789,50 @@
       \endverb
       \verb{url}
       \verb https://jmlr.org/papers/volume18/16-558/16-558.pdf
+      \endverb
+    \endentry
+    \entry{liashchynskyi2019gridsearchrandomsearch}{misc}{}{}
+      \name{author}{2}{}{%
+        {{un=0,uniquepart=base,hash=58979a9479a08fe091868b8c681be98d}{%
+           family={Liashchynskyi},
+           familyi={L\bibinitperiod},
+           given={Petro},
+           giveni={P\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=a170dfdef15c41ee8c4bcbd3fbe20a58}{%
+           family={Liashchynskyi},
+           familyi={L\bibinitperiod},
+           given={Pavlo},
+           giveni={P\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{a3c74873625a41132d90ecbe2195a762}
+      \strng{fullhash}{a3c74873625a41132d90ecbe2195a762}
+      \strng{fullhashraw}{a3c74873625a41132d90ecbe2195a762}
+      \strng{bibnamehash}{a3c74873625a41132d90ecbe2195a762}
+      \strng{authorbibnamehash}{a3c74873625a41132d90ecbe2195a762}
+      \strng{authornamehash}{a3c74873625a41132d90ecbe2195a762}
+      \strng{authorfullhash}{a3c74873625a41132d90ecbe2195a762}
+      \strng{authorfullhashraw}{a3c74873625a41132d90ecbe2195a762}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{cs.LG}
+      \field{eprinttype}{arXiv}
+      \field{title}{Grid Search, Random Search, Genetic Algorithm: A Big Comparison for NAS}
+      \field{year}{2019}
+      \verb{eprint}
+      \verb 1912.06059
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1912.06059
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1912.06059
       \endverb
     \endentry
     \entry{lui2019nnfinancialmodelcalibration}{article}{}{}
@@ -3207,6 +3942,59 @@
       \endverb
       \verb{url}
       \verb https://ideas.repec.org/a/oup/rfinst/v14y2001i1p113-47.html
+      \endverb
+    \endentry
+    \entry{lucca2019sensitivityoflongterminterestrates}{online}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=3601be97dd1d738844b537aae2d87d0b}{%
+           family={Lucca},
+           familyi={L\bibinitperiod},
+           given={David\bibnamedelima O.},
+           giveni={D\bibinitperiod\bibinitdelim O\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=7f19abca9c1c2715c6ead88e9bb46235}{%
+           family={Hanson},
+           familyi={H\bibinitperiod},
+           given={Samuel\bibnamedelima G.},
+           giveni={S\bibinitperiod\bibinitdelim G\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=3dd0466987f8b46207bad516d8f85045}{%
+           family={Wright},
+           familyi={W\bibinitperiod},
+           given={Jonathan\bibnamedelima H.},
+           giveni={J\bibinitperiod\bibinitdelim H\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{b5021240880efe89df7f1b9cfd4df216}
+      \strng{fullhash}{042399493d930ee03ec8c649531acd1a}
+      \strng{fullhashraw}{042399493d930ee03ec8c649531acd1a}
+      \strng{bibnamehash}{042399493d930ee03ec8c649531acd1a}
+      \strng{authorbibnamehash}{042399493d930ee03ec8c649531acd1a}
+      \strng{authornamehash}{b5021240880efe89df7f1b9cfd4df216}
+      \strng{authorfullhash}{042399493d930ee03ec8c649531acd1a}
+      \strng{authorfullhashraw}{042399493d930ee03ec8c649531acd1a}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{4}
+      \field{month}{3}
+      \field{note}{Federal Reserve Bank of New York Liberty Street Economics (blog)}
+      \field{title}{The Sensitivity of Long-Term Interest Rates: A Tale of Two Frequencies}
+      \field{urlday}{5}
+      \field{urlmonth}{11}
+      \field{urlyear}{2025}
+      \field{year}{2019}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://libertystreeteconomics.newyorkfed.org/2019/03/the-sensitivity-of-long-term-interest-rates-a-tale-of-two-frequencies.html
+      \endverb
+      \verb{url}
+      \verb https://libertystreeteconomics.newyorkfed.org/2019/03/the-sensitivity-of-long-term-interest-rates-a-tale-of-two-frequencies.html
       \endverb
     \endentry
     \entry{lundberg2017unifiedapproachinterpretingmodel}{article}{}{}
@@ -3434,6 +4222,62 @@
       \endverb
       \verb{url}
       \verb https://doi.org/10.1007/978-3-030-13463-1_2
+      \endverb
+    \endentry
+    \entry{park2019effectnetworkwidthstochastic}{misc}{}{}
+      \name{author}{4}{}{%
+        {{un=0,uniquepart=base,hash=4db9c695c7b2eff82b0ed580851397a0}{%
+           family={Park},
+           familyi={P\bibinitperiod},
+           given={Daniel\bibnamedelima S.},
+           giveni={D\bibinitperiod\bibinitdelim S\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=529bdf392a3471f000ce33ec88c41bd5}{%
+           family={Sohl-Dickstein},
+           familyi={S\bibinithyphendelim D\bibinitperiod},
+           given={Jascha},
+           giveni={J\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=c636f146591d51579a8119b777394878}{%
+           family={Le},
+           familyi={L\bibinitperiod},
+           given={Quoc\bibnamedelima V.},
+           giveni={Q\bibinitperiod\bibinitdelim V\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=3449a804ca9f4fb32b4fe7117113c206}{%
+           family={Smith},
+           familyi={S\bibinitperiod},
+           given={Samuel\bibnamedelima L.},
+           giveni={S\bibinitperiod\bibinitdelim L\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{4cbb92447286e8eb4168459d9626ff34}
+      \strng{fullhash}{a75c2603a54689d057547f66d29482b8}
+      \strng{fullhashraw}{a75c2603a54689d057547f66d29482b8}
+      \strng{bibnamehash}{a75c2603a54689d057547f66d29482b8}
+      \strng{authorbibnamehash}{a75c2603a54689d057547f66d29482b8}
+      \strng{authornamehash}{4cbb92447286e8eb4168459d9626ff34}
+      \strng{authorfullhash}{a75c2603a54689d057547f66d29482b8}
+      \strng{authorfullhashraw}{a75c2603a54689d057547f66d29482b8}
+      \field{sortinit}{P}
+      \field{sortinithash}{ff3bcf24f47321b42cb156c2cc8a8422}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{cs.LG}
+      \field{eprinttype}{arXiv}
+      \field{title}{The Effect of Network Width on Stochastic Gradient Descent and Generalization: an Empirical Study}
+      \field{year}{2019}
+      \verb{eprint}
+      \verb 1905.03776
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1905.03776
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1905.03776
       \endverb
     \endentry
     \entry{rebonato2004interest}{book}{}{}
@@ -3790,6 +4634,58 @@
       \field{edition}{2nd}
       \field{title}{Reinforcement Learning: An Introduction}
       \field{year}{2015}
+    \endentry
+    \entry{vanschoren2019automated}{book}{}{}
+      \name{author}{3}{}{%
+        {{un=0,uniquepart=base,hash=4ce3afeba4f8f866dbad8e5b02118406}{%
+           family={Vanschoren},
+           familyi={V\bibinitperiod},
+           given={Joaquin},
+           giveni={J\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=a26cf9cd46774802315642220d9f9c4c}{%
+           family={Kotthoff},
+           familyi={K\bibinitperiod},
+           given={Lukas},
+           giveni={L\bibinitperiod},
+           givenun=0}}%
+        {{un=0,uniquepart=base,hash=528d4af87fd2ecf5fb8a22db913ce088}{%
+           family={Hutter},
+           familyi={H\bibinitperiod},
+           given={Frank},
+           giveni={F\bibinitperiod},
+           givenun=0}}%
+      }
+      \list{publisher}{1}{%
+        {Springer}%
+      }
+      \strng{namehash}{067adf3ec91858fe0cfe28e0d01738fb}
+      \strng{fullhash}{d78a183b36d5dc3d721f98324f7fffc9}
+      \strng{fullhashraw}{d78a183b36d5dc3d721f98324f7fffc9}
+      \strng{bibnamehash}{d78a183b36d5dc3d721f98324f7fffc9}
+      \strng{authorbibnamehash}{d78a183b36d5dc3d721f98324f7fffc9}
+      \strng{authornamehash}{067adf3ec91858fe0cfe28e0d01738fb}
+      \strng{authorfullhash}{d78a183b36d5dc3d721f98324f7fffc9}
+      \strng{authorfullhashraw}{d78a183b36d5dc3d721f98324f7fffc9}
+      \field{sortinit}{V}
+      \field{sortinithash}{afb52128e5b4dc4b843768c0113d673b}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{series}{The Springer series on challenges in machine learning}
+      \field{title}{Automated Machine Learning}
+      \field{year}{2019}
+      \verb{doi}
+      \verb 10.1007/978-3-030-05318-5
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1007/978-3-030-05318-5
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1007/978-3-030-05318-5
+      \endverb
     \endentry
     \entry{vollrath2009calibration}{article}{}{}
       \name{author}{2}{}{%

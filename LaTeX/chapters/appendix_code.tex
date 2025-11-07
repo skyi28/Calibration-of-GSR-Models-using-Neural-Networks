@@ -38,7 +38,31 @@ To further enhance efficiency, all input data, such as bootstrapped zero curves 
 
 Moreover, the data preprocessing pipeline was designed in a modular fashion, allowing for the selective execution of computationally expensive routines. Boolean flags such as \texttt{PREPROCESS\_CURVES} and \texttt{BOOTSTRAP\_CURVES} permit bypassing redundant computations once intermediate data has been generated and stored. This modularity proved highly beneficial for facilitating efficient experimentation and reproducibility, particularly during the resource-intensive hyperparameter search phase.
 
+\subsection*{Levenberg-Marquardt Optimizer Configuration}
+
+The implementation of the \ac{lm} algorithm relied on the \texttt{QuantLib} open-source library. The convergence and termination of the numerical optimization were controlled by a specific \texttt{EndCriteria} object, configured with the parameters detailed in table~\ref{tab:lmcriteria}.
+
+\begin{table}[H]
+	\centering
+	\caption{End Criteria for the Levenberg-Marquardt Optimization}
+	\label{tab:lmcriteria}
+	\begin{tabular}{@{}llc@{}}
+		\toprule
+		Parameter                    & Description                                 & Value                \\
+		\midrule
+		\texttt{maxIterations}       & Maximum number of iterations allowed.       & 400                  \\
+		\texttt{maxStatStateIter}    & Max iterations without improvement.         & 100                  \\
+		\texttt{rootEpsilon}         & Tolerance for the root of the error.        & $1.0 \times 10^{-8}$ \\
+		\texttt{functionEpsilon}     & Tolerance for the objective function value. & $1.0 \times 10^{-8}$ \\
+		\texttt{gradientNormEpsilon} & Tolerance for the gradient's norm.          & $1.0 \times 10^{-8}$ \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+A crucial aspect of the evaluation was monitoring the optimizer's behavior. An analysis of the termination condition for every calibration performed during the test period revealed a consistent outcome: in all cases, the optimization process concluded because the objective function value converged to a level below the specified \texttt{functionEpsilon} threshold. This result confirms that the \ac{lm} algorithm consistently found a local minimum that satisfied the predefined accuracy requirement, rather than being prematurely halted by other constraints, such as the maximum iteration limit.
+
 \subsection{Principal Component Analysis on the Yield Curve}
+\label{subsec:appendix_pca}
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=1\textwidth]{images/appendix/pca_component_loadings.png}
@@ -135,9 +159,9 @@ The learning curve provides several insights into model behavior and the optimiz
 		\label{tab:shapiro_wilk}
 		\begin{tabular}{lccccc}
 			\toprule
-			Strategy           & Statistic & p-value & $\alpha=0.01$ & $\alpha=0.05$ & $\alpha=0.10$ \\
+			Strategy                & Statistic & p-value & $\alpha=0.01$ & $\alpha=0.05$ & $\alpha=0.10$ \\
 			\midrule
-			Neural Network     & 0.9076    & 0.0173  & Not Rejected  & Rejected      & Rejected      \\
+			Neural Network          & 0.9076    & 0.0173  & Not Rejected  & Rejected      & Rejected      \\
 			\ac{lm} Static          & 0.7788    & 0.0000  & Rejected      & Rejected      & Rejected      \\
 			\ac{lm} Pure Rolling    & 0.9360    & 0.0877  & Not Rejected  & Not Rejected  & Rejected      \\
 			\ac{lm} Adaptive Anchor & 0.8237    & 0.0003  & Rejected      & Rejected      & Rejected      \\
@@ -157,9 +181,9 @@ The learning curve provides several insights into model behavior and the optimiz
 		\label{tab:adf_test}
 		\begin{tabular}{lccccc}
 			\toprule
-			Strategy           & ADF Statistic & p-value & $\alpha=0.01$ & $\alpha=0.05$ & $\alpha=0.10$ \\
+			Strategy                & ADF Statistic & p-value & $\alpha=0.01$ & $\alpha=0.05$ & $\alpha=0.10$ \\
 			\midrule
-			Neural Network     & 1.1245        & 0.9954  & Not Rejected  & Not Rejected  & Not Rejected  \\
+			\ac{nn}                 & 1.1245        & 0.9954  & Not Rejected  & Not Rejected  & Not Rejected  \\
 			\ac{lm} Static          & -4.2964       & 0.0005  & Rejected      & Rejected      & Rejected      \\
 			\ac{lm} Pure Rolling    & -1.3795       & 0.5921  & Not Rejected  & Not Rejected  & Not Rejected  \\
 			\ac{lm} Adaptive Anchor & -5.3023       & 0.0000  & Rejected      & Rejected      & Rejected      \\
@@ -179,7 +203,7 @@ Tables \ref{tab:shapiro_wilk} and \ref{tab:adf_test} summarize the results of th
 	\caption{Distribution of \ac{rmse} between \ac{nn} and \ac{lm}.}
 	\label{fig:distribution_rmse_violin}
 \end{figure}
- Figure \ref{fig:distribution_rmse_violin} presents a comparative analysis of the daily out-of-sample \ac{rmse} distributions for the four calibration strategies under investigation. The visualization employs split violin plots to contrast the probability densities of both the unweighted and the vega-weighted \ac{rmse} for each model over the entire test period. This allows for a detailed examination of each method's accuracy, stability, and performance on financially significant instruments.
+Figure \ref{fig:distribution_rmse_violin} presents a comparative analysis of the daily out-of-sample \ac{rmse} distributions for the four calibration strategies under investigation. The visualization employs split violin plots to contrast the probability densities of both the unweighted and the vega-weighted \ac{rmse} for each model over the entire test period. This allows for a detailed examination of each method's accuracy, stability, and performance on financially significant instruments.
 
 The \ac{nn} exhibits a distribution that is characterized by a low central tendency and minimal dispersion. The violin plot for the \ac{nn} is situated at the lowest level on the vertical axis, with a median \ac{rmse} around 4~\ac{bps}, and is substantially more compact than those of the other methods. This visual representation indicates a high degree of both accuracy and stability, suggesting that the \ac{nn} consistently generated low-error calibrations on a daily basis. The close alignment of its unweighted and vega-weighted distributions further implies that the model's performance is robust across instruments of varying price sensitivity to volatility.
 
@@ -250,7 +274,7 @@ In conclusion, the analysis reveals that all calibration methods produce errors 
 
 \subsection{\ac{shap} Values}
 \label{appendix:shap_values}
-Presented below are the SHAP feature importance and summary plots for each of the eight output parameters of the Hull-White model. This comprehensive analysis covers the mean-reversion parameter, \(\alpha\), as well as the seven piecewise constant volatility parameters, from \(\sigma_1\) through \(\sigma_7\). The SHAP values were computed based on the network's performance on the hold-out test set, thereby providing insight into its out-of-sample decision-making process.
+Presented below are the \ac{shap} feature importance and summary plots for each of the eight output parameters of the \ac{hw} model. This comprehensive analysis covers the mean-reversion parameter, $\alpha$, as well as the seven piecewise constant volatility parameters, from $\sigma_1$ through $\sigma_7$. The \ac{shap} values were computed based on the \ac{nn}'s performance on the hold-out test set, thereby providing insight into its out-of-sample decision-making process.
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.5\textwidth]{images/appendix/SHAP_importance_a_1.png}
@@ -282,6 +306,6 @@ Presented below are the SHAP feature importance and summary plots for each of th
 	}
 
 \subsection{Code and Data Availability}
-For the purposes of transparency and to facilitate further research, the complete source code implementing the methodologies, experiments, and analyses detailed within this thesis has been made publicly available. The project repository is hosted on GitHub and can be accessed via the following URL: \linebreak \url{https://github.com/skyi28/Calibration-of-GSR-Models-using-Neural-Networks}
+For the purposes of transparency and to facilitate further research, the complete source code implementing the methodologies, experiments, and analyses detailed within this thesis has been made publicly available. The project repository is hosted on \texttt{GitHub} and can be accessed and downloaded via the following URL: \linebreak \url{https://github.com/skyi28/Calibration-of-GSR-Models-using-Neural-Networks}
 
 It is important to note that the repository contains only the source code and not the underlying market data utilized in the empirical study. The dataset, which was gathered from the Bloomberg Terminal, is not provided due to the proprietary nature of the information and the restrictive terms of the Bloomberg data license agreement, which expressly forbids the redistribution of its data.
