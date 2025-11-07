@@ -1,7 +1,7 @@
 # neural_network_calibration.py
 
 """
-This script is designed to train a Neural Network for calibrating Hull-White GSR models.
+This script is designed to train a Neural Network for calibrating the Hull-White model.
 
 Its primary role is to be a "model factory." Its purpose is to produce the best
 possible trained model artifact, which can then be used by other scripts for evaluation.
@@ -23,13 +23,11 @@ execution on powerful hardware.
 """
 import datetime
 import glob
-import math
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # Filter out tensorflow information messages
 import sys
 import time
 import pandas as pd
-from pandas._typing import ArrayLike
 import numpy as np
 import QuantLib as ql
 import tensorflow as tf
@@ -38,7 +36,6 @@ from sklearn.decomposition import PCA
 from numpy.typing import NDArray
 from typing import List, Tuple, Optional, Dict
 import matplotlib.pyplot as plt
-from matplotlib import cm
 from concurrent.futures import ThreadPoolExecutor
 import bisect
 import traceback
@@ -57,17 +54,17 @@ np.random.seed(SEED)
 tf.random.set_seed(SEED)
 
 #--------------------CONFIG--------------------
-PREPROCESS_CURVES: bool = False
-BOOTSTRAP_CURVES: bool = False
+PREPROCESS_CURVES: bool = False                                         # Set to True to preprocess raw curves
+BOOTSTRAP_CURVES: bool = False                                          # Set to True to bootstrap zero curves, both boolean flags should be have the same value
 
-FOLDER_SWAP_CURVES: str = r'data/EUR SWAP CURVE'
-FOLDER_ZERO_CURVES: str = r'data/EUR ZERO CURVE'
-FOLDER_VOLATILITY_CUBES: str = r'data/EUR BVOL CUBE'
-FOLDER_EXTERNAL_DATA: str = r'data/EXTERNAL'
-FOLDER_MODELS: str = r'results/neural_network/models'
-FOLDER_HYPERPARAMETERS: str = r'results/neural_network/hyperparameters'
+FOLDER_SWAP_CURVES: str = r'data/EUR SWAP CURVE'                        # Folder containing raw swap curves
+FOLDER_ZERO_CURVES: str = r'data/EUR ZERO CURVE'                        # Folder to store bootstrapped zero curves
+FOLDER_VOLATILITY_CUBES: str = r'data/EUR BVOL CUBE'                    # Folder which contains the volatility cubes as .xlsx files
+FOLDER_EXTERNAL_DATA: str = r'data/EXTERNAL'                            # Folder containing external data sources
+FOLDER_MODELS: str = r'results/neural_network/models'                   # Folder to store trained models
+FOLDER_HYPERPARAMETERS: str = r'results/neural_network/hyperparameters' # Folder to store hyperparameter search results
 
-#--------------------PREPROCESS CURVES (UNCHANGED)--------------------
+#--------------------PREPROCESS CURVES--------------------
 if PREPROCESS_CURVES:
     print("--- Starting: Preprocessing Raw Swap Curves ---")
     processed_folder: str = os.path.join(FOLDER_SWAP_CURVES, 'processed')
@@ -101,11 +98,21 @@ if PREPROCESS_CURVES:
             processed_swap_curve.to_csv(os.path.join(processed_folder, f"{swap_curve_date_str}.csv"), index=False)
     print("--- Finished: Preprocessing ---")
 
-#--------------------BOOTSTRAP ZERO CURVES (UNCHANGED)--------------------
+#--------------------BOOTSTRAP ZERO CURVES--------------------
 def bootstrap_zero_curve_with_quantlib(
     processed_swap_curve: pd.DataFrame,
     valuation_date: datetime.datetime
 ) -> pd.DataFrame:
+    """
+    Bootstraps a zero-coupon curve using QuantLib from a given swap curve.
+
+    Parameters:
+    processed_swap_curve (pd.DataFrame): A DataFrame containing the processed swap curve
+    valuation_date (datetime.datetime): The valuation date for the QuantLib yield curve
+
+    Returns:
+    pd.DataFrame: A DataFrame containing the bootstrapped zero curve data
+    """
     ql_valuation_date = ql.Date(valuation_date.day, valuation_date.month, valuation_date.year)
     ql.Settings.instance().evaluationDate = ql_valuation_date
     calendar: ql.Calendar = ql.TARGET()
@@ -150,13 +157,28 @@ if BOOTSTRAP_CURVES:
     print("--- Finished: Bootstrapping ---")
     sys.exit(0)
 
-#--------------------DATA DISCOVERY AND SPLITTING (UNCHANGED)--------------------
+#--------------------DATA DISCOVERY AND SPLITTING--------------------
 def load_and_split_data_chronologically(
     zero_curve_folder: str,
     vol_cube_folder: str,
     train_split_percentage: float = 50.0,
     validation_split_percentage: float = 20.0,
 ) -> Tuple[List[Tuple[datetime.date, str, str]], List[Tuple[datetime.date, str, str]], List[Tuple[datetime.date, str, str]]]:
+    """
+    Loads and splits available data files chronologically into training, validation,
+    and testing sets.
+
+    Parameters:
+    zero_curve_folder (str): The folder containing the zero-coupon yield curve CSV files.
+    vol_cube_folder (str): The folder containing the volatility cube Excel files.
+    train_split_percentage (float): The percentage of total data files to include in the training set.
+    validation_split_percentage (float): The percentage of total data files to include in the validation set.
+    
+    The remaining percentage of data files are included in the testing set.
+
+    Returns:
+    Tuple[List[Tuple[datetime.date, str, str]], List[Tuple[datetime.date, str, str]], List[Tuple[datetime.date, str, str]]]: A tuple containing the training, validation, and testing sets. Each set is a list of tuples containing the evaluation date, the path to the zero-coupon yield curve CSV file, and the path to the volatility cube Excel file.
+    """
     print("\n--- Discovering and splitting data files chronologically ---")
     vol_cube_xlsx_folder: str = os.path.join(vol_cube_folder, 'xlsx')
     if not os.path.exists(zero_curve_folder) or not os.path.exists(vol_cube_xlsx_folder):
@@ -185,8 +207,21 @@ def load_and_split_data_chronologically(
     print(f"Splitting data: {len(train_files)} for training, {len(validation_files)} for validation, and {len(test_files)} for testing.")
     return train_files, validation_files, test_files
 
-#--------------------HELPER AND PLOTTING FUNCTIONS (UNCHANGED)--------------------
+#--------------------HELPER AND PLOTTING FUNCTIONS--------------------
 def load_volatility_cube(file_path: str) -> pd.DataFrame:
+    """
+    Loads a volatility cube from an Excel file and formats it.
+
+    Args:
+        file_path (str): Path to the Excel file containing the volatility cube.
+
+    Returns:
+        pd.DataFrame: A Pandas DataFrame containing the volatility cube data.
+
+    Raises:
+        FileNotFoundError: If the file at the specified path does not exist.
+        Exception: If any other error occurs during the loading process.
+    """
     df: pd.DataFrame = pd.read_excel(file_path, engine='openpyxl')
     df.rename(columns={df.columns[1]: 'Type'}, inplace=True)
     for col in df.columns:
@@ -195,12 +230,36 @@ def load_volatility_cube(file_path: str) -> pd.DataFrame:
     return df
 
 def parse_tenor(tenor_str: str) -> ql.Period:
+    """
+    Parses a tenor string (e.g., '10YR', '6MO') into a QuantLib Period object.
+
+    Args:
+        tenor_str (str): The tenor string to be parsed.
+
+    Returns:
+        ql.Period: The parsed tenor as a QuantLib Period object.
+
+    Raises:
+        ValueError: If the parsing fails due to an invalid tenor string.
+    """
     tenor_str = tenor_str.strip().upper()
     if 'YR' in tenor_str: return ql.Period(int(tenor_str.replace('YR', '')), ql.Years)
     if 'MO' in tenor_str: return ql.Period(int(tenor_str.replace('MO', '')), ql.Months)
     raise ValueError(f"Could not parse tenor string: {tenor_str}")
 
 def parse_tenor_to_years(tenor_str: str) -> float:
+    """
+    Parses a tenor string (e.g., '10YR', '6MO') into a float representing years.
+
+    Args:
+        tenor_str (str): The tenor string to be parsed.
+
+    Returns:
+        float: The parsed tenor in years.
+
+    Raises:
+        ValueError: If the parsing fails due to an invalid tenor string.
+    """
     tenor_str = tenor_str.strip().upper()
     if 'YR' in tenor_str: return float(int(tenor_str.replace('YR', '')))
     if 'MO' in tenor_str: return int(tenor_str.replace('MO', '')) / 12.0
@@ -209,6 +268,24 @@ def parse_tenor_to_years(tenor_str: str) -> float:
 def create_ql_yield_curve(
     zero_curve_df: pd.DataFrame, eval_date: datetime.date
 ) -> ql.RelinkableYieldTermStructureHandle:
+    """
+    Creates a QuantLib yield curve from a pandas DataFrame.
+
+    Parameters:
+    zero_curve_df (pd.DataFrame): A DataFrame containing the zero-coupon yield curve data.
+    eval_date (datetime.date): The evaluation date for the QuantLib yield curve.
+
+    Returns:
+    ql.RelinkableYieldTermStructureHandle: The QuantLib yield curve handle.
+
+    Notes:
+    The input DataFrame must contain columns 'Date' and 'ZeroRate'.
+    The 'Date' column is expected to contain datetime.date objects.
+    The 'ZeroRate' column is expected to contain the zero-coupon rates.
+    The yield curve is created using the Actual/365 day count convention, the TARGET calendar, and continuous compounding.
+    The yield curve is enabled for extrapolation.
+    The QuantLib yield curve handle is returned.
+    """
     ql_eval_date: ql.Date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     dates: list[ql.Date] = [ql_eval_date] + [ql.Date(d.day, d.month, d.year) for d in pd.to_datetime(zero_curve_df['Date'])]
     rates: list[float] = [zero_curve_df['ZeroRate'].iloc[0]] + zero_curve_df['ZeroRate'].tolist()
@@ -223,6 +300,27 @@ def prepare_calibration_helpers(
     term_structure_handle: ql.RelinkableYieldTermStructureHandle,
     settings: Dict
 ) -> List[Tuple[ql.SwaptionHelper, str, str]]:
+    """
+    Prepares a list of swaption helpers from a volatility cube DataFrame.
+
+    Parameters:
+    vol_cube_df (pd.DataFrame): A DataFrame containing the volatility cube data.
+    term_structure_handle (ql.RelinkableYieldTermStructureHandle): A handle to the yield curve.
+    settings (Dict): A dictionary containing settings for the function.
+
+    Returns:
+    List[Tuple[ql.SwaptionHelper, str, str]]: A list of swaption helpers with their expiry and tenor strings.
+
+    Notes:
+    The input DataFrame must contain columns 'Date', 'Type', and 'Volatility'.
+    The 'Date' column is expected to contain datetime.date objects.
+    The 'Type' column is expected to contain 'Vol' for volatility points and 'Strike' for strike points.
+    The 'Volatility' column is expected to contain the volatility values.
+    The function filters out swaption points with expiry or tenor less than the specified minimums.
+    The function uses the Actual/365 day count convention, the TARGET calendar, and continuous compounding for the yield curve.
+    The function enables extrapolation for the yield curve.
+    The function returns a list of swaption helpers with their expiry and tenor strings.
+    """
     min_expiry_years: float = settings.get("min_expiry_years", 0.0)
     min_tenor_years: float = settings.get("min_tenor_years", 0.0)
     use_coterminal_only: bool = settings.get("use_coterminal_only", False)
@@ -256,6 +354,17 @@ def plot_and_save_correlation_matrix(
     title_suffix: str = "",
     show_plots: bool = False
 ):
+    """
+    Generates a feature correlation matrix based on the input raw_features_list and feature_names.
+    Saves the correlation matrix to a file in the specified save_dir.
+    If show_plots is True, displays the correlation matrix plot.
+    Parameters:
+    raw_features_list (List[List[float]]): A list of feature vectors.
+    feature_names (List[str]): A list of feature names corresponding to the input feature vectors.
+    save_dir (str): Directory in which to save the correlation matrix plot.
+    title_suffix (str, optional): Suffix to append to the correlation matrix plot title. Defaults to an empty string.
+    show_plots (bool, optional): Whether to display the correlation matrix plot. Defaults to False.
+    """
     print(f"\n--- Generating Feature Correlation Matrix {title_suffix} ---")
     if not raw_features_list:
         print("Warning: Cannot generate correlation matrix. No training data provided.")
@@ -282,6 +391,20 @@ def plot_pca_component_loadings(
     save_dir: str,
     show_plots: bool = False
 ):
+    """
+    Visualizes the component loadings (eigenvectors) of a principal component analysis (PCA) model.
+    The function takes in a PCA model, a list of rate tenors in years, a directory to save the plot,
+    and a boolean indicating whether to show the plot.
+    The function generates a plot with three subplots, one for each of the first three principal components.
+    Each subplot displays the component loadings against the rate tenors in years.
+    The plot is saved to the specified directory with the filename 'pca_component_loadings.png'.
+    If show_plots is True, the function displays the plot.
+    Parameters:
+        pca_model (PCA): A PCA model.
+        rate_tenors_in_years (List[float]): A list of rate tenors in years.
+        save_dir (str): Directory in which to save the plot.
+        show_plots (bool, optional): Whether to display the plot. Defaults to False.
+    """
     print("\n--- Visualizing PCA Component Loadings for Interpretation ---")
     components = pca_model.components_
     if np.sum(components[0]) < 0: components[0] = -components[0]
@@ -306,12 +429,23 @@ def plot_pca_component_loadings(
         plt.show()
     plt.close(fig)
 
-#--------------------PCA HELPER FUNCTIONS (UNCHANGED)--------------------
+#--------------------PCA HELPER FUNCTIONS--------------------
 def fit_pca_on_rates(
     training_features_list: List[List[float]],
     rate_feature_indices: List[int],
     n_components: int = 3
 ) -> PCA:
+    """
+    Fits a PCA model on a list of feature lists using the specified rate feature indices.
+
+    Parameters:
+        training_features_list (List[List[float]]): A list of feature lists.
+        rate_feature_indices (List[int]): A list of indices corresponding to the rate features.
+        n_components (int, optional): The number of principal components to keep. Defaults to 3.
+
+    Returns:
+        PCA: The fitted PCA model.
+    """
     print(f"\n--- Fitting PCA on {len(rate_feature_indices)} rate features ---")
     rate_data = np.array(training_features_list)[:, rate_feature_indices]
     pca = PCA(n_components=n_components)
@@ -326,6 +460,17 @@ def apply_pca_to_features(
     pca: PCA,
     rate_feature_indices: List[int]
 ) -> List[float]:
+    """
+    Applies a PCA model to a list of features using the specified rate feature indices.
+
+    Parameters:
+        raw_features (List[float]): A list of feature values.
+        pca (PCA): The PCA model to be applied.
+        rate_feature_indices (List[int]): A list of indices corresponding to the rate features.
+
+    Returns:
+        List[float]: The principal components of the rate features concatenated with the non-rate features.
+    """
     raw_features_np = np.array(raw_features)
     rate_values = raw_features_np[rate_feature_indices].reshape(1, -1)
     non_rate_indices = [i for i in range(len(raw_features)) if i not in rate_feature_indices]
@@ -333,12 +478,35 @@ def apply_pca_to_features(
     principal_components = pca.transform(rate_values).flatten()
     return principal_components.tolist() + non_rate_values.tolist()
 
-#--------------------TENSORFLOW NEURAL NETWORK CALIBRATION HELPERS (UNCHANGED)--------------------
+#--------------------TENSORFLOW NEURAL NETWORK CALIBRATION HELPERS--------------------
 def _format_time(seconds: float) -> str:
+    """
+    Formats a time in seconds to a string in the format HH:MM:SS.
+    
+    Parameters:
+    seconds (float): The time in seconds to be formatted.
+    
+    Returns:
+    str: The formatted time string.
+    """
     s: int = int(round(seconds)); h, r = divmod(s, 3600); m, s = divmod(r, 60)
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 def _get_step_dates_from_expiries(ql_eval_date: ql.Date, included_expiries_yrs: List[float], num_segments: int) -> List[ql.Date]:
+    """
+    Creates a list of step dates by dividing the included expiries into num_segments
+    partitions. If there are not enough unique expiries, it reduces the number of
+    segments and returns an empty list.
+
+    Parameters:
+        ql_eval_date (ql.Date): The evaluation date of the yield curve.
+        included_expiries_yrs (List[float]): A list of unique expiries in years.
+        num_segments (int): The number of segments to divide the expiries into.
+
+    Returns:
+        List[ql.Date]: A list of step dates, each representing a point in time where
+            the yield curve is divided into a segment.
+    """
     if num_segments <= 1: return []
     unique_expiries: list[float] = sorted(list(set(included_expiries_yrs)))
     if len(unique_expiries) < num_segments: num_segments = len(unique_expiries)
@@ -348,6 +516,17 @@ def _get_step_dates_from_expiries(ql_eval_date: ql.Date, included_expiries_yrs: 
     return [ql_eval_date + ql.Period(int(y * 365.25), ql.Days) for y in time_points_in_years]
 
 def _expand_params_to_unified_timeline(initial_params_quotes: List[ql.SimpleQuote], param_step_dates: List[ql.Date], unified_step_dates: List[ql.Date]) -> List[ql.QuoteHandle]:
+    """
+    Expands a list of parameters to a unified timeline of dates.
+
+    Parameters:
+        initial_params_quotes (List[ql.SimpleQuote]): A list of parameters to be expanded.
+        param_step_dates (List[ql.Date]): A list of step dates for the parameters.
+        unified_step_dates (List[ql.Date]): A list of unified step dates.
+
+    Returns:
+        List[ql.QuoteHandle]: A list of expanded parameters on the unified timeline.
+    """
     initial_params_handles: list[ql.QuoteHandle] = [ql.QuoteHandle(q) for q in initial_params_quotes]
     if not unified_step_dates: return initial_params_handles
     if not param_step_dates: return [initial_params_handles[0]] * (len(unified_step_dates) + 1)
@@ -365,6 +544,17 @@ def extract_raw_features(
     external_data: pd.DataFrame,
     feature_tenors: List[float] = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
 ) -> List[float]:
+    """
+    Extracts a set of raw features from a yield curve and external data at a given evaluation date.
+
+    Parameters:
+        term_structure_handle (ql.RelinkableYieldTermStructureHandle): The yield curve handle.
+        eval_date (ql.Date): The evaluation date of the yield curve.
+        external_data (pd.DataFrame): A pandas DataFrame containing the external market indicators.
+
+    Returns:
+        List[float]: A list of raw features extracted from the yield curve and external data.
+    """
     day_counter: ql.Actual365Fixed = ql.Actual365Fixed()
     rates: list[float] = [term_structure_handle.zeroRate(eval_date + ql.Period(int(ty * 365.25), ql.Days), day_counter, ql.Continuous).rate() for ty in feature_tenors]
     def get_rate(tenor_in_years: float) -> float:
@@ -400,6 +590,22 @@ def prepare_nn_features(
     pca_model: Optional[PCA] = None,
     rate_indices: Optional[List[int]] = None
 ) -> np.ndarray:
+    """
+    Prepares a set of features from a yield curve and external data for input into a neural network.
+    It calculates raw features, applies PCA if specified, and scales the resulting features.
+
+    Parameters:
+        term_structure_handle (ql.RelinkableYieldTermStructureHandle): The yield curve handle.
+        eval_date (ql.Date): The evaluation date of the yield curve.
+        scaler (StandardScaler): A StandardScaler object used for scaling the features.
+        external_data (pd.DataFrame): A pandas DataFrame containing the external market indicators.
+        feature_tenors (List[float]): A list of tenors for which to extract features from the yield curve.
+        pca_model (Optional[PCA]): An optional PCA model used for dimensionality reduction of the features.
+        rate_indices (Optional[List[int]]): An optional list of indices for the features to be reduced by PCA.
+
+    Returns:
+        np.ndarray: A numpy array containing the scaled features.
+    """
     raw_features = extract_raw_features(term_structure_handle, eval_date, external_data, feature_tenors)
     if pca_model is not None and rate_indices is not None:
         features_to_scale = apply_pca_to_features(raw_features, pca_model, rate_indices)
@@ -409,6 +615,26 @@ def prepare_nn_features(
 
 class ResidualParameterModel(tf.keras.Model):
     def __init__(self, total_params_to_predict: int, upper_bound: float, layers: list, activation: str, use_dropout: bool, dropout_rate: float, **kwargs):
+        """
+        Initializes a ResidualParameterModel instance.
+
+        Parameters:
+            total_params_to_predict (int): The total number of parameters to predict.
+            upper_bound (float): The upper bound for the predicted parameters.
+            layers (list): A list of the number of neurons in each hidden layer.
+            activation (str): The activation function to use in the hidden layers.
+            use_dropout (bool): Whether to use dropout in the hidden layers.
+            dropout_rate (float): The dropout rate to use in the hidden layers.
+            **kwargs: Additional keyword arguments to pass to the parent class.
+
+        Attributes:
+            total_params_to_predict (int): The total number of parameters to predict.
+            upper_bound_value (float): The upper bound for the predicted parameters.
+            upper_bound (tf.constant): A constant tensor representing the upper bound.
+            _config (dict): A dictionary containing the configuration of the model.
+            hidden_layers (list): A list of the hidden layers in the model.
+            output_layer (tf.keras.layers.Dense): The output layer of the model.
+        """
         super().__init__(**kwargs)
         self.total_params_to_predict = total_params_to_predict
         self.upper_bound_value = upper_bound
@@ -428,6 +654,16 @@ class ResidualParameterModel(tf.keras.Model):
             kernel_initializer='zeros', bias_initializer='zeros'
         )
     def call(self, inputs, training=False) -> tf.Tensor:
+        """
+        Applies the neural network to the given inputs.
+
+        Args:
+            inputs (tf.Tensor): A tensor containing the feature vector and initial logits.
+            training (bool): Whether to use training mode or not.
+
+        Returns:
+            tf.Tensor: The predicted parameters after applying the neural network.
+        """
         feature_vector, initial_logits = inputs
         x = feature_vector
         for layer in self.hidden_layers:
@@ -439,11 +675,35 @@ class ResidualParameterModel(tf.keras.Model):
         final_logits = initial_logits + delta_logits
         return self.upper_bound * tf.keras.activations.sigmoid(final_logits)
     def get_config(self):
+        """
+        Returns the configuration of the model as a dictionary.
+
+        The configuration includes the following parameters:
+
+            total_params_to_predict (int): The total number of parameters to predict.
+            upper_bound (float): The upper bound for the predicted parameters.
+            layers (list): A list of the number of neurons in each hidden layer.
+            activation (str): The activation function to use in the hidden layers.
+            use_dropout (bool): Whether to use dropout in the hidden layers.
+            dropout_rate (float): The dropout rate to use in the hidden layers.
+
+        Returns:
+            dict: The configuration of the model.
+        """
         config = super().get_config()
         config.update(self._config)
         return config
     @classmethod
     def from_config(cls, config):
+        """
+        Reconstructs the model from its configuration.
+
+        Args:
+            config (dict): The configuration of the model.
+
+        Returns:
+            ResidualParameterModel: The reconstructed model.
+        """
         return cls(**config)
 
 def evaluate_model_on_day(
@@ -453,6 +713,41 @@ def evaluate_model_on_day(
     calibrated_params: NDArray[np.float64],
     settings: dict
 ) -> Tuple[float, pd.DataFrame]:
+    """
+    Evaluates the performance of a neural network model on a given day.
+
+    The function returns the root-mean-squared error (RMSE) of the model in basis points and a DataFrame containing the results of the evaluation.
+
+    The RMSE is calculated by comparing the predicted volatility of the model with the market volatility.
+
+    The results DataFrame contains the following columns:
+
+        ExpiryStr (str): The expiry string of the swaption helper.
+        TenorStr (str): The tenor string of the swaption helper.
+        MarketVol (float): The market volatility of the swaption helper in basis points.
+        ModelVol (float): The predicted volatility of the model in basis points.
+        Difference_bps (float): The difference between the market volatility and the predicted volatility in basis points.
+
+    Parameters
+    ----------
+    eval_date : datetime.date
+        The evaluation date.
+    zero_curve_df : pd.DataFrame
+        The DataFrame containing the zero curve data.
+    vol_cube_df : pd.DataFrame
+        The DataFrame containing the volatility cube data.
+    calibrated_params : NDArray[np.float64]
+        The calibrated parameters of the model.
+    settings : dict
+        The settings of the model.
+
+    Returns
+    -------
+    float
+        The root-mean-squared error (RMSE) of the model in basis points.
+    pd.DataFrame
+        A DataFrame containing the results of the evaluation.
+    """
     ql_eval_date: ql.Date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     ql.Settings.instance().evaluationDate = ql_eval_date
     term_structure_handle: ql.RelinkableYieldTermStructureHandle = create_ql_yield_curve(zero_curve_df, eval_date)
@@ -491,8 +786,33 @@ def evaluate_model_on_day(
     final_rmse_bps: float = np.sqrt(np.mean(squared_errors)) * 10000 if squared_errors else float('nan')
     return final_rmse_bps, results_df
 
-# ------------------- HYPERPARAMETER TUNING AND TRAINING COMPONENTS (UNCHANGED) -------------------
+# ------------------- HYPERPARAMETER TUNING AND TRAINING COMPONENTS -------------------
 def _calculate_loss_for_day(params: np.ndarray, ql_eval_date, term_structure_handle, helpers_with_info, settings) -> float:
+    """
+    Calculates the loss for a given day by pricing a set of swaption helpers
+    using a Gaussian 1D Swaption Engine. The loss is calculated as the
+    mean of the squared differences between the model volatility and the
+    market volatility for the given swaption helpers. The loss is
+    penalized by a factor if the model volatility is underestimated.
+
+    Parameters
+    ----------
+    params : np.ndarray
+        The parameters to use for pricing the swaption helpers.
+    ql_eval_date : ql.Date
+        The evaluation date.
+    term_structure_handle : ql.RelinkableYieldTermStructureHandle
+        The handle to the yield curve.
+    helpers_with_info : List[Tuple[ql.SwaptionHelper, str, str]]
+        The list of swaption helpers to price.
+    settings : dict
+        The settings of the model.
+
+    Returns
+    -------
+    float
+        The loss for the given day.
+    """
     try:
         num_a = settings['num_a_segments'] if settings['optimize_a'] else 0
         a_params, sigma_params = params[:num_a], params[num_a:]
@@ -530,15 +850,86 @@ def _calculate_loss_for_day(params: np.ndarray, ql_eval_date, term_structure_han
         return 1e6
 
 def _perform_training_step(model, optimizer, feature_vector, initial_logits, ql_eval_date, term_structure_handle, helpers_with_info, settings):
+    """
+    Performs a single training step on the model using the given optimizer and feature vector.
+    
+    Parameters
+    ----------
+    model : tf.keras.Model
+        The model to be trained.
+    optimizer : tf.keras.optimizers.Optimizer
+        The optimizer to use.
+    feature_vector : tf.Tensor
+        The feature vector to be used for training.
+    initial_logits : tf.Tensor
+        The initial logits for the model.
+    ql_eval_date : ql.Date
+        The evaluation date for the model.
+    term_structure_handle : ql.RelinkableYieldTermStructureHandle
+        The handle to the yield curve.
+    helpers_with_info : List[Tuple[ql.SwaptionHelper, str, str]]
+        The list of swaption helpers to price.
+    settings : dict
+        The settings of the model.
+    
+    Returns
+    -------
+    float
+        The loss of the model after the training step.
+    """
     @tf.custom_gradient
     def ql_loss_on_params(params_tensor):
+        """
+        A custom gradient function that calculates the loss of the model
+        based on the given parameters and the swaption helpers to price.
+        
+        Parameters
+        ----------
+        params_tensor : tf.Tensor
+            The tensor containing the parameters to use for pricing.
+        
+        Returns
+        -------
+        tf.constant
+            A constant tensor containing the loss of the model.
+        grad_fn
+            A function that calculates the gradient of the loss with respect
+            to the parameters.
+        """
         base_params = params_tensor.numpy()[0]
         loss_val = _calculate_loss_for_day(base_params, ql_eval_date, term_structure_handle, helpers_with_info, settings)
         def grad_fn(dy):
+            """
+            Calculates the gradient of the loss with respect to the parameters.
+            
+            Parameters
+            ----------
+            dy : tf.constant
+                A constant tensor containing the value of the loss.
+            
+            Returns
+            -------
+            tf.constant
+                A constant tensor containing the gradient of the loss with respect to the parameters.
+            """
             h = settings['h_relative']
             gradient_method = settings.get('gradient_method', 'forward').lower()
             if gradient_method == 'central':
                 def _calc_single_grad(i):
+                    """
+                    Calculates the gradient of the loss with respect to the i-th parameter
+                    using the central difference method.
+                    
+                    Parameters
+                    ----------
+                    i : int
+                        The index of the parameter to calculate the gradient for.
+                    
+                    Returns
+                    -------
+                    float
+                        The value of the gradient of the loss with respect to the i-th parameter.
+                    """
                     p_plus, p_minus = base_params.copy(), base_params.copy()
                     p_plus[i] += h; p_minus[i] -= h
                     loss_plus = _calculate_loss_for_day(p_plus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
@@ -546,6 +937,20 @@ def _perform_training_step(model, optimizer, feature_vector, initial_logits, ql_
                     return (loss_plus - loss_minus) / (2 * h)
             else: # Forward difference
                 def _calc_single_grad(i):
+                    """
+                    Calculates the gradient of the loss with respect to the i-th parameter
+                    using the forward difference method.
+                    
+                    Parameters
+                    ----------
+                    i : int
+                        The index of the parameter to calculate the gradient for.
+                    
+                    Returns
+                    -------
+                    float
+                        The value of the gradient of the loss with respect to the i-th parameter.
+                    """
                     p_plus = base_params.copy(); p_plus[i] += h
                     loss_plus = _calculate_loss_for_day(p_plus, ql_eval_date, term_structure_handle, helpers_with_info, settings)
                     return (loss_plus - loss_val) / h
@@ -564,6 +969,15 @@ def _perform_training_step(model, optimizer, feature_vector, initial_logits, ql_
 
 class HullWhiteHyperModel(kt.HyperModel):
     def build(self, hp: kt.HyperParameters) -> ResidualParameterModel:
+        """
+        Builds a ResidualParameterModel instance based on the hyperparameters provided.
+
+        Parameters:
+        hp (kt.HyperParameters): The hyperparameters to use for building the model.
+
+        Returns:
+        ResidualParameterModel: The built model instance.
+        """
         num_layers = hp.Int('num_layers', 1, 5)
         activation = hp.Choice('activation', ['relu', 'tanh'])
         use_dropout = hp.Boolean('use_dropout')
@@ -578,7 +992,24 @@ class HullWhiteHyperModel(kt.HyperModel):
         )
         return model
 
-    def fit(self, hp, model, loaded_train_data, loaded_val_data, settings, feature_scaler, initial_logits, external_data, **kwargs):
+    def fit(self, hp, model, loaded_train_data, loaded_val_data, settings, feature_scaler, initial_logits, external_data, **kwargs) -> dict:
+        """
+        Fits a Hull-White model using the hyperparameters provided and the loaded training and validation data.
+
+        Parameters:
+        hp (kt.HyperParameters): The hyperparameters to use for fitting the model.
+        model (ResidualParameterModel): The model instance to fit.
+        loaded_train_data (List[Tuple[datetime.date, pd.DataFrame, pd.DataFrame]]): The loaded training data.
+        loaded_val_data (List[Tuple[datetime.date, pd.DataFrame, pd.DataFrame]]): The loaded validation data.
+        settings (Dict): A dictionary containing the necessary settings for the calibration.
+        feature_scaler (StandardScaler): The feature scaler to use for scaling the input features.
+        initial_logits (tf.constant): The initial logits to use for the neural network.
+        external_data (pd.DataFrame): The external data to use for feature engineering.
+        **kwargs: Additional keyword arguments to pass to the fit method.
+
+        Returns:
+        Dict: A dictionary containing the average validation root-mean-squared error (in basis points) for each trial.
+        """
         learning_rate = hp.Float("learning_rate", 1e-4, 1e-2, sampling="log")
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         penalty = hp.Float("underestimation_penalty", 1.0, 4.0, step=0.5)
@@ -630,8 +1061,27 @@ def train_new_model(
     feature_tenors: List[float]
 ) -> None:
     """
-    Encapsulates the entire model training pipeline, from feature engineering to
-    saving the final model artifact.
+    Train a new Neural Network predicting the parameters of the HullWhite model on the given training and validation data.
+
+    This function will perform the following steps:
+    1. Extract raw features from the training data.
+    2. Fit a PCA model to the raw features and transform them.
+    3. Fit a standard scaler to the PCA-transformed features and transform them.
+    4. Define the hyperparameters for the Hyperband search.
+    5. Perform a Hyperband search to find the best hyperparameters for the model.
+    6. Train the final model using the best hyperparameters.
+    7. Save the best model artifact to the specified directory.
+
+    Parameters:
+        train_files (List): List of file paths to the training data.
+        val_files (List): List of file paths to the validation data.
+        external_data (pd.DataFrame): DataFrame containing the external data.
+        settings (Dict): Dictionary containing the hyperparameters for the Hyperband search.
+        original_feature_names (List[str]): List of the original feature names.
+        feature_tenors (List[float]): List of the feature tenors.
+
+    Returns:
+        None
     """
     model_id = f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
     model_save_dir = os.path.join(FOLDER_MODELS, model_id)
