@@ -1,5 +1,3 @@
-# sensitivity_analysis_combined.py
-
 """
 Combined Neural Network and Traditional Model Sensitivity Analysis Script
 
