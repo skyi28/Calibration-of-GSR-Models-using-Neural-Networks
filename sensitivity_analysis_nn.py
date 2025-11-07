@@ -28,40 +28,22 @@ Methodology:
 import datetime
 import os
 import sys
-import glob
 import pandas as pd
 import numpy as np
 import tensorflow as tf
 import joblib
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from typing import Dict, Any, List, Tuple, Optional, Union
+from typing import Dict, Any, List, Tuple
+import QuantLib as ql
+from neural_network_calibration import create_ql_yield_curve as create_ql_yield_curve_nn, ResidualParameterModel, extract_raw_features, apply_pca_to_features
 
-# --- Import and Setup QuantLib ---
-try:
-    import QuantLib as ql
-except ImportError:
-    print("ERROR: QuantLib-Python is not installed. Please install it to run the traditional calibrator.")
-    sys.exit(1)
-
-# --- Ensure the script can find the other project modules ---
-try:
-    from neural_network_calibration import create_ql_yield_curve as create_ql_yield_curve_nn, ResidualParameterModel, extract_raw_features, apply_pca_to_features
-except ImportError:
-    print("ERROR: Could not import from 'neural_network_calibration'.")
-    print("Ensure this script is in the same directory or the project is in your PYTHONPATH.")
-    sys.exit(1)
-
-
-# ==============================================================================
 # --- SCRIPT CONFIGURATION ---
-# ==============================================================================
-
-# --- 1. Model and Data Selection ---
+# --- Model and Data Selection ---
 LATEST_MODEL_DIR = 'results/neural_network/models/model_20251021_004632'  # Set to None to auto-detect latest
 ANALYSIS_DATE_STR = "04.08.2025"
 
-# --- 2. Model Structure (Must match the trained model) ---
+# --- Model Structure (Must match the trained model) ---
 MODEL_PARAMETERS = {
     "num_a_segments": 1,
     "num_sigma_segments": 7,
@@ -69,8 +51,8 @@ MODEL_PARAMETERS = {
 }
 FEATURE_TENORS = [1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0]
 
-# --- 3. Traditional Calibration Settings ---
-# These settings are used for the traditional calibrator runs.
+# --- Traditional Calibration Settings ---
+# These settings are used for the traditional calibrator runs and should use the initial guess determined by the GA model
 TRADITIONAL_CALIBRATION_SETTINGS = {
     "num_a_segments": 1,
     "num_sigma_segments": 7,
@@ -82,7 +64,7 @@ TRADITIONAL_CALIBRATION_SETTINGS = {
     "min_tenor_years": 2.0
 }
 
-# --- 4. Scenario Definitions ---
+# --- Scenario Definitions ---
 SCENARIO_SETTINGS = {
     "YC_Shift_Up_50bps": {
         "type": "yield_curve_shift",
@@ -100,6 +82,7 @@ SCENARIO_SETTINGS = {
             "pivot_tenor_yrs": 3.0
         }
     },
+    # COMMENTED OUT SINCE THIS DOES NOT ALLOW FOR A COMPARISON WITH THE TRADITIONAL CALIBRATOR
     # "Market_Stress_25_Percent": {
     #     "type": "market_stress_shock",
     #     # This will be applied to VIX/MOVE for the NN
@@ -109,10 +92,11 @@ SCENARIO_SETTINGS = {
     # },
 }
 
+# Colors for the charts
 CHANGE_PLUS_COLOR = cm.get_cmap('coolwarm', 10)(1)
 CHANGE_MINUS_COLOR = cm.get_cmap('coolwarm', 10)(9)
 
-# --- 5. Paths and Directories ---
+# --- Paths and Directories ---
 BASE_DIR = os.getcwd()
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 RESULTS_DIR = os.path.join(BASE_DIR, 'results')
@@ -123,12 +107,26 @@ FOLDER_NN_MODELS: str = os.path.join(RESULTS_DIR, 'neural_network/models')
 FOLDER_SENSITIVITY_RESULTS: str = os.path.join(RESULTS_DIR, 'sensitivity_analysis')
 
 
-# ==============================================================================
 # --- HELPER FUNCTIONS (NN & General) ---
-# ==============================================================================
-
 def load_nn_artifacts_standalone(model_dir: str) -> Dict[str, Any]:
-    """Loads all necessary artifacts for the trained NN model."""
+    """
+    Loads all necessary artifacts from a standalone Neural Network model.
+
+    Parameters
+    ----------
+    model_dir : str
+        The directory containing the trained model's artifacts.
+
+    Returns
+    -------
+    Dict[str, Any]
+        A dictionary containing all the necessary artifacts for the trained model.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the model directory is not found.
+    """
     print(f"\n--- Loading Neural Network artifacts from: {model_dir} ---")
     if not os.path.isdir(model_dir):
         raise FileNotFoundError(f"Model directory not found: {model_dir}")
@@ -146,17 +144,38 @@ def load_nn_artifacts_standalone(model_dir: str) -> Dict[str, Any]:
     return artifacts
 
 
-# ==============================================================================
-# --- HELPER FUNCTIONS (Traditional Calibration - Integrated) ---
-# ==============================================================================
-
 def parse_tenor(tenor_str: str) -> ql.Period:
+    """
+    Parses a tenor string (e.g., '10YR', '6MO') into a QuantLib Period object.
+
+    Args:
+        tenor_str (str): The tenor string to be parsed.
+
+    Returns:
+        ql.Period: The parsed tenor as a QuantLib Period object.
+
+    Raises:
+        ValueError: If the parsing fails due to an invalid tenor string.
+    """
+
     tenor_str = tenor_str.strip().upper()
     if 'YR' in tenor_str: return ql.Period(int(tenor_str.replace('YR', '')), ql.Years)
     if 'MO' in tenor_str: return ql.Period(int(tenor_str.replace('MO', '')), ql.Months)
     raise ValueError(f"Could not parse tenor string: {tenor_str}")
 
 def parse_tenor_to_years(tenor_str: str) -> float:
+    """
+    Parses a tenor string (e.g., '10YR', '6MO') into a float representing years.
+
+    Args:
+        tenor_str (str): The tenor string to be parsed.
+
+    Returns:
+        float: The parsed tenor in years.
+
+    Raises:
+        ValueError: If the parsing fails due to an invalid tenor string.
+    """
     tenor_str = tenor_str.strip().upper()
     if 'YR' in tenor_str: return float(int(tenor_str.replace('YR', '')))
     if 'MO' in tenor_str: return int(tenor_str.replace('MO', '')) / 12.0
@@ -165,7 +184,16 @@ def parse_tenor_to_years(tenor_str: str) -> float:
 def create_ql_yield_curve_trad(
     zero_curve_df: pd.DataFrame, eval_date: datetime.date
 ) -> ql.RelinkableYieldTermStructureHandle:
-    """Creates a QuantLib yield curve from a pandas DataFrame."""
+    """
+    Creates a QuantLib yield curve from a pandas DataFrame containing a time series of daily zero rates.
+
+    Args:
+        zero_curve_df (pd.DataFrame): A pandas DataFrame containing a time series of daily zero rates.
+        eval_date (datetime.date): The date at which the yield curve should be evaluated.
+
+    Returns:
+        ql.RelinkableYieldTermStructureHandle: A QuantLib yield curve handle constructed from the input time series.
+    """
     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     dates = [ql_eval_date] + [ql.Date(d.day, d.month, d.year) for d in pd.to_datetime(zero_curve_df['Date'])]
     rates = [zero_curve_df['ZeroRate'].iloc[0]] + zero_curve_df['ZeroRate'].tolist()
@@ -179,7 +207,18 @@ def prepare_calibration_helpers(
     vol_cube_df: pd.DataFrame, term_structure_handle: ql.RelinkableYieldTermStructureHandle,
     min_expiry_years: float, min_tenor_years: float
 ) -> List[Tuple[ql.SwaptionHelper, str, str]]:
-    """Prepares a list of QuantLib SwaptionHelper objects from the volatility cube."""
+    """
+    Prepares a list of QuantLib SwaptionHelper objects from the volatility cube.
+
+    Args:
+        vol_cube_df (pd.DataFrame): A pandas DataFrame containing a volatility cube.
+        term_structure_handle (ql.RelinkableYieldTermStructureHandle): A QuantLib yield curve handle.
+        min_expiry_years (float): The minimum expiry in years for a swaption to be considered.
+        min_tenor_years (float): The minimum tenor in years for a swaption to be considered.
+
+    Returns:
+        List[Tuple[ql.SwaptionHelper, str, str]]: A list of QuantLib SwaptionHelper objects representing the relevant swaptions.
+    """
     helpers_with_info = []
     vols_df = vol_cube_df[vol_cube_df['Type'] == 'Vol'].set_index('Expiry')
     strikes_df = vol_cube_df[vol_cube_df['Type'] == 'Strike'].set_index('Expiry')
@@ -204,6 +243,20 @@ def prepare_calibration_helpers(
 def _get_step_dates_from_expiries(
     ql_eval_date: ql.Date, included_expiries_yrs: List[float], num_segments: int
 ) -> List[ql.Date]:
+    """
+    Creates a list of step dates by dividing the included expiries into num_segments
+    partitions. If there are not enough unique expiries, it reduces the number of
+    segments and returns an empty list.
+
+    Args:
+        ql_eval_date (ql.Date): The evaluation date of the yield curve.
+        included_expiries_yrs (List[float]): A list of unique expiries in years.
+        num_segments (int): The number of segments to divide the expiries into.
+
+    Returns:
+        List[ql.Date]: A list of step dates, each representing a point in time where
+            the yield curve is divided into a segment.
+    """
     if num_segments <= 1: return []
     unique_expiries = sorted(list(set(included_expiries_yrs)))
     if len(unique_expiries) < num_segments: num_segments = len(unique_expiries)
@@ -214,6 +267,17 @@ def _get_step_dates_from_expiries(
 def _expand_params_to_unified_timeline(
     initial_params: List[ql.QuoteHandle], param_step_dates: List[ql.Date], unified_step_dates: List[ql.Date]
 ) -> List[ql.QuoteHandle]:
+    """
+    Expands a list of parameters to a unified timeline of dates.
+
+    Parameters:
+        initial_params (List[ql.QuoteHandle]): A list of parameters to be expanded.
+        param_step_dates (List[ql.Date]): A list of step dates for the parameters.
+        unified_step_dates (List[ql.Date]): A list of unified step dates.
+
+    Returns:
+        List[ql.QuoteHandle]: A list of expanded parameters on the unified timeline.
+    """
     if not unified_step_dates: return initial_params
     if not param_step_dates: return [initial_params[0]] * (len(unified_step_dates) + 1)
     expanded_handles = []
@@ -227,12 +291,18 @@ def _expand_params_to_unified_timeline(
     return expanded_handles
 
 
-# ==============================================================================
 # --- SHOCK APPLICATION FUNCTIONS ---
-# ==============================================================================
-
 def apply_yield_curve_shift(zero_df: pd.DataFrame, shift_bps: float) -> pd.DataFrame:
-    """Applies a parallel shift to the zero curve."""
+    """
+    Shifts the yield curve by a constant amount in basis points.
+
+    Parameters:
+        zero_df (pd.DataFrame): The DataFrame containing the zero curve data.
+        shift_bps (float): The amount to shift the yield curve in basis points.
+
+    Returns:
+        pd.DataFrame: The DataFrame containing the shifted yield curve data.
+    """
     df_shocked = zero_df.copy()
     df_shocked['ZeroRate'] += shift_bps / 10000.0
     return df_shocked
@@ -240,7 +310,18 @@ def apply_yield_curve_shift(zero_df: pd.DataFrame, shift_bps: float) -> pd.DataF
 def apply_yield_curve_twist(
     zero_df: pd.DataFrame, short_end_shift_bps: float, long_end_shift_bps: float, pivot_tenor_yrs: float
 ) -> pd.DataFrame:
-    """Applies a linear twist to the yield curve around a pivot point."""
+    """
+    Applies a twist to the yield curve by shifting the short end and long end of the curve by different amounts in basis points.
+
+    Parameters:
+        zero_df (pd.DataFrame): The DataFrame containing the zero curve data.
+        short_end_shift_bps (float): The amount to shift the short end of the yield curve in basis points.
+        long_end_shift_bps (float): The amount to shift the long end of the yield curve in basis points.
+        pivot_tenor_yrs (float): The point at which the twist is applied in years.
+
+    Returns:
+        pd.DataFrame: The DataFrame containing the twisted yield curve data.
+    """
     df_shocked = zero_df.copy()
     min_tenor, max_tenor = df_shocked['Tenor'].min(), df_shocked['Tenor'].max()
     shifts = []
@@ -254,7 +335,16 @@ def apply_yield_curve_twist(
     return df_shocked
 
 def apply_market_stress_shock_nn(external_data_day: pd.Series, stress_factor: float) -> pd.Series:
-    """Increases VIX and MOVE indices by a given factor (for NN)."""
+    """
+    Applies a multiplicative shock to the external market data (for Neural Network) 
+
+    Parameters:
+        external_data_day (pd.Series): A Series containing the external market data for a single day.
+        stress_factor (float): The factor by which to stress the external market data.
+
+    Returns:
+        pd.Series: A Series containing the stressed external market data for a single day.
+    """
     shocked_series = external_data_day.copy()
     if 'MOVE_Open' in shocked_series.index: shocked_series['MOVE_Open'] *= stress_factor
     if 'VIX_Open' in shocked_series.index: shocked_series['VIX_Open'] *= stress_factor
@@ -263,24 +353,41 @@ def apply_market_stress_shock_nn(external_data_day: pd.Series, stress_factor: fl
     return shocked_series
 
 def apply_market_stress_shock_trad(vol_cube_df: pd.DataFrame, vol_shock_factor: float) -> pd.DataFrame:
-    """Applies a multiplicative shock to the volatilities in the vol cube (for Traditional)."""
+    """
+    Applies a multiplicative shock to the volatility in the volatility cube.
+
+    Parameters:
+        vol_cube_df (pd.DataFrame): A DataFrame containing the volatility cube data.
+        vol_shock_factor (float): The factor by which to stress the volatility.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the stressed volatility cube data.
+    """
     shocked_df = vol_cube_df.copy()
     vol_rows = shocked_df['Type'] == 'Vol'
-    # Select only numeric columns to apply the shock
     numeric_cols = shocked_df.select_dtypes(include=np.number).columns
     shocked_df.loc[vol_rows, numeric_cols] *= vol_shock_factor
     return shocked_df
 
 
-# ==============================================================================
 # --- CORE PREDICTION AND ANALYSIS LOGIC ---
-# ==============================================================================
-
 def get_nn_prediction(
     nn_artifacts: Dict[str, Any], eval_date: datetime.date, zero_df: pd.DataFrame,
     external_data_for_day: pd.Series, feature_tenors: List[float]
 ) -> np.ndarray:
-    """Generates a single NN parameter prediction for a given market state."""
+    """
+    Generates a prediction of the Hull-White parameters (a, sigma) given the Neural Network artifacts, evaluation date, zero curve data, external market data for that day, and feature tenors.
+
+    Parameters:
+        nn_artifacts (Dict[str, Any]): A dictionary containing the model's artifacts.
+        eval_date (datetime.date): The date for which to generate a prediction.
+        zero_df (pd.DataFrame): The DataFrame containing the zero curve data.
+        external_data_for_day (pd.Series): A Series containing the external market data for a single day.
+        feature_tenors (List[float]): A list of the tenors for which to extract features.
+
+    Returns:
+        np.ndarray: A flattened array containing the predicted Hull-White parameters (a, sigma).
+    """
     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     term_structure = create_ql_yield_curve_nn(zero_df, eval_date)
     external_df_for_extraction = pd.DataFrame(external_data_for_day).T
@@ -294,9 +401,19 @@ def get_nn_prediction(
     return predicted_params
 
 def get_traditional_prediction(
-    eval_date: datetime.date, zero_df: pd.DataFrame, vol_cube_df: pd.DataFrame, settings: Dict[str, Any]
-) -> np.ndarray:
-    """Performs a single traditional calibration and returns the parameters."""
+    eval_date: datetime.date, zero_df: pd.DataFrame, vol_cube_df: pd.DataFrame, settings: Dict[str, Any]) -> np.ndarray:
+    """
+    Generates a prediction of the Hull-White parameters (a, sigma) given the traditional calibration settings, evaluation date, zero curve data, volatility cube data, and feature tenors.
+
+    Parameters:
+        eval_date (datetime.date): The date for which to generate a prediction.
+        zero_df (pd.DataFrame): The DataFrame containing the zero curve data.
+        vol_cube_df (pd.DataFrame): The DataFrame containing the volatility cube data.
+        settings (Dict[str, Any]): A dictionary containing the traditional calibration settings.
+
+    Returns:
+        np.ndarray: A flattened array containing the predicted Hull-White parameters (a, sigma).
+    """
     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     ql.Settings.instance().evaluationDate = ql_eval_date
     term_structure_handle = create_ql_yield_curve_trad(zero_df, eval_date)
@@ -340,6 +457,15 @@ def get_traditional_prediction(
 
     # --- Extract unique calibrated parameters ---
     def get_unique_calibrated_values(expanded_values: List[float], original_step_dates: List[ql.Date], unified_step_dates: List[ql.Date]) -> List[float]:
+        """
+        Returns a list of unique calibrated values, filtered by the original step dates.
+
+        The function takes in three parameters: a list of expanded calibrated values, a list of original step dates, and a list of unified step dates.
+        It first checks if the list of original step dates is empty. If it is, the function returns a list containing only the first element of the expanded values list.
+        Otherwise, it iterates over the unified step dates and checks if each date's serial number is present in the original step dates.
+        If it is, the index of the date is added to a list of indices to report.
+        Finally, the function returns a list of unique calibrated values, filtered by the indices to report.
+        """
         if not original_step_dates: return [expanded_values[0]]
         indices_to_report = [0]
         original_serials = {d.serialNumber() for d in original_step_dates}
@@ -354,9 +480,18 @@ def get_traditional_prediction(
 
 
 def plot_parameter_sensitivity_bars_grouped(
-    nn_results_df: pd.DataFrame, trad_results_df: pd.DataFrame, output_dir: str
-):
-    """Generates and saves grouped bar charts comparing NN and Traditional sensitivity."""
+    nn_results_df: pd.DataFrame, trad_results_df: pd.DataFrame, output_dir: str):
+    """
+    Generates a grouped bar chart comparing the sensitivity of each parameter between the Neural Network and Traditional calibration methods.
+
+    Parameters:
+        nn_results_df (pd.DataFrame): A DataFrame containing the results of the Neural Network calibration method.
+        trad_results_df (pd.DataFrame): A DataFrame containing the results of the Traditional calibration method.
+        output_dir (str): The directory to which the plot will be saved.
+
+    Returns:
+        None
+    """
     nn_base = nn_results_df.loc['Base_Case']
     trad_base = trad_results_df.loc['Base_Case']
     
@@ -391,8 +526,18 @@ def plot_parameter_sensitivity_bars_grouped(
         
         ax.axvline(0, color='grey', linewidth=0.8)
 
-        # Attach a text label above each bar in *rects*, displaying its height.
         def autolabel(rects, horiz_align):
+            """
+            Automatically label the given bars with the data they represent.
+
+            Parameters:
+            rects (list): A list of matplotlib rectangles.
+            horiz_align (str): The horizontal alignment for the labels.
+                Can be either 'left', 'center', or 'right'.
+
+            Returns:
+                None
+            """
             padding = 5
             for rect in rects:
                 width = rect.get_width()
@@ -415,16 +560,15 @@ def plot_parameter_sensitivity_bars_grouped(
         plt.close(fig)
         print(f"  -> Saved comparison plot for {param} to {plot_path}")
 
-# ==============================================================================
+
 # --- MAIN EXECUTION BLOCK ---
-# ==============================================================================
 if __name__ == '__main__':
     print("="*80); print(" Combined Sensitivity Analysis (NN vs. Traditional) ".center(80)); print("="*80)
     
     try:
         os.makedirs(FOLDER_SENSITIVITY_RESULTS, exist_ok=True)
         
-        # --- 1. Load NN Model ---
+        # --- Load NN Model ---
         if LATEST_MODEL_DIR:
             model_dir = LATEST_MODEL_DIR
         else:
@@ -435,7 +579,7 @@ if __name__ == '__main__':
         nn_artifacts = load_nn_artifacts_standalone(model_dir)
         analysis_date = datetime.datetime.strptime(ANALYSIS_DATE_STR, "%d.%m.%Y").date()
 
-        # --- 2. Load All Base Data ---
+        # --- Load All Base Data ---
         print(f"\n--- Loading base data for analysis date: {analysis_date.strftime('%Y-%m-%d')} ---")
         zero_curve_path = os.path.join(FOLDER_ZERO_CURVES, f"{ANALYSIS_DATE_STR}.csv")
         vol_cube_path = os.path.join(FOLDER_VOLATILITY_CUBES, 'xlsx', f"{ANALYSIS_DATE_STR}.xlsx")
@@ -456,18 +600,18 @@ if __name__ == '__main__':
         base_external_data_day.name = pd.to_datetime(analysis_date)
         print("All base data loaded successfully.")
 
-        # --- 3. Run Scenarios for Both Models ---
+        # --- Run Scenarios for Both Models ---
         results = {'NN': {}, 'Traditional': {}}
         print("\n--- Running Scenarios ---")
         
-        # A. Run the Base Case (un-shocked)
+        # Run the Base Case
         print("\n  -> Scenario: Base_Case")
         print("     - Running Neural Network...")
         results['NN']['Base_Case'] = get_nn_prediction(nn_artifacts, analysis_date, base_zero_df, base_external_data_day, FEATURE_TENORS)
         print("     - Running Traditional Calibrator...")
         results['Traditional']['Base_Case'] = get_traditional_prediction(analysis_date, base_zero_df, base_vol_cube_df, TRADITIONAL_CALIBRATION_SETTINGS)
         
-        # B. Loop through and run all defined shock scenarios
+        # Loop through and run all defined shock scenarios
         for name, config in SCENARIO_SETTINGS.items():
             print(f"\n  -> Scenario: {name}")
             shocked_zero_df, shocked_external_data, shocked_vol_cube = base_zero_df.copy(), base_external_data_day.copy(), base_vol_cube_df.copy()
@@ -486,7 +630,7 @@ if __name__ == '__main__':
             print("     - Running Traditional Calibrator...")
             results['Traditional'][name] = get_traditional_prediction(analysis_date, shocked_zero_df, shocked_vol_cube, TRADITIONAL_CALIBRATION_SETTINGS)
 
-        # --- 4. Process and Display Results ---
+        # --- Process and Display Results ---
         num_a = MODEL_PARAMETERS['num_a_segments'] if MODEL_PARAMETERS['optimize_a'] else 0
         param_names = [f'a_{i+1}' for i in range(num_a)] + [f'sigma_{i+1}' for i in range(MODEL_PARAMETERS['num_sigma_segments'])]
         
@@ -516,7 +660,6 @@ if __name__ == '__main__':
 
         final_display_df = pd.concat(display_frames, axis=1).sort_index(axis=1)
 
-        # Apply formatting for clean console output
         formatted_df = final_display_df.copy()
         for model in ['Neural Network', 'Traditional']:
              for param in param_names:
@@ -531,7 +674,7 @@ if __name__ == '__main__':
         final_display_df.to_csv(results_csv_path)
         print(f"\nCombined numerical results saved to: {results_csv_path}")
         
-        # --- 5. Visualize Results ---
+        # --- Visualize Results ---
         plot_parameter_sensitivity_bars_grouped(nn_results_df, trad_results_df, FOLDER_SENSITIVITY_RESULTS)
         
         print("\n--- SCRIPT FINISHED SUCCESSFULLY ---")
