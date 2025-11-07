@@ -41,42 +41,50 @@ SUMMARY_CSV_BLACK = os.path.join(COMPARISON_DIR, 'daily_summary_results_black.cs
 FOLDER_ZERO_CURVES = os.path.join(DATA_DIR, 'EUR ZERO CURVE')
 
 # --- PLOT STYLING ---
-# Central dictionary to define styles for all strategies
-# --- PLOT STYLING ---
 # Central dictionary to define styles AND naming conventions for all strategies
 STRATEGIES = {
     'NN': {
         'name': 'Neural Network',
         'color': cm.get_cmap('coolwarm')(0.15),
         'style': '-',
-        'output_prefix': 'BlackVol_NN' # ADDED
+        'output_prefix': 'BlackVol_NN'
     },
     'LM_Static': {
         'name': 'LM (Static)',
         'color': cm.get_cmap('coolwarm')(0.75),
         'style': ':',
-        'output_prefix': 'BlackVol_LM_Static' # ADDED
+        'output_prefix': 'BlackVol_LM_Static'
     },
     'LM_Pure_Rolling': {
         'name': 'LM (Pure Rolling)',
         'color': cm.get_cmap('coolwarm')(0.99),
         'style': '--',
-        'output_prefix': 'BlackVol_LM_Pure_Rolling' # ADDED
+        'output_prefix': 'BlackVol_LM_Pure_Rolling'
     },
     'LM_Adaptive_Anchor': {
         'name': 'LM (Adaptive Anchor)',
         'color': cm.get_cmap('coolwarm')(0.5),
         'style': '-.',
-        'output_prefix': 'BlackVol_LM_Adaptive_Anchor' # ADDED
+        'output_prefix': 'BlackVol_LM_Adaptive_Anchor'
     }
 }
 sns.set_theme(style="whitegrid", palette=[s['color'] for s in STRATEGIES.values()])
 sns.set_theme(style="whitegrid", palette=[s['color'] for s in STRATEGIES.values()])
 
 # --- HELPER FUNCTIONS FOR VEGA CALCULATION & PARSING ---
-
 def parse_tenor(tenor_str: str) -> ql.Period:
-    """Parses a string like '1Yr' or '6Mo' into a QuantLib Period object."""
+    """
+    Parses a tenor string (e.g., '10YR', '6MO') into a QuantLib Period object.
+
+    Args:
+        tenor_str (str): The tenor string to be parsed.
+
+    Returns:
+        ql.Period: The parsed tenor as a QuantLib Period object.
+
+    Raises:
+        ValueError: If the parsing fails due to an invalid tenor string.
+    """
     try:
         tenor_str = str(tenor_str).strip().upper()
         if 'YR' in tenor_str: return ql.Period(int(tenor_str.replace('YR', '')), ql.Years)
@@ -86,7 +94,18 @@ def parse_tenor(tenor_str: str) -> ql.Period:
     raise ValueError(f"Could not parse tenor string: {tenor_str}")
 
 def parse_tenor_to_years(tenor_str: str) -> float:
-    """Parses a tenor string (e.g., '10YR', '6MO') into a float representing years."""
+    """
+    Parses a tenor string (e.g., '10YR', '6MO') into a float representing years.
+
+    Args:
+        tenor_str (str): The tenor string to be parsed.
+
+    Returns:
+        float: The parsed tenor in years. If the parsing fails, returns np.nan.
+
+    Raises:
+        ValueError: If the parsing fails due to an invalid tenor string.
+    """
     try:
         tenor_str = str(tenor_str).strip().upper()
         if 'YR' in tenor_str: return float(tenor_str.replace('YR', ''))
@@ -96,10 +115,17 @@ def parse_tenor_to_years(tenor_str: str) -> float:
     raise ValueError(f"Could not parse tenor string to years: {tenor_str}")
 
 def create_ql_yield_curve(
-    zero_curve_df: pd.DataFrame,
-    eval_date: datetime.date
-) -> ql.RelinkableYieldTermStructureHandle:
-    """Creates a QuantLib yield curve from a pandas DataFrame."""
+    zero_curve_df: pd.DataFrame, eval_date: datetime.date) -> ql.RelinkableYieldTermStructureHandle:
+    """
+    Creates a QuantLib yield curve from a pandas DataFrame containing a time series of daily zero rates.
+
+    Args:
+        zero_curve_df (pd.DataFrame): A pandas DataFrame containing a time series of daily zero rates.
+        eval_date (datetime.date): The date at which the yield curve should be evaluated.
+
+    Returns:
+        ql.RelinkableYieldTermStructureHandle: A QuantLib yield curve handle constructed from the input time series.
+    """
     ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
     dates = [ql_eval_date] + [ql.Date(d.day, d.month, d.year) for d in pd.to_datetime(zero_curve_df['Date'])]
     rates = [zero_curve_df['ZeroRate'].iloc[0]] + zero_curve_df['ZeroRate'].tolist()
@@ -109,11 +135,17 @@ def create_ql_yield_curve(
     handle.linkTo(term_structure)
     return handle
 
-def calculate_swaption_vega(
-    swaption_row: pd.Series,
-    yield_curve_handle: ql.RelinkableYieldTermStructureHandle
-) -> float:
-    """Calculates the Bachelier (Normal) vega for a single swaption."""
+def calculate_swaption_vega(swaption_row: pd.Series, yield_curve_handle: ql.RelinkableYieldTermStructureHandle) -> float:
+    """
+    Calculates the vega value of a swaption given the market normal volatility and yield curve.
+
+    Args:
+        swaption_row (pd.Series): A pandas Series containing the details of the swaption.
+        yield_curve_handle (ql.RelinkableYieldTermStructureHandle): A QuantLib yield curve handle.
+
+    Returns:
+        float: The vega value of the swaption. If any error occurs, returns 0.0.
+    """
     try:
         ql_eval_date = ql.Settings.instance().evaluationDate
         swap_index = ql.Euribor6M(yield_curve_handle)
@@ -135,9 +167,19 @@ def calculate_swaption_vega(
     except Exception:
         return 0.0
 
-# --- ON-THE-FLY CALCULATION FUNCTION ---
 def calculate_daily_rmse_metrics(df_swaption: pd.DataFrame) -> pd.DataFrame:
-    """Calculates daily unweighted and vega-weighted RMSE for all strategies."""
+    """
+    Calculates daily Root Mean Squared Error (RMSE) metrics for the given strategies.
+
+    Parameters:
+        df_swaption (pd.DataFrame): A pandas DataFrame containing the results of the daily swaption calibration.
+
+    Returns:
+        pd.DataFrame: A pandas DataFrame containing the daily RMSE metrics for each strategy.
+
+    Notes:
+        The RMSE metrics are calculated using both unweighted and vega-weighted approaches. The vega-weighted approach uses the vega values of the swaptions to weight the squared errors.
+    """
     print("--- Calculating daily RMSE metrics (unweighted and vega-weighted) ---")
     
     error_cols = {
@@ -185,8 +227,22 @@ def calculate_daily_rmse_metrics(df_swaption: pd.DataFrame) -> pd.DataFrame:
 # --- VISUALIZATION FUNCTIONS ---
 def generate_summary_tables(df: pd.DataFrame, save_dir: str):
     """
-    Generates summary tables for performance metrics, prediction time, and
-    parameter stability for all strategies.
+    Generates summary tables for the given DataFrame and saves them to csv and txt files in the given directory.
+
+    Parameters:
+        df (pd.DataFrame): The DataFrame containing the summary data.
+        save_dir (str): The directory where the summary tables will be saved.
+
+    Returns:
+        None
+
+    Notes:
+        The generated summary tables are:
+
+        Table 1: Aggregate Out-of-Sample Performance Metrics (RMSE in bps)
+        Table 2: Average Prediction Time
+        Table 3: Parameter Stability Statistics
+
     """
     print("\n" + "="*80)
     print(" GENERATING SUMMARY TABLES ".center(80, "="))
@@ -245,20 +301,12 @@ def generate_summary_tables(df: pd.DataFrame, save_dir: str):
     print("\n--- Table 3: Parameter Stability Statistics ---")
     all_param_stats = []
     
-    # Loop through each defined strategy to find its parameter columns
     for key, props in STRATEGIES.items():
-        # Identify columns for parameters 'a' and 'sigma' for the current strategy
         param_cols = [col for col in df.columns if col.startswith(f'{key}_a_') or col.startswith(f'{key}_sigma_')]
-        
         if not param_cols:
             continue
-
-        # Use .describe() to get the required statistics
         param_stats = df[param_cols].describe().T # Transpose for better readability
-        
-        # Add a column to identify the strategy
         param_stats['Strategy'] = props['name']
-        
         all_param_stats.append(param_stats)
 
     if all_param_stats:
@@ -267,12 +315,8 @@ def generate_summary_tables(df: pd.DataFrame, save_dir: str):
         final_param_table = final_param_table.set_index('Strategy', append=True).swaplevel(0, 1)
         final_param_table.sort_index(inplace=True)
         
-        # Define the desired order of columns from .describe()
         desired_columns = ['mean', 'std', 'min', '25%', '50%', '75%', 'max']
-        # Reorder columns, keeping only those that exist
         final_param_table = final_param_table[[col for col in desired_columns if col in final_param_table.columns]]
-
-
         print(final_param_table.to_string(float_format="%.6f"))
         
         # Save the table to csv and txt files
@@ -285,7 +329,23 @@ def generate_summary_tables(df: pd.DataFrame, save_dir: str):
         print("\nSkipping Table 3: No parameter columns found in the summary DataFrame.")
 
 def plot_daily_rmse(df: pd.DataFrame, save_path: str):
-    """Plots both unweighted and vega-weighted daily RMSE for all models."""
+    """
+    Plot: Daily RMSE Over Time (Unweighted vs. Vega-Weighted)
+
+    Plots the daily out-of-sample RMSE for all models, showing both the
+    vega-weighted and simple average errors in log-normal (Black) volatility terms.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame containing the daily comparison results for Black volatility.
+    save_path : str
+        The path where the plot will be saved.
+
+    Returns
+    -------
+    None
+    """
     fig, ax = plt.subplots(figsize=(14, 8))
     
     for key, props in STRATEGIES.items():
@@ -327,18 +387,15 @@ def plot_daily_rmse_black(df: pd.DataFrame, save_path: str):
     """
     fig, ax = plt.subplots(figsize=(14, 8))
 
-    # Loop through all defined strategies to plot their results
     for key, props in STRATEGIES.items():
         # Column names are constructed dynamically based on the strategy prefix
         weighted_col = f"{props['output_prefix']}_Vega_Weighted"
         simple_avg_col = f"{props['output_prefix']}_Simple_Avg"
 
-        # Plot Vega Weighted RMSE (solid lines with markers)
         if weighted_col in df.columns:
             ax.plot(df['Date'], df[weighted_col], label=f"{props['name']} (Vega Weighted)",
                     color=props['color'], marker='o', linestyle='-', markersize=4, zorder=10)
         
-        # Plot Simple Average RMSE (dashed/dotted lines without markers)
         if simple_avg_col in df.columns:
             ax.plot(df['Date'], df[simple_avg_col], label=f"{props['name']} (Simple Average)",
                     color=props['color'], linestyle=':', marker=None)
@@ -346,7 +403,7 @@ def plot_daily_rmse_black(df: pd.DataFrame, save_path: str):
     ax.set_title('Daily Out-of-Sample RMSE Over Time (Black Volatility)', fontsize=16)
     ax.set_xlabel('Date', fontsize=12)
     ax.set_ylabel('RMSE (Black Volatility) in %', fontsize=12)
-    ax.legend(ncol=2) # Use 2 columns for the legend to keep it clean
+    ax.legend(ncol=2)
     ax.grid(True, which='both', linestyle='--')
     fig.autofmt_xdate()
     plt.tight_layout()
@@ -355,7 +412,23 @@ def plot_daily_rmse_black(df: pd.DataFrame, save_path: str):
     print(f"Saved Black Volatility RMSE Plot: {save_path}")
 
 def plot_rmse_distribution(df: pd.DataFrame, save_path: str):
-    """Plots violin plots comparing distributions of unweighted and vega-weighted RMSE."""
+    """
+    Plot: Distribution of Daily RMSE (Unweighted vs. Vega-Weighted)
+
+    Plots a violin plot of the distribution of daily RMSE for all models, comparing
+    the distribution of the unweighted and vega-weighted results.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame containing the daily comparison results for all models.
+    save_path : str
+        The path where the plot will be saved.
+
+    Returns
+    -------
+    None
+    """
     unweighted_cols = {f'RMSE_{key}_Unweighted': props['name'] for key, props in STRATEGIES.items() if f'RMSE_{key}_Unweighted' in df.columns}
     weighted_cols = {f'RMSE_{key}_VegaWeighted': props['name'] for key, props in STRATEGIES.items() if f'RMSE_{key}_VegaWeighted' in df.columns}
     
@@ -383,11 +456,24 @@ def plot_rmse_distribution(df: pd.DataFrame, save_path: str):
 
 def plot_parameter_evolution(df: pd.DataFrame, save_path: str):
     """
-    Plots the evolution of each model parameter in a separate subplot,
-    arranged in a 4x2 grid.
+    Plot: Comparison of Model Parameter Evolution
+
+    Plots the evolution of the calibrated model parameters over time, comparing
+    the different models. The plot consists of a 4x2 grid of subplots, with each
+    subplot showing the evolution of one parameter. The x-axis represents the date of
+    the calibration, and the y-axis represents the value of the parameter.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame containing the daily comparison results for all models.
+    save_path : str
+        The path where the plot will be saved.
+
+    Returns
+    -------
+    None
     """
-    # --- FIX 1: Robustly find the parameter stems (e.g., 'a_1', 'sigma_1') ---
-    # This logic now correctly handles prefixes of any length.
     param_stems = sorted(list(set([
         '_'.join(col.split('_')[-2:]) for col in df.columns
         if ('_a_' in col or '_sigma_' in col) and col.startswith(tuple(STRATEGIES.keys()))
@@ -397,11 +483,9 @@ def plot_parameter_evolution(df: pd.DataFrame, save_path: str):
         print("Could not generate Plot 3: No parameter columns found.")
         return
 
-    # --- FIX 2: Create a 4x2 grid of subplots ---
     fig, axes = plt.subplots(4, 2, figsize=(18, 20), sharex=True)
     fig.suptitle('Comparison of Model Parameter Evolution', fontsize=20, y=0.99)
 
-    # --- FIX 3: Iterate over the flattened grid and stems together ---
     for ax, stem in zip(axes.flat, param_stems):
         for key, props in STRATEGIES.items():
             param_col = f"{key}_{stem}"
@@ -414,7 +498,6 @@ def plot_parameter_evolution(df: pd.DataFrame, save_path: str):
         ax.grid(True, which='both', linestyle='--')
         ax.legend()
 
-    # --- FIX 4: Add x-axis labels only to the bottom row ---
     for ax in axes[3, :]: # This selects the last row of axes
         ax.set_xlabel('Date', fontsize=12)
 
@@ -425,7 +508,18 @@ def plot_parameter_evolution(df: pd.DataFrame, save_path: str):
     print(f"Saved Plot 3: {save_path}")
 
 def plot_volatility_surface(df: pd.DataFrame, save_path_prefix: str):
-    """Plots the reconstructed volatility surfaces for the latest date."""
+    """
+    Plots the volatility surface reconstruction for a given evaluation date.
+
+    Parameters
+    ----------
+    df (pd.DataFrame): DataFrame containing the results of the Hull-White calibration process.
+    save_path_prefix (str): Prefix of the path where the plot will be saved.
+
+    Returns
+    -------
+    None
+    """
     if df.empty: return
     latest_date = pd.to_datetime(df['EvaluationDate']).max()
     date_str = latest_date.strftime('%Y-%m-%d')
@@ -457,7 +551,18 @@ def plot_volatility_surface(df: pd.DataFrame, save_path_prefix: str):
     print(f"Saved Plot 5: {save_path}")
 
 def plot_error_heatmaps(df: pd.DataFrame, save_path: str):
-    """Plots heatmaps of mean prediction errors in a 2x2 grid for all strategies."""
+    """
+    Generates a 2x2 grid of heatmaps representing the mean prediction errors of the Hull-White calibration models across the volatility surface.
+
+    Parameters
+    ----------
+    df (pd.DataFrame): DataFrame containing the results of the Hull-White calibration process.
+    save_path (str): Path where the plot will be saved.
+
+    Returns
+    -------
+    None
+    """
     df_copy = df.copy()
     df_copy['Expiry'] = df_copy['ExpiryStr'].apply(parse_tenor_to_years)
     df_copy['Tenor'] = df_copy['TenorStr'].apply(parse_tenor_to_years)
@@ -496,7 +601,18 @@ def plot_error_heatmaps(df: pd.DataFrame, save_path: str):
     print(f"Saved Plot 6: {save_path}")
     
 def plot_error_heatmaps_weighted(df: pd.DataFrame, save_path: str):
-    """Plots VEGA-WEIGHTED heatmaps of mean prediction errors in a 2x2 grid."""
+    """
+    Generates a 2x2 grid of heatmaps representing the vega-weighted mean squared error contribution of the Hull-White calibration models across the volatility surface.
+
+    Parameters
+    ----------
+    df (pd.DataFrame): DataFrame containing the results of the Hull-White calibration process.
+    save_path (str): Path where the plot will be saved.
+
+    Returns
+    -------
+    None
+    """
     if 'Vega' not in df.columns or df['Vega'].isnull().all():
         print("Could not generate weighted heatmaps: 'Vega' column not found or is empty.")
         return
@@ -542,7 +658,18 @@ def plot_error_heatmaps_weighted(df: pd.DataFrame, save_path: str):
     print(f"Saved Plot 6b: {save_path}")
 
 def plot_scatter_comparison(df: pd.DataFrame, save_path: str):
-    """Plots model vs. market volatility in a 2x2 grid for all strategies."""
+    """
+    Generates a 2x2 grid of scatter plots comparing the model implied volatilities to the observed market volatilities across all hold-out swaptions.
+
+    Parameters
+    ----------
+    df (pd.DataFrame): A pandas DataFrame containing the results of the Hull-White calibration process.
+    save_path (str): The path where the plot will be saved.
+
+    Returns
+    -------
+    None
+    """
     fig, axes = plt.subplots(2, 2, figsize=(14, 12), sharex=True, sharey=True)
     fig.suptitle('Model vs. Market Volatility on All Hold-Out Swaptions', fontsize=16)
 
@@ -573,7 +700,19 @@ def plot_scatter_comparison(df: pd.DataFrame, save_path: str):
     print(f"Saved Plot 10: {save_path}")
 
 def plot_error_by_bucket(df: pd.DataFrame, save_path: str, bucket_col: str):
-    """Generic function to plot error distribution by a specified bucket column."""
+    """
+    Generates a boxplot of the prediction errors across different buckets of a chosen feature (e.g. expiry, tenor, market volatility).
+
+    Parameters
+    ----------
+    df (pd.DataFrame): A pandas DataFrame containing the results of the Hull-White calibration process.
+    save_path (str): The path where the plot will be saved.
+    bucket_col (str): The column name of the feature to bucket the data by.
+
+    Returns
+    -------
+    None
+    """
     df_copy = df.copy()
     if bucket_col == 'Expiry':
         df_copy['Bucket'] = df_copy['ExpiryStr'].apply(parse_tenor_to_years)
@@ -627,7 +766,6 @@ if __name__ == '__main__':
         swaption_df = pd.read_csv(SWAPTION_CSV)
         print("Per-swaption data loaded successfully.")
 
-        # --- On-the-fly calculation of daily summary metrics ---
         summary_df_calculated = calculate_daily_rmse_metrics(swaption_df)
         summary_df_calculated['Date'] = pd.to_datetime(summary_df_calculated['Date'])
         
@@ -661,6 +799,15 @@ if __name__ == '__main__':
                 yield_curves[eval_date] = create_ql_yield_curve(zero_df, eval_date)
 
         def get_vega_for_row(row):
+            """
+            Calculates the vega value for a given swaption row.
+
+            Parameters:
+                row (pd.Series): A pandas Series containing the details of the swaption.
+
+            Returns:
+                float: The vega value of the swaption. If any error occurs, returns np.nan.
+            """
             eval_date = pd.to_datetime(row['EvaluationDate']).date()
             if eval_date in yield_curves:
                 yield_curve_handle = yield_curves[eval_date]
