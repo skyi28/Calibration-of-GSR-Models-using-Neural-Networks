@@ -47,11 +47,10 @@ import joblib
 import json
 import shap
 import matplotlib.pyplot as plt
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Tuple, Dict, Any
 
 from sklearn.model_selection import train_test_split
 
-# Import refactored and helper functions from the other project scripts
 from neural_network_calibration import (
     load_and_split_data_chronologically,
     create_ql_yield_curve,
@@ -79,14 +78,14 @@ FOLDER_NN_MODELS: str = os.path.join(RESULTS_DIR, 'neural_network/models')
 FOLDER_COMPARISON_RESULTS: str = os.path.join(RESULTS_DIR, 'comparison')
 
 # --- MODEL AND EVALUATION SETTINGS ---
-# Settings must match the ones used to train the NN model
+# Settings must match the ones used to train the NN model - see "neural_network_calibration.py"
 MODEL_SETTINGS = {
     "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True,
     "pricing_engine_integration_points": 32,
     "min_expiry_years": 2.0, "min_tenor_years": 2.0, "use_coterminal_only": False
 }
 
-# Settings for the traditional calibrator
+# Settings for the traditional calibrator with the initial guess obtained from the GA model
 TRADITIONAL_CALIBRATION_SETTINGS = {
     "num_a_segments": 1, "num_sigma_segments": 7, "optimize_a": True,
     "initial_a": 0.01821630830602023,
@@ -363,18 +362,13 @@ def calculate_dynamic_weight(
     while a high RMSE results in a low weight (reverting to the stable guess).
     """
     if np.isnan(previous_rmse):
-        # If the last run failed or is the first run, have minimum trust.
         return w_min
-
     # 1. Scale the error to a [0, 1] range
     scaled_error = (previous_rmse - min_error) / (max_error - min_error)
-
     # 2. Clamp the value to handle errors outside the defined range
     scaled_error = np.clip(scaled_error, 0.0, 1.0)
-
-    # 3. Linearly interpolate to find the weight (inverse relationship)
+    # 3. Linearly interpolate to find the weight
     dynamic_w = w_max - scaled_error * (w_max - w_min)
-    
     return dynamic_w
 
 # --- MAIN EXPERIMENT ---
@@ -385,16 +379,13 @@ if __name__ == '__main__':
     print("="*80)
 
     try:
-        # --- 1. Load Artifacts and Data ---
         os.makedirs(FOLDER_COMPARISON_RESULTS, exist_ok=True)
 
         list_of_model_dirs = glob.glob(os.path.join(FOLDER_NN_MODELS, 'model_*'))
         if not list_of_model_dirs:
             raise FileNotFoundError(f"No trained NN models found in {FOLDER_NN_MODELS}")
         latest_model_dir = max(list_of_model_dirs, key=os.path.getctime)
-        
         nn_artifacts = load_nn_artifacts(latest_model_dir)
-
         _, _, test_files = load_and_split_data_chronologically(
             FOLDER_ZERO_CURVES, FOLDER_VOLATILITY_CUBES
         )
@@ -410,11 +401,9 @@ if __name__ == '__main__':
         external_data = external_data.reindex(pd.date_range(start=min(all_dates), end=max(all_dates), freq='D')).ffill().bfill()
         print("External data loaded.")
         
-        # --- 2. Main Experimental Loop ---
         daily_summary_results = []
         per_swaption_results = []
         
-        # --- State Management for Strategies with Memory ---
         # Strategy 2: Pure Rolling (prone to drift)
         previous_pure_rolling_params = None
         # Strategy 3: Adaptive Anchor
@@ -425,13 +414,13 @@ if __name__ == '__main__':
         MIN_ERROR_THRESHOLD = 6.0  # RMSE below this is considered "good"
         MAX_ERROR_THRESHOLD = 12.0 # RMSE above this is considered "poor"
         W_MAX_TRUST = 0.95         # Weight for good performance
-        W_MIN_TRUST = 0.15         # Weight for poor performance (strong anchor)
+        W_MIN_TRUST = 0.15         # Weight for poor performance (strong anchor - pull to the initial guess provided by the GA model)
 
         print(f"\n--- Starting experiment on {len(test_files)} test days ---")
         for i, (eval_date, zero_path, vol_path) in enumerate(test_files):
             print(f"\nProcessing Day {i+1}/{len(test_files)}: {eval_date.strftime('%Y-%m-%d')}")
 
-            # a. Load daily data and create hold-out set
+            # Load daily data and create hold-out set
             zero_df = pd.read_csv(zero_path, parse_dates=['Date'])
             vol_df = load_volatility_cube(vol_path)
             term_structure = create_ql_yield_curve(zero_df, eval_date)
@@ -452,7 +441,7 @@ if __name__ == '__main__':
 
             print(f"  Split complete: {len(calibration_set)} for calibration, {len(holdout_set)} for hold-out evaluation.")
 
-            # b. Generate NN Parameters
+            # Generate NN Parameters
             ql_eval_date = ql.Date(eval_date.day, eval_date.month, eval_date.year)
             start_time_nn = time.perf_counter()
             feature_vector = prepare_nn_features(
@@ -463,9 +452,9 @@ if __name__ == '__main__':
             time_nn_sec = time.perf_counter() - start_time_nn
             print(f"  NN Prediction complete in {time_nn_sec:.6f} seconds.")
 
-            # --- c. Generate LM Parameters for all strategies ---
+            # --- Generate LM Parameters for all strategies ---
 
-            # --- STRATEGY 1: STATIC COLD START (The Baseline) ---
+            # --- STRATEGY 1: STATIC COLD START  ---
             print("  Running LM Strategy 1: Static Cold Start...")
             static_lm_settings = TRADITIONAL_CALIBRATION_SETTINGS.copy()
             start_time_lm_static = time.perf_counter()
@@ -494,12 +483,10 @@ if __name__ == '__main__':
             print("  Running LM Strategy 3: Adaptive Anchor...")
             static_guess_params = np.array([TRADITIONAL_CALIBRATION_SETTINGS['initial_a']] + TRADITIONAL_CALIBRATION_SETTINGS['initial_sigma'])
             rolling_guess_params = previous_adaptive_anchor_params if previous_adaptive_anchor_params is not None else static_guess_params
-            
             dynamic_w = calculate_dynamic_weight(
                 previous_adaptive_anchor_rmse, MIN_ERROR_THRESHOLD, MAX_ERROR_THRESHOLD, W_MIN_TRUST, W_MAX_TRUST
             )
             print(f"    -> Dynamic Anchor Weight: {dynamic_w:.4f} (based on previous RMSE of {previous_adaptive_anchor_rmse:.4f})")
-            
             blended_guess_params = dynamic_w * rolling_guess_params + (1 - dynamic_w) * static_guess_params
             
             adaptive_anchor_settings = TRADITIONAL_CALIBRATION_SETTINGS.copy()
@@ -514,19 +501,19 @@ if __name__ == '__main__':
             time_lm_adaptive_sec = time.perf_counter() - start_time_lm_adaptive
             params_lm_adaptive_anchor = np.concatenate([params_lm_adaptive_a, params_lm_adaptive_sigma]) if params_lm_adaptive_a else np.full(len(params_nn), np.nan)
 
-            # --- d. Evaluate all models on the Hold-Out Set ---
+            # --- Evaluate all models on the Hold-Out Set ---
             results_nn_df, rmse_nn = evaluate_on_holdout(params_nn, holdout_set, eval_date, term_structure, MODEL_SETTINGS)
             results_static_df, rmse_lm_static = evaluate_on_holdout(params_lm_static, holdout_set, eval_date, term_structure, MODEL_SETTINGS)
             results_pure_rolling_df, rmse_lm_pure_rolling = evaluate_on_holdout(params_lm_pure_rolling, holdout_set, eval_date, term_structure, MODEL_SETTINGS)
             results_adaptive_df, rmse_lm_adaptive_anchor = evaluate_on_holdout(params_lm_adaptive_anchor, holdout_set, eval_date, term_structure, MODEL_SETTINGS)
             print(f"  Evaluation on Hold-Out Set -> RMSE NN: {rmse_nn:.4f} | LM-Static: {rmse_lm_static:.4f} | LM-PureRolling: {rmse_lm_pure_rolling:.4f} | LM-Adaptive: {rmse_lm_adaptive_anchor:.4f}")
 
-            # --- e. Update State for Next Day's Loop ---
+            # --- Update State for Next Day's Loop ---
             previous_pure_rolling_params = params_lm_pure_rolling.copy() if not np.isnan(params_lm_pure_rolling).any() else None
             previous_adaptive_anchor_params = params_lm_adaptive_anchor.copy() if not np.isnan(params_lm_adaptive_anchor).any() else None
             previous_adaptive_anchor_rmse = rmse_lm_adaptive_anchor
 
-            # --- f. Collect Results ---
+            # --- Collect Results ---
             day_summary = {'Date': eval_date}
             param_sets = {
                 'NN': (params_nn, rmse_nn, time_nn_sec),
@@ -544,7 +531,7 @@ if __name__ == '__main__':
                     day_summary[f'{name}_sigma_{p_idx+1}'] = params[num_a + p_idx]
             daily_summary_results.append(day_summary)
 
-            # Merge granular per-swaption results
+            # Merge per-swaption results
             merged_df = results_nn_df.rename(columns={'ModelVol_bps': 'NN_ModelVol_bps', 'Error_bps': 'NN_Error_bps'})
             merged_df = pd.merge(merged_df, results_static_df.rename(columns={'ModelVol_bps': 'LM_Static_ModelVol_bps', 'Error_bps': 'LM_Static_Error_bps'}), on=['ExpiryStr', 'TenorStr', 'MarketVol_bps'])
             merged_df = pd.merge(merged_df, results_pure_rolling_df.rename(columns={'ModelVol_bps': 'LM_Pure_Rolling_ModelVol_bps', 'Error_bps': 'LM_Pure_Rolling_Error_bps'}), on=['ExpiryStr', 'TenorStr', 'MarketVol_bps'])
@@ -566,7 +553,7 @@ if __name__ == '__main__':
             swaption_df.to_csv(swaption_path, index=False)
             print(f"Per-swaption holdout results saved to: {swaption_path}")
 
-        # --- 4. Post-Hoc SHAP Analysis ---
+        # --- Post-Hoc SHAP Analysis ---
         perform_and_save_shap_analysis(
             nn_artifacts=nn_artifacts,
             test_files_list=test_files,
